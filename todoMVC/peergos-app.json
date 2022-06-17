@@ -1,0 +1,11 @@
+{
+    "displayName": "Todo List",
+    "description": "Based on Vanilla JS TodoMVC 2022: https://github.com/1Marc/todomvc-vanillajs-2022",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": true,
+	"folderAction": false,  
+	"appIcon": "logo-icon.png",  			
+    "permissions": ["STORE_APP_DATA"]
+}
+

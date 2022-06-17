@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>TUI Markdown editor</title>
+   	 	<link rel="stylesheet" href="toastui-editor.css">
+    	<script src="toastui-editor-min.js"></script>
+  </head>
+  <body>
+	  	<div id="editor"></div>
+        <script>
+                let href = window.location.href
+				let url = new URL(href);
+				let filePath = url.searchParams.get("path");
+				let baseDirectory = filePath.substring(0, filePath.lastIndexOf('/') + 1);
+				let theme = url.searchParams.get("theme");
+				let editorTheme = theme == 'dark-mode' ? 'dark' : 'light';
+				console.log("loading: " + filePath);	
+				var saving = false;
+            function createSaveButton() {
+        		const button = document.createElement('button');
+        		button.className = 'toastui-editor-toolbar-icons last';
+        		button.style.backgroundImage = 'none';
+        		button.style.margin = '0';
+        		button.style.fontSize = 'large';
+        		button.innerHTML = `<i>Save</i><i id='in-progress' style="display: none">...</i>`;
+        		button.addEventListener('click', () => {
+        			if (saving) {
+        				return;
+        			}
+        			saving = true;
+          			let contents = editor.getMarkdown();          			
+          			let progress = document.getElementById('in-progress');
+          			progress.style.display = '';          			
+          			var headers = {};
+  					let encoder = new TextEncoder();
+    				let body = encoder.encode(contents);
+  					fetch(filePath, { method: 'PUT', headers: headers, body: body })
+    				.then(function(response) {
+          			    progress.style.display = 'none';
+          			    saving = false;
+          			    if (response.status != 200) {
+      						console.log('unable to save document:' + response.status);
+      					}
+    				});             
+        		});
+
+        		return button;
+      		}
+            function startEditor(text) {
+			    editor = new toastui.Editor({
+        			el: document.querySelector('#editor'),
+        			height: (window.innerHeight -5) + 'px',
+        			initialValue: text,
+        			initialEditType: 'wysiwyg',
+        			theme: editorTheme,
+        			usageStatistics: false,
+        			toolbarItems: [
+          					['heading', 'bold', 'italic', 'strike'],
+          					['hr', 'quote'],
+          					['ul', 'ol', 'task', 'indent', 'outdent'],
+          					['table'],//, 'image', 'link'],
+          					['code', 'codeblock'],
+          					[{
+								el: createSaveButton(),
+            					command: null,
+           			 			tooltip: 'Save'
+          					}]
+        			],
+  					customHTMLRenderer: {
+    					image(node, context) {
+      						var src = node.destination;
+      						if (src.startsWith('./')) {
+        						src = baseDirectory + src.substring(2);
+      						} else if (src.startsWith(baseDirectory)) {
+      							src = src;
+      						} else if (src.startsWith('/')) {
+        						src = baseDirectory + src.substring(1);
+      						} else {
+        						src = baseDirectory + src;
+      						}
+      						context.skipChildren();
+      						return { type: 'openTag', tagName: 'img', selfClose: true, attributes: { src } };
+    					}
+  					},
+      			});      			
+       		}
+        	var editor = null;
+			fetch(filePath, { method: 'GET' }).then(function(response) {
+      			if (response.status === 200) {
+					response.arrayBuffer().then(function(buffer) {
+						let text = new TextDecoder().decode(buffer);
+	    				startEditor(text);   
+    				});
+      			} else {
+      				console.log('nothing loaded...');
+      			}
+			});   
+        </script>
+  </body>
+</html>
+
+

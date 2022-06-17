@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <title>TUI Image Editor</title>
+    <link type="text/css" href="tui-image-editor.css" rel="stylesheet">
+    <style>
+    body {
+        margin: 0px;
+    }
+    </style>
+  </head>
+  <body>
+    <div id="tui-image-editor-container" class="tui-image-editor-container bottom" style="width: 100%; height: 100%;">
+	</div>
+    <script type="text/javascript" src="tui-image-editor.js"></script>
+    <script>
+        	let href = window.location.href
+			let url = new URL(href);
+			let filePath = url.searchParams.get("path");
+			console.log("loading: " + filePath);	
+      		var imageEditor = new tui.ImageEditor('#tui-image-editor-container', {
+        		includeUI: {
+      				loadImage: {
+        				path: filePath,
+            			name: filePath,
+          			},
+          			theme: blackTheme, // or whiteTheme. theming currently not working due to CSP limitation
+          			initMenu: 'filter',
+          			menuBarPosition: 'bottom',
+          			uiSize: {
+      					width: window.innerWidth + 'px',
+      					height: (window.innerHeight - 10) + 'px'
+      				},
+        		},
+        		cssMaxWidth: 700,
+        		cssMaxHeight: 500,
+    			usageStatistics: false,
+  			});
+      		let loadBtn = document.getElementById('loadBtnId');
+      		loadBtn.style.display = 'none';
+      		let saveBtn = document.getElementById('downloadBtnId');
+			saveBtn.innerText = 'Save';
+	      	window.onresize = function () {
+	      		//FIXME
+    	    	imageEditor.ui.resizeEditor();
+      		};
+    </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+    "displayName": "TUI Image Editor",
+    "description": "Based on TUI Image Editor - https://github.com/nhn/tui.image-editor",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": false,
+	"folderAction": false,    			
+    "fileTypes": ["image"],	    	
+    "permissions": ["EDIT_CHOSEN_FILE"]
+}
+
