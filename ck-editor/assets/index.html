@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+	<head>
+		<title>CKEditor 5</title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<link rel="stylesheet" type="text/css" href="styles.css">
+	</head>
+	<body data-editor="DecoupledDocumentEditor" data-collaboration="false" data-revision-history="false">
+		<main>
+			<div><span><center class="editor-status" style="min-height:30px"></center></span></div>
+			<div class="header" style="position: absolute; top: 10px; right: 10px;">
+				<i id="savingId" style="display: none; font-size: x-large">Updating...</i>
+			</div>
+			<div class="centered">
+				<div class="row">
+					<div class="document-editor__toolbar"></div>
+				</div>
+				<div class="row row-editor">
+					<div class="editor-container">
+						<div class="editor">
+						</div>
+					</div>
+				</div></div>
+			</div>
+		</main>
+		<script src="ckeditor.js"></script>
+		<script>
+		        let href = window.location.href
+				let url = new URL(href);
+				let filePath = url.searchParams.get("path");
+				var ignoreInitalSave = true;
+				DecoupledDocumentEditor.create( document.querySelector( '.editor' ), {					
+					autosave: {
+						waitingTime: 2000, // in ms
+            			save( editor ) {
+                			return saveData( editor.getData() );
+            			}
+        			},					
+				} )
+				.then( editor => {
+					window.editor = editor;
+    				const statusIndicator = document.querySelector( '.editor-status' );
+            		statusIndicator.innerText = 'Loading...';
+					fetch(filePath, { method: 'GET' }).then(function(response) {
+            			statusIndicator.innerText = '';
+      					if (response.status === 200) {
+							response.arrayBuffer().then(function(buffer) {
+								let text = new TextDecoder().decode(buffer);
+								editor.setData(text);
+								document.querySelector( '.document-editor__toolbar' ).appendChild( editor.ui.view.toolbar.element );
+								document.querySelector( '.ck-toolbar' ).classList.add( 'ck-reset_all' );
+    						});
+      					} else {
+      						console.log('nothing loaded...');
+      					}
+					});  
+					
+				} )
+				.catch( error => {
+					console.error( error );
+				} );
+				function saveData() {
+					let data = window.editor.getData();
+					return new Promise( resolve => {
+						if (ignoreInitalSave) {
+							ignoreInitalSave = false;
+            				resolve();
+						} else {
+		    				const statusIndicator = document.querySelector( '.editor-status' );
+		            		statusIndicator.innerText = 'Saving...';
+        					var headers = {};
+  							let encoder = new TextEncoder();
+    						let body = encoder.encode(data);
+  							fetch(filePath, { method: 'PUT', headers: headers, body: body })
+    						.then(function(response) {
+          	  				statusIndicator.innerText = '';
+          				    	if (response.status != 200) {
+      								console.log('unable to save document:' + response.status);
+      							}
+            					resolve();
+    						});     
+    					}				
+    				});					
+				}
+		</script>
+	</body>
+</html>

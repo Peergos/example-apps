@@ -1,0 +1,12 @@
+{
+    "displayName": "CK Editor",
+    "description": "Based on CK Editor: https://github.com/ckeditor/ckeditor5",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": false,
+    "folderAction": false,    			
+    "fileExtensions": ["html"],	    
+    "appIcon": "logo-icon.png", 	
+    "permissions": ["EDIT_CHOSEN_FILE"]
+}
+
