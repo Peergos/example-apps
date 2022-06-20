@@ -1,0 +1,9 @@
+{
+    "displayName": "Doom",
+    "description": "Doom (Shareware) running inside jsdosbox: https://sourceforge.net/projects/jsdosbox",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": true,
+	"folderAction": false
+}
+
