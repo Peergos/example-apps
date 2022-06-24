@@ -1,11 +1,11 @@
 {
-    "displayName": "SkyMap",
+    "displayName": "Sky map",
     "description": "Based on IK-Pegasi: https://sourceforge.net/projects/ikpegasi",
     "version": "1.0.0",
     "author": "peergos",
     "launchable": true,
 	"folderAction": false,  
 	"appIcon": "logo-icon.png",  			
-    "permissions": ["STORE_APP_DATA"]
+    "permissions": []
 }
 
