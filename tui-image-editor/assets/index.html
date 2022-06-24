@@ -19,13 +19,15 @@
 			let url = new URL(href);
 			let filePath = url.searchParams.get("path");
 			console.log("loading: " + filePath);	
+			let theme = url.searchParams.get("theme");
+			let editorTheme = theme == 'dark-mode' ? blackTheme : whiteTheme;
       		var imageEditor = new tui.ImageEditor('#tui-image-editor-container', {
         		includeUI: {
       				loadImage: {
         				path: filePath,
             			name: filePath,
           			},
-          			theme: blackTheme, // or whiteTheme. theming currently not working due to CSP limitation
+          			theme: editorTheme,
           			initMenu: 'filter',
           			menuBarPosition: 'bottom',
           			uiSize: {
