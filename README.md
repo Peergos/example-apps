@@ -1,6 +1,14 @@
 # example-apps
 A collection of example apps for running in Peergos
 
+### Installation
+1. From the top of this page click the green 'Code' button and select 'Download Zip'.
+2. Unzip file and upload desired application folder to Peergos
+3. Navigate into application folder, open the context menu for the file 'peergos-app.json' and choose 'Install App'
+4. Make sure to take note of the file associations and permissions requested
+5. Installed Apps are displayed on the Launcher page (top icon in left menu)
+
+
 ## CK-Editor
 #### https://github.com/ckeditor/ckeditor5
 
