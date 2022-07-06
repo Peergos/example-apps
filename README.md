@@ -45,3 +45,11 @@ Rich text editor. Loads/Saves .html files
 #### https://sourceforge.net/projects/ikpegasi
 
 ![Sky map](./screenshots/skymap.png)    
+
+## Chat-api
+Example of how to use the chat-api for App communication (eg multi-player games)
+
+
+
+
+

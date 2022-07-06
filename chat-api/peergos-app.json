@@ -1,0 +1,6 @@
+{
+    	"displayName": "Chat-api",
+    	"description": "Example using chat API",
+    	"launchable": true,    	
+    	"permissions": ["EXCHANGE_MESSAGES_WITH_FRIENDS"]
+}

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <style type="text/css">
+.chat-container{max-width:1170px; margin:auto;}
+.chat-border {
+  border: 1px solid #c4c4c4;
+  clear: both;
+  overflow: hidden;
+}
+
+.received-message-container {
+  display: inline-block;
+  padding: 0 0 0 10px;
+  vertical-align: top;
+  width: 92%;
+ }
+.received-message { width: 57%;}
+.received-message p {
+  background: #ebebeb none repeat scroll 0 0;
+  border-radius: 3px;
+  color: #646464;
+  font-size: 24px;
+  margin: 0;
+  padding: 5px 10px 5px 12px;
+  width: 100%;
+}
+.chat-message-info {
+  color: #747474;
+  display: block;
+  font-size: 22px;
+  margin: 8px 0 0;
+}
+.chat-messages {
+  float: left;
+  padding: 30px 15px 0 25px;
+  width: 100%;
+}
+.sent-message {
+  float: right;
+  width: 50%;
+}
+.sent-message p {
+  background: #05728f none repeat scroll 0 0;
+  border-radius: 3px;
+  font-size: 24px;
+  margin: 0; color:#fff;
+  padding: 5px 10px 5px 12px;
+  width:100%;
+}
+.sent-message-container{ overflow:hidden; margin:26px 0 26px;}
+.new-message input {
+  background: rgba(0, 0, 0, 0) none repeat scroll 0 0;
+  border: medium none;
+  color: #4c4c4c;
+  font-size: 15px;
+  min-height: 48px;
+  width: 100%;
+}
+.new-message-container {border-top: 1px solid #c4c4c4;position: relative;}
+.send-new-message-btn {
+    background: #05728f none repeat scroll 0 0;
+    border: medium none;
+    border-radius: 50%;
+    color: #fff;
+    cursor: pointer;
+    font-size: 21px;
+    position: absolute;
+	right: 40px;
+    top: 5px;
+    padding-right: 10px;
+}
+.chat-messaging { padding: 0 0 50px 0;}
+.chat-messages-container {
+  height: 516px;
+  overflow-y: auto;
+}    
+</style>
+</head>
+<body>
+<div class="chat-container">
+<div class="chat-messaging">
+      <div class="chat-border">
+        <div class="chat-messages">
+          <div id="chatMessagesId" class="chat-messages-container">
+          	<div id="initId"><center><h1>Initialising...</h1></center></div>
+          </div>
+          <div id="message-panel" style="display: none" class="new-message-container">
+            <div class="new-message">
+              <input id="newMsgId" type="text" placeholder="Type here">
+              <button class="send-new-message-btn" type="button" onclick="sendMessage()"><img src="paper-plane.png" /></button>
+            </div>
+          </div>
+        </div>
+      </div>
+</div>
+</div>
+<script>
+function addMessage(isSent, msgText, author) {
+	let container = document.getElementById('chatMessagesId');
+
+    var div = document.createElement("div");
+    let style1 = isSent ? "sent-message-container" : 'received-message-container';
+    div.classList.add(style1);
+
+    var div2 = document.createElement("div");
+    let style2 = isSent ? "sent-message" : 'received-message';
+    div2.classList.add(style2);
+	div.appendChild(div2);
+            
+    var p = document.createElement("p");
+    p.innerText = msgText;
+	div2.appendChild(p);
+
+    var span = document.createElement("span");
+    span.classList.add("chat-message-info");
+    span.innerText = author;
+	div2.appendChild(span);
+                
+	container.appendChild(div);
+}
+
+var ChatState = {
+	chatId: null,
+	messagesRead : 0,
+	maxInvites: 1
+};
+
+let href = window.location.href
+var url = new URL(href);
+var chatId = url.searchParams.get("chatId");
+console.log("chatId=" + chatId);
+var username = url.searchParams.get("username");
+
+if (chatId == null) {
+   	let func = () => createChat("new Chat", () => mainLoop());	
+   	listChats(func);		
+} else {
+   	ChatState.chatId = chatId;
+   	document.getElementById('initId').style.display = 'none';
+	mainLoop();
+}
+	
+function listChats(callback) {
+	fetch('/peergos-api/v0/chat/', { method: 'GET' })
+    .then(function(response) {
+      	if (response.status === 200) {
+			response.arrayBuffer().then(function(buffer) {
+    			let body = new TextDecoder().decode(buffer);
+  				let messages = JSON.parse(body);
+				for(var i = 0; i < messages.length; i++) {
+					let message = messages[i];
+					console.log('chatId=' + message.chatId + " title=" + message.title);			
+				}
+				callback();
+    		});
+      	} else {
+      		console.log('call to get messages failed');
+      	}
+	});	
+}
+
+function createChat(title, callback) {
+	let data = new FormData();
+	data.append("title", "Chat");
+	data.append("maxInvites", 	ChatState.maxInvites);
+	console.log('creating chat');
+	fetch('/peergos-api/v0/chat/', { method: 'POST', headers: {}, body: data }).then(function(response) {
+      		if (response.status === 201) {
+    			ChatState.chatId = response.headers.get('location');    			
+    			document.getElementById('initId').style.display = 'none';
+    			callback();
+      		} else {
+      			console.log('chat not created');
+      		}
+	});
+
+}
+function mainLoop() {
+	console.log('looping...');
+	getMessages((messages) => {
+		for(var i = 0; i < messages.length; i++) {
+			let message = messages[i];
+			if(message.type == 'Application') {
+				let text = message.text;
+				let author = message.author
+				let timestamp = message.timestamp;
+				addMessage(username == author, text, author + ' | ' + timestamp);
+			}			
+		}
+    	document.getElementById('message-panel').style.display = '';			
+		setTimeout(() => mainLoop(), 5000);
+	});	
+}
+function sendMessage() {
+	let messageInput = document.getElementById('newMsgId');
+	let messageText = messageInput.value;
+	if (messageText.length > 0) {
+		postMessage(messageText, () => {
+			messageInput.value = '';
+		});
+	}
+}
+function getMessages(callback) {
+	let params = '?from=' + ChatState.messagesRead + '&to=' + (ChatState.messagesRead + 10); 
+	fetch('/peergos-api/v0/chat/' + ChatState.chatId + params, { method: 'GET' })
+    .then(function(response) {
+      	if (response.status === 200) {
+			response.arrayBuffer().then(function(buffer) {
+    			let body = new TextDecoder().decode(buffer);
+  				console.log('response body=' + body);
+  				let items = JSON.parse(body);
+  				ChatState.messagesRead = ChatState.messagesRead + items.count;
+  				callback(items.messages);
+    		});
+      	} else {
+      		console.log('call to get messages failed');
+      	}
+	});	
+}
+function postMessage(text, callback) {
+    let data = new FormData();
+	data.append("text", text);
+  	fetch('/peergos-api/v0/chat/' + ChatState.chatId, { method: 'PUT', headers: {}, body: data })
+    	.then(function(response) {
+      		if (response.status === 201) {
+    			callback();
+      		} else {
+      			console.log('message not posted');
+      		}
+    	}); 
+}
+</script>
+</body>
+</html>
+
+
