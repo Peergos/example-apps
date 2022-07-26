@@ -1,0 +1,9 @@
+{
+    "displayName": "TiddlyWiki 5",
+    "description": "Based on TiddlyWiki 5: https://github.com/Jermolene/TiddlyWiki5",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": true,
+    "permissions": ["STORE_APP_DATA"]	
+}
+
