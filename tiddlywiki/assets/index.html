@@ -1,9 +1,23 @@
 <html>
 <body>
 <script>
-var addr = '/peergos-api/v0/data/index.html';
-//console.log("addr=" + addr);
-window.location.replace(addr);
+	let href = window.frames.frameElement.contentWindow.location.href
+	var url = new URL(href);
+	var filePath = url.searchParams.get("path");
+	console.log("filePath=" + filePath);
+		fetch(filePath, { method: 'GET' }).then(function(response) {				
+      		if (response.status === 200) {
+				response.text().then(function(txt) {
+					if (txt.includes('<meta name="copyright" content="TiddlyWiki created by Jeremy Ruston, (jeremy [at] jermolene [dot] com)')) {
+						window.location.replace(filePath);    				
+					} else {
+		      			console.log('not a TiddlyWiki file...');
+					}
+    			});
+      		} else {
+      			console.log('nothing loaded...');
+      		}
+		});	
 </script>
 </body>
 </html>
