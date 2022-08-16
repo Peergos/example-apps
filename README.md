@@ -39,6 +39,7 @@ Rich text editor. Loads/Saves .html files
 ## TiddlyWiki 5 - a non-linear personal web notebook
 #### https://github.com/Jermolene/TiddlyWiki5
 
+![TiddlyWiki](./screenshots/tiddlyWiki.png)
 
 ## Doom (Shareware) running inside jsdosbox
 #### https://sourceforge.net/projects/jsdosbox
