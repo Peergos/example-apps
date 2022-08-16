@@ -1,6 +1,13 @@
 # example-apps
 A collection of example apps for running in Peergos
 
+If you stumbled here without knowing what Peergos is, try this:
+
+[![Intro to Peergos](https://img.youtube.com/vi/REc8QfKxTik/0.jpg)](https://youtu.be/REc8QfKxTik)
+
+github.com/Peergos/peergos
+
+
 ### Installation
 1. From the top of this page click the green 'Code' button and select 'Download Zip'.
 2. Unzip file and upload desired application folder to Peergos
