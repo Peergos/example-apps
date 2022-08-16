@@ -9,6 +9,9 @@ A collection of example apps for running in Peergos
 5. Installed Apps are displayed on the Launcher page (top icon in left menu)
 
 
+### Developer documentation
+#### https://book.peergos.org/features/apps.html
+
 ## CK-Editor
 #### https://github.com/ckeditor/ckeditor5
 
