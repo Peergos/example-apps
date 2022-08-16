@@ -5,6 +5,8 @@ If you stumbled here without knowing what Peergos is, try this:
 
 [![Intro to Peergos](https://img.youtube.com/vi/REc8QfKxTik/0.jpg)](https://youtu.be/REc8QfKxTik)
 
+If you are inspired to create apps, consult documentation: https://book.peergos.org/features/apps.html
+
 github.com/Peergos/peergos
 
 
