@@ -67,6 +67,17 @@ Example of how to use the chat-api for App communication (eg multi-player games)
 ![Chat-api](./screenshots/chat-api.png)  
 
 
+## Chess
+#### https://github.com/webxdc/ChessBoard.xdc
+
+![Chess](./screenshots/chess.png)  
+
+
+## TicTacToe
+#### https://github.com/webxdc/tictactoe.xdc
+
+![TicTacToe](./screenshots/tictactoe.png)  
+
 
 
 

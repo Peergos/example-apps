@@ -1,0 +1,9 @@
+{
+    	"displayName": "Chess",
+    	"description": "Based on: https://github.com/webxdc/ChessBoard.xdc",
+    	"version": "1.0.0",
+    	"author": "peergos",
+    	"launchable": true,    
+    	"appIcon": "icon.png", 	
+    	"permissions": ["EXCHANGE_MESSAGES_WITH_FRIENDS"]
+}
