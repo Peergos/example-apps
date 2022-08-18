@@ -1,7 +1,7 @@
 {
     	"displayName": "TicTacToe",
     	"description": "Based on: https://github.com/webxdc/tictactoe.xdc",
-    	"version": "1.0.0",
+    	"version": "1.0.1",
     	"author": "peergos",    	
     	"launchable": true,    
     	"appIcon": "icon.png", 	

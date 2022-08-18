@@ -1,36 +1,33 @@
 // debug friend: document.writeln(JSON.stringify(value));
 //@ts-check
 /** @type {import('./webxdc').Webxdc<any>} */
-//quick hack to get this to work in peergos
-//TODO get rid of use of localStorage
 window.webxdc = (() => {
     var updateListener = (_) => {};
-    var updatesKey = "__xdcUpdatesKey__";
-    window.addEventListener('storage', (event) => {
-        if (event.key == null) {
-            window.location.reload();
-        } else if (event.key === updatesKey) {
-            var updates = JSON.parse(event.newValue);
-            var update = updates[updates.length-1];
-            update.max_serial = updates.length;
-            console.log("[Webxdc] " + JSON.stringify(update));
-            updateListener(update);
-        }
-    });
-    window.localStorage.clear();
 	var messagesRead = 0;
     let href = window.location.href
     let url = new URL(href);
     let username = url.searchParams.get("username");
     var chatId = url.searchParams.get("chatId");
     var polling = false;
+    let messagesSeen = new Map();
     function poll() {
-        getUpdates(updates => {
-            updates.forEach((update) => {
-                updateListener(update);
+        try {
+            getUpdates(updates => {
+                updates.forEach((update) => {
+                    updateListener(update);
+                });
+                setTimeout(() => poll(), 5000);
             });
+        } catch(err) {
+            console.log('Unexpected error: ' + err);
             setTimeout(() => poll(), 5000);
-        });
+        }
+    }
+    //https://stackoverflow.com/questions/105034/how-to-create-guid-uuid
+    function uuid() {
+      return  ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+      );
     }
     function getChatUpdates(callback) {
         if (chatId == null) {
@@ -54,31 +51,23 @@ window.webxdc = (() => {
 	}
     function getUpdates(callback) {
         getChatUpdates( msgs => {
-            if (chatId == null) {
-                callback([]);
-            }
-            var updatesJSON = window.localStorage.getItem(updatesKey);
-            if (updatesJSON == null) {
-                updatesJSON = [];
-            } else {
-                updatesJSON = JSON.parse(updatesJSON);
-            }
             let newAppMsgs = [];
+            if (chatId == null) {
+                callback(newAppMsgs);
+            }
             for(var i = 0; i < msgs.length; i++) {
                 let update = msgs[i];
                 if (update.type == 'Application') {
                     let appMsg = window.atob(update.text);
                     let msg = JSON.parse(appMsg);
-                    updatesJSON.push(msg);
-                    newAppMsgs.push(msg);
+                    let existingMsg = messagesSeen.get(msg.uuid);
+                    if (existingMsg == null) {
+                        newAppMsgs.push(msg);
+                        messagesSeen.set(msg.uuid, '');
+                    }
                 }
             }
-            if (updatesJSON.length > 0) {
-                window.localStorage.setItem(updatesKey, JSON.stringify(updatesJSON));
-                callback(newAppMsgs);
-            } else {
-                callback([]);
-            }
+            callback(newAppMsgs);
         });
     }
 
@@ -125,7 +114,10 @@ window.webxdc = (() => {
                 updates.push(_update);
                 let data = new FormData();
                 _update.max_serial = serial;
+                _update.uuid = uuid();
                 data.append("text", window.btoa(JSON.stringify(_update)));
+                updateListener(_update);
+                messagesSeen.set(_update.uuid, '');
                 fetch('/peergos-api/v0/chat/' + chatId, { method: 'PUT', headers: {}, body: data })
                     .then(function(response) {
                     if (response.status === 201) {
