@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AV Recorder</title>
+  </head>
+  <body>
+  <div>
+    <h3> Video Capture</h3>
+  </div>
+    <div>
+      <div>
+        <label id="error"></label>
+      </div>
+      <button id="captureBtn" onclick="invokeAction()">Start capture</button>
+      <center>
+        <video id="preview" style="width:640px;" autoplay="autoplay" muted="muted" />
+      </center>
+    </div>
+    <script>
+        let START = "Start capture";
+        let ACTIVATING = "Activating capture...";
+        let STOP = "Stop capture";
+        let STOPPING = "Stopping capture...";
+
+        let state = {
+            captureChunks:[],
+            finalCaptureChunks:[],
+            isFinished: false,
+            firstChunk: true,
+            recorder: null
+        }
+        function setError(text) {
+            let el = document.getElementById("error");
+            el.textContent = text;
+        }
+        function setAction(text) {
+            let el = document.getElementById("captureBtn");
+            el.textContent = text;
+        }
+        function getAction() {
+            let el = document.getElementById("captureBtn");
+            return el.textContent;
+        }
+        function createCaptureFilename() {
+            let date = new Date();
+            return "recording-" + date.getFullYear() + "-" + formatAs2Digits(date.getMonth())
+                + "-" + formatAs2Digits(date.getDate()) + "T"
+                + formatAs2Digits(date.getHours()) + "." + formatAs2Digits(date.getMinutes())
+                + "." + formatAs2Digits(date.getSeconds()) + ".mov";
+        }
+        function formatAs2Digits(digitsAsStr) {
+            let digitsAsInt = Number(digitsAsStr);
+            if(digitsAsInt < 10) {
+                return "0" + digitsAsStr;
+            }
+            return digitsAsStr;
+        }
+        function startCapture() {
+            state.isFinished = false;
+            state.captureChunks = [];
+            state.finalCaptureChunks =[];
+            let preview = document.getElementById("preview");
+            navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: false //FIXME need to enable
+            }).then(stream => {
+                preview.srcObject = stream;
+                /*var options = { //FIXME needs to be optimised
+                  audioBitsPerSecond : 128000, //64000,
+                  videoBitsPerSecond : 128000 //64000
+                }*/
+                //this.recorder = new MediaRecorder({ mimeType: 'video/webm; codecs="vp8, opus"'  });
+                try {
+                    state.recorder = new MediaRecorder(stream);//, options);
+                    setAction(ACTIVATING);
+                    state.recorder.ondataavailable = function(event) {
+                        //not supported on mac :( event.data.arrayBuffer().then(ab => {
+                        new Response(event.data).arrayBuffer().then(ab => {
+                            if(ab.byteLength > 0) {
+                                if(!state.isFinished) {
+                                    state.captureChunks.push(ab);
+                                } else {
+                                    state.finalCaptureChunks.push(ab);
+                                }
+                            }
+                        });
+                    };
+                    state.recorder.onstop = function() {
+                        state.isFinished = true;
+                    }
+                    state.recorder.start();
+                    waitingUntilRecording(createCaptureFilename());
+                } catch (ex) {
+                    setError("MediaRecorder functionality not supported on your device");
+                }
+            });
+        }
+        function waitingUntilRecording(filename) {
+            if(isRecording()) {
+                let vbps = state.recorder.videoBitsPerSecond;
+                let abps = state.recorder.audioBitsPerSecond;
+                console.log("v bps:" + vbps + " a bps:" + abps);
+                setTimeout(function(){ //it seems i have to wait a bit before i can call requestData
+                    setAction(STOP);
+                    try {
+                        state.recorder.requestData();
+                        mainLoop(filename, false);
+                    } catch (ex) {
+                        mainLoop(filename, false); //recording saved when finished
+                    }
+                }, 3000);
+            } else {
+                setTimeout(function(){ waitingUntilRecording(filename);}, 100);
+            }
+        }
+        function mainLoop(filename, inError) {
+            let chunk = state.captureChunks.shift();
+            if (chunk != null) {
+                if(!inError) {
+                    appendRecording(filename, chunk, function(res){
+                        //console.log("videocapture-now=" + new Date());
+                        if (res) {
+                            if(!state.isFinished) {
+                            	try {
+	                                state.recorder.requestData();
+                                } catch (ex) {
+                                }
+                            }
+                        } else {
+                            inError = true;
+                            handleError();
+                        }
+                        setTimeout(function(){ mainLoop(filename, inError); }, 100);
+                    });
+                }
+            } else {
+                if(state.isFinished) {
+                    setTimeout(function(){ handleLastChunks(filename); }, 2000);//wait a bit
+                } else {
+                    setTimeout(function(){ mainLoop(filename, inError); }, 100);
+                }
+            }
+        }
+        function handleLastChunks(filename) {
+            let chunk = state.finalCaptureChunks.shift();
+            if (chunk != null) {
+                appendRecording(filename, chunk, function(res){
+                    //console.log("last-chunk-videocapture-now=" + new Date());
+                    setTimeout(function(){ handleLastChunks(); }, 2000);
+                });
+            } else {
+                setAction(START);
+                state.recorder = null;
+                state.firstChunk = true;
+            }
+        }
+        function appendRecording(filename, chunk, callback) {
+	      	console.log("appending...");
+	      	if (state.firstChunk) {
+		      	state.firstChunk = false;
+	      		let headers = {};
+          		fetch('/peergos-api/v0/data/recordings/' + filename, { method: 'PUT', headers: headers, body: chunk })
+              		.then(function(response) {
+                  		console.log('save response status:' + response.status);
+                  		callback(response.status == 201);
+              		});
+        	} else {
+          		var headers = {'X-Update-Range': 'append', 'Content-Length' : chunk.byteLength};
+  	      		fetch('/peergos-api/v0/data/recordings/' + filename, { method: 'PATCH', headers: headers, body: chunk })
+              		.then(function(response) {
+                  		console.log('save response status:' + response.status);
+                  		callback(response.status == 204);
+              		});
+    		}
+        }
+        function isRecording() {
+            return state.recorder != null && state.recorder.state != 'inactive';
+        }
+        function handleError() {
+            setError("Unable to record");
+            stopRecorder();
+        }
+        function stopRecorder() {
+            if(isRecording()) {
+                state.recorder.stop();
+            }
+        }
+        function stopRecording() {
+            setAction(STOPPING);
+            stopRecorder();
+        }
+        function invokeAction() {
+            let action = getAction();
+            if(action == START) {
+                startCapture();
+            } else if(action == STOP){
+                stopRecording();
+            } else if(action == ACTIVATING){
+                //need to wait until recording starts
+            } else if(action == STOPPING){
+                //need to wait until previous recording is complete before starting anew
+            }
+        }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,8 @@
+{
+    	"displayName": "AV Recorder",
+    	"description": "Record from webcam",
+    	"version": "1.0.0",
+    	"author": "peergos",    	
+    	"launchable": true,    
+    	"permissions": ["STORE_APP_DATA", "ALLOW_CAMERA"]
+}
