@@ -26,6 +26,13 @@ Rich text editor. Loads/Saves .html files
 
 ![html editor](./screenshots/ck-editor.png)    
 
+
+## .docx extractor. Save content as .html (Formatting not preserved)
+#### https://gitlab.coko.foundation/XSweet/XSweet
+
+**Before installing, download SaxonJS2.js from https://www.saxonica.com/saxon-js/index.xml and copy into assets folder**
+
+
 ## TUI Image Editor
 #### https://github.com/nhn/tui.image-editor
 

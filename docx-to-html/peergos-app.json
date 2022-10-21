@@ -1,0 +1,10 @@
+{
+    	"displayName": "Docx to html",
+    	"description": "Convert .DOCX file to HTML",
+    	"version": "1.0.0",
+    	"author": "peergos",    	
+    	"launchable": false,    
+    	 "folderAction": false,    			
+    	"fileExtensions": ["docx"],	
+    	"permissions": []
+}

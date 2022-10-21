@@ -1,0 +1,311 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>DOCX to HTML</title>
+  <meta charset="utf-8" />
+  <script src="SaxonJS2.js"></script>
+  <script src="jszip.min.js"></script>
+  <script>
+function CustomPlatform(plat){
+	this.platform = plat;
+	this.name = "Browser";
+	this.extraProperties = {platform: 'Browser'};
+	this.addDoc = function(B,n,g,e){
+		return this.platform.addDoc(B,n,g,e);
+	}
+	this.addMultipleDocs = function(B,n,g,e){
+		return this.platform.addMultipleDocs(B,n,g,e);
+	}
+	this.asyncGet = function(B,n,g){
+		return this.platform.asyncGet(B,n,g);
+	}
+	this.baseURL = function(){
+		return this.platform.baseURL();
+	}
+	this.createDocument = function(){
+		return this.platform.createDocument();
+	}
+	this.expose = function(B,n){
+		this.platform.expose(B,n);
+	}
+	this.fromUTF8 = function(B){
+		return this.platform.fromUTF8(B);
+	}
+	this.getDefaultDeliverMessage = function(){
+		return this.platform.getDefaultDeliverMessage();
+	}
+	this.getPromise = function(B,n,g,e){
+		return this.platform.getPromise(B,n,g,e);
+	}
+	this.inBrowser = function(){
+		this.platform.inBrowser();
+	}
+	this.init = function(){
+	}
+	this.isHTMLElement = function(B){
+		return this.platform.isHTMLElement(B);
+	}
+	this.makeHttpRequest = function(B,n,g){
+		return this.platform.makeHttpRequest(B,n,g);
+	}
+	this.newURL = function(B,n){
+		return this.platform.newURL(B,n);
+	}
+	this.parseXmlFromString = function(B,n,g){
+		return this.platform.parseXmlFromString(B,n,g);
+	}
+	this.readFile = function(B, n) {
+        //console.log('loading file:' + B);
+        currentStep++;        	
+        let str = "Step " + currentStep + " of 27";
+	    console.log('Loading file: ' + B + " " + str);
+        //document.getElementById("status").innerText = str; 
+        let prefix = window.location.origin + '/';
+        if (!B.startsWith(prefix)){
+            console.log('path not expected!' + B);
+        } else {
+            let filename = B.substring(prefix.length);
+            if (filename.startsWith(wordDocumentPrefix)) {
+            	let wordFilename = filename.substring(wordDocumentPrefix.length + 1);
+            	let documentText = wordDocumentMap.get(wordFilename);
+            	if (documentText == null) {
+		            console.log('document not found!' + wordFilename);
+            	}
+            	return documentText;
+            } else {
+            	let stylesheetText = stylesheetsMap.get(filename);
+            	if (stylesheetText == null) {
+		            console.log('stylesheet not found!' + filename);
+            	}
+            	return stylesheetText;
+            }
+        }
+    }
+	this.resolveUri = function(B,n){
+		return this.platform.resolveUri(B,n);
+	}
+	this.resource = function(B){
+		return this.platform.resource(B);
+	}
+	this.resourcePromise = function(B){
+		let documentfilename = 'document.xml';
+		if (B.location.endsWith(wordDocumentPrefix + '/' + documentfilename)) {
+		    return new Promise(function(resolve, reject) {
+		    	let documentXML = wordDocumentMap.get(documentfilename);
+				resolve(documentXML);
+			});
+		} else {
+			return this.platform.resourcePromise(B);
+		}
+	}
+	this.saxonPrint = function(B){
+		this.platform.saxonPrint(B);
+	}
+	this.setDocURI = function(B,n) {
+		return this.platform.setDocURI(B,n);
+	}
+	this.toUTF8 = function(B) {
+		return this.platform.toUTF(B);
+	}
+}
+	let stylesheets = [
+		'docx-extract/docx-html-extract.xsl',
+		'docx-extract/docx-table-extract.xsl',
+		'docx-extract/handle-notes.xsl',
+		'docx-extract/scrub.xsl',
+		'docx-extract/join-elements.xsl',
+		'docx-extract/collapse-paragraphs.xsl',
+		'htmlevator/applications/hyperlink-inferencer/hyperlink-inferencer.xsl',
+		'list-promote/PROMOTE-lists.xsl',
+		'list-promote/mark-lists.xsl',
+		'list-promote/itemize-lists.xsl',
+		'htmlevator/applications/list-detect/DETECT-ITEMIZE-LISTS.xsl',
+		'htmlevator/applications/list-detect/detect-numbered-lists.xsl',
+		'htmlevator/applications/list-detect/itemize-detected-lists.xsl',
+		'htmlevator/applications/list-detect/scrub-literal-numbering-lists.xsl',
+		'htmlevator/applications/header-promote/header-promotion-CHOOSE.xsl',
+		'htmlevator/applications/header-promote/digest-paragraphs.xsl',
+		'htmlevator/applications/header-promote/make-header-escalator-xslt.xsl',
+		'htmlevator/applications/header-promote/outline-headers.xsl',
+		'math/xsweet_tei_omml2mml.xsl',
+		'html-polish/final-rinse.xsl',
+		'htmlevator/applications/ucp-cleanup/ucp-text-macros.xsl',
+		'htmlevator/applications/ucp-cleanup/ucp-mappings.xsl',
+		'typescript/p-split-around-br.xsl',
+		'typescript/editoria-basic.xsl',
+		'typescript/editoria-reduce.xsl',
+	];
+	let stylesheetsMap = new Map();
+	let endnotesXML = 	'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+						'<w:endnotes xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 w15 wp14"><w:endnote w:type="separator" w:id="-1"><w:p w:rsidR="00B93F7D" w:rsidRDefault="00B93F7D" w:rsidP="00B93F7D"><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:separator/></w:r></w:p></w:endnote><w:endnote w:type="continuationSeparator" w:id="0"><w:p w:rsidR="00B93F7D" w:rsidRDefault="00B93F7D" w:rsidP="00B93F7D"><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:continuationSeparator/></w:r></w:p></w:endnote></w:endnotes>';
+    let footnotesXML = 	'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+						'<w:footnotes xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 w15 wp14"><w:footnote w:type="separator" w:id="-1"><w:p w:rsidR="00B93F7D" w:rsidRDefault="00B93F7D" w:rsidP="00B93F7D"><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:separator/></w:r></w:p></w:footnote><w:footnote w:type="continuationSeparator" w:id="0"><w:p w:rsidR="00B93F7D" w:rsidRDefault="00B93F7D" w:rsidP="00B93F7D"><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:continuationSeparator/></w:r></w:p></w:footnote></w:footnotes>';
+	let wordDocumentPrefix = '.....'; //token
+	let wordDocumentMap = new Map();
+	var wordDocumentFilename = 'sample.docx';
+	
+    let href = window.location.href
+	let url = new URL(href);
+	let filePath = url.searchParams.get("path");
+	console.log("filePath: " + filePath);	
+	let currentStep = 0;
+    window.onload = function() {    
+			document.getElementById("filepath-display").innerText = filePath;
+			document.getElementById("status").innerText = "Processing file... (This may take some time)"; 
+
+			let lastSlashIndex = filePath.lastIndexOf('/');
+			let relativePath = filePath.substring(0,  lastSlashIndex + 1);
+			wordDocumentFilename = filePath.substring(lastSlashIndex + 1);
+    		let loadWordZipFile = function() {
+	    		loadZipFile(relativePath, wordDocumentFilename,  zip => loadWordFile(zip, () => run(zip)));							
+    		}
+    		loadZipFile('', 'stylesheets.zip',  zip => reduceLoadStylesheets(zip, 0, () => loadWordZipFile()));							
+    }
+    function loadZipFile(relativePath, zipFilename, cb) {
+    		fetch(relativePath + zipFilename, { method: 'GET' }).then(function(response) {
+      			if (response.status === 200) {
+					response.arrayBuffer().then(function(data) {
+				  		JSZip.loadAsync(data).then(function (zip) {
+        					cb(zip);
+						});							
+					});
+      			} else {
+      				console.log(zipFilename + ' not loaded...');
+      			}
+			}); 			    
+    }
+    function loadWordFile(zip, cb) {
+    		let document = 'document.xml';
+    		let styles = 'styles.xml';
+    		let endnotes = 'endnotes.xml';
+    		let footnotes = 'footnotes.xml';
+    		let rels = '_rels/document.xml.rels';
+			wordDocumentMap.set(endnotes, endnotesXML);
+			wordDocumentMap.set(footnotes, footnotesXML);
+			loadFileFromWordZip(zip, document, () => {
+				loadFileFromWordZip(zip, styles, () => {
+					loadFileFromWordZip(zip, endnotes, () => {
+						loadFileFromWordZip(zip, footnotes, () => {
+							loadFileFromWordZip(zip, rels, () => {
+								cb();	
+							});
+						});
+					});
+				});
+			});
+	}
+	function loadFileFromWordZip(zip, filename, cb) {
+		let relativeDir = 'word/';
+		let fileFound = zip.filter(function (relativePath, file){
+	  		return relativePath == relativeDir + filename;
+		});
+		if (fileFound.length == 0) {
+			cb();
+		} else {
+    		zip.file(relativeDir + filename).async("string").then(function (docData) {
+				wordDocumentMap.set(filename, docData);		
+				cb();
+    		});
+    	}
+	}
+    function reduceLoadStylesheets(zip, index, cb) {
+    	if (index == stylesheets.length) {
+    		cb();
+    	} else {
+    		let filename = stylesheets[index];
+    		zip.file(filename).async("string").then(function (data) {
+				stylesheetsMap.set(filename, data);
+	    		reduceLoadStylesheets(zip, index + 1, cb);
+    		});
+    	}
+    }
+    function run(zip) {
+            let platform = SaxonJS.getPlatform();
+            console.log('start');
+            let customPlatform = new CustomPlatform(platform);
+            SaxonJS.setPlatform(customPlatform);
+            SaxonJS.transform({
+                stylesheetLocation: "docx.sef.json",
+                sourceLocation: wordDocumentPrefix + "/document.xml",
+                destination: "serialized"
+            }, "async").then (output => {
+            	let htmlDocPreProcessed = output.principalResult;
+                postProcessDocument(zip, htmlDocPreProcessed, htmlDoc => {
+                	document.getElementById("status").innerText = "Ready to save HTML file"; 
+                	var headers = {};
+                	fetch('/peergos-api/v0/save' + filePath, { method: 'POST', headers: headers, body: htmlDoc })
+    				.then(function(response) {
+    					if (response.status == 200 || response.status == 201) {
+    						document.getElementById("status").innerText = 'Done';
+      						console.log('save ok');
+    					} else {
+    						document.getElementById("status").innerText = 'File not saved!';
+      						console.log('save failed');
+    					}
+    				});  
+    			});
+            })
+    }
+    function postProcessDocument(zip, htmlDoc, cb) {
+    	let origin = url.origin;
+    	let token = '<img src="' + origin + '/...../media/';
+    	var done = false;
+    	let images = [];
+    	
+    	currentIndex = 0;
+    	while (!done) {
+    		let startIndex = htmlDoc.indexOf(token, currentIndex);
+    		if (startIndex != -1) {
+    			let endIndex = htmlDoc.indexOf('"/>', startIndex + 1);
+    			if (endIndex > -1) {
+    				let imageFilename = htmlDoc.substring(startIndex + token.length, endIndex).toLowerCase();
+    				let dotIndex = imageFilename.lastIndexOf('.');
+    				if (dotIndex > 0) {
+	    				let imageFormat = imageFilename.substring(dotIndex + 1);
+    					images.push({filename: imageFilename, format: imageFormat});
+    				}
+    				currentIndex = endIndex + 1;
+    			} else {
+    				currentIndex = startIndex + 1;
+    			}
+    		} else {
+    			done = true;
+    		}
+    	}
+    	reduceLoadImages(zip, 0, images, () => replaceImagesData(token, htmlDoc, images, cb));    	
+    }
+    function replaceImagesData(token, htmlDocOrig, images, cb) {
+    	var htmlDoc = htmlDocOrig.slice();
+    	for(var j=0; j < images.length; j++) {
+    		let image = images[j];
+    		let data = image.data;
+    		var str = '';
+    		for (var i = 0; i < data.byteLength; i++) {
+                str = str + String.fromCharCode(data[i]);
+            }
+            let base64Image = "data:image/" + image.format + ';base64,' + window.btoa(str);                
+            htmlDoc = htmlDoc.replace(token + image.filename,  '<img src="' + base64Image);
+    	}
+    	cb(htmlDoc);
+    }
+    function reduceLoadImages(zip, index, images, cb) {
+		let relativeDir = 'word/media/';
+    	if (index == images.length) {
+    		cb();
+    	} else {
+    		let image = images[index];
+    		zip.file(relativeDir + image.filename).async("uint8array").then(function (data) {
+				image.data = data;
+	    		reduceLoadImages(zip, index + 1, images, cb);
+    		});
+    	}
+    }
+  </script>
+</head>
+<body id="body">
+  <h1 style="text-align: center;">Converting docx file to HTML</h1>
+  <h2>Filename:</h2>
+  <h3 id="filepath-display"></h2>
+  <h2>Status:</h2>
+  <h3 id="status"></h3>
+</body>
+</html>
