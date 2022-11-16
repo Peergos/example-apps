@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+.grid-container {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+  grid-gap: 10px;
+  padding: 10px;
+}
+
+.grid-container > div {
+  text-align: center;
+  padding: 20px 0;
+  font-size: 30px;
+}
+	</style>
+</head>
+
+<body>
+	<span id='updateSaveStatus' style='display:none'>Saving...</span>
+	<span id='updateErrorStatus' style='display:none'>Error...</span>
+<h3>Back facing</h3>
+<div class="grid-container" style="grid-auto-flow: row;">
+  <div class="item1">
+	<button id="uploadEnvVideoBtn" onclick="document.getElementById('environmentVideo').click()" >
+	<img src='video-camera.png' width='128px' height='128px' >
+	</button>
+  	<input style="display: none" type="file" id="environmentVideo" capture="environment" accept="video/*" onchange="uploadFromEnvironmentVideo(event.target.files)">
+  
+  </div>
+  <div class="item2">
+	<button id="uploadEnvImageBtn" onclick="document.getElementById('environmentImage').click()" >
+	<img src='camera.png' width='128px' height='128px' >
+	</button>
+  	<input style="display: none" type="file" id="environmentImage" capture="environment" accept="image/*" onchange="uploadFromEnvironmentImage(event.target.files)">
+  
+  </div>
+</div>
+<h3>Front facing</h3>
+<div class="grid-container" style="grid-auto-flow: row;">
+  <div class="item1">
+  	<button id="uploadUserVideoBtn" onclick="document.getElementById('userVideo').click()" >
+	<img src='video-camera.png' width='128px' height='128px' >
+  	</button>
+  	<input style="display: none" type="file" id="userVideo" capture="user" accept="video/*" onchange="uploadFromUserVideo(event.target.files)">
+  
+  </div>
+  <div class="item2">
+  	<button id="uploadUserImageBtn" onclick="document.getElementById('userImage').click()" >
+	<img src='camera.png' width='128px' height='128px' >
+  	</button>
+  	<input style="display: none" type="file" id="userImage" capture="user" accept="image/*" onchange="uploadFromUserImage(event.target.files)">
+  
+  </div>
+</div>  <script>
+  	function uploadFromUserVideo(evt) {
+  		document.getElementById('environmentVideo').value = "";
+		upload(evt);
+  	}
+  	function uploadFromUserImage(evt) {
+  		document.getElementById('environmentImage').value = "";
+		upload(evt);
+  	}
+  	function uploadFromEnvironmentVideo(evt) {
+  		document.getElementById('userVideo').value = "";
+		upload(evt);
+  	}
+  	function uploadFromEnvironmentImage(evt) {
+  		document.getElementById('userImage').value = "";
+		upload(evt);
+  	}
+	function upload(files){
+        for (let i = 0; i < files.length; i++) {
+            uploadFile(files[i]);
+        }
+    }
+    function uploadFile(file)
+    {
+        let filename = file.webkitRelativePath.length == 0 ? file.name : file.webkitRelativePath;
+        let filereader = new FileReader();
+        filereader.file_name = file.name;
+        filereader.onload = function(){ save(this.result, filename); };
+        filereader.readAsArrayBuffer(file);
+    }
+    function save(contents, filename) {
+		console.log("save");
+		let statusElement = document.getElementById("updateSaveStatus");
+		statusElement.style.display = "block";
+		let headers = {};
+		let filePath = '/peergos-api/v0/data/' + filename;
+  		fetch(filePath, { method: 'PUT', headers: headers, body: contents })
+    		.then(function(response) {
+      			console.log('save response status:' + response.status);
+      			if(response.status == 201 || response.status == 200) {
+					statusElement.style.display = "none";
+      			} else {
+					let errorElement = document.getElementById("updateErrorStatus");
+					errorElement.style.display = "block";
+	      			console.log('something went wrong!');
+      			}
+    		});    	
+	}
+  </script>
+</body>
+
+</html>

@@ -58,6 +58,10 @@ Rich text editor. Loads/Saves .html files
 
 ![TiddlyWiki](./screenshots/tiddlyWiki.png)
 
+## Device Capture
+
+![DeviceCapture](./screenshots/device-capture.png)
+
 ## Doom (Shareware) running inside jsdosbox
 #### https://sourceforge.net/projects/jsdosbox
 
