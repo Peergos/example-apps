@@ -1,10 +1,10 @@
 {
     "displayName": "Device Capture",
-    "description": "Capture audio/video from device",
-    "version": "1.0.0",
+    "description": "Capture image/video from device",
+    "version": "1.0.1",
     "author": "peergos",
     "launchable": true,
-    "appIcon": "video-camera.png", 
+    "appIcon": "camera-retro.png", 
     "permissions": ["STORE_APP_DATA"]
 }
 
