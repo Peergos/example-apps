@@ -38,6 +38,11 @@ Rich text editor. Loads/Saves .html files
 
 ![Image editor](./screenshots/image-editor.png)
 
+## PaintZ MS Paint clone
+#### https://github.com/zmyaro/paintz
+
+![Image editor](./screenshots/paintz.png)
+
 ## TUI Markdown WYSIWYG Markdown Editor
 #### https://github.com/nhn/tui.editor
 

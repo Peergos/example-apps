@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		
+		<title>PaintZ</title>
+		<meta property="og:title" content="PaintZ" />
+		<meta name="description" content="MS Paint for Chromebooks. Create and edit drawings and other images. Simple, fast, works offline, touch- and mouse-friendly, and no plug-ins required!" />
+		
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+		
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		
+		<link rel="manifest" href="manifest.webapp" />
+		
+		<meta name="mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		
+		<link rel="chrome-webstore-item" href="https://chrome.google.com/webstore/detail/gdjcnhanmagpjdpilaehedkchegnkdoj" />
+		
+		<meta name="msapplication-tooltip" content="Create and edit drawings" />
+		<meta name="msapplication-navbutton-color" content="#3f51b5" />
+		
+		<meta name="theme-color" content="#3f51b5" />
+		
+		<link rel="shortcut icon" type="image/x-icon" href="images/logo/favicon.ico" />
+		<link rel="icon" sizes="128x128" href="images/logo/128.png" />
+		<link rel="icon" sizes="256x256" href="images/logo/256.png" />
+		<link rel="apple-touch-icon-precomposed" sizes="128x128" href="images/logo/128.png" />
+		
+		<link rel="stylesheet" type="text/css" href="styles/all.css" />
+		
+		<link rel="stylesheet" type="text/css" href="styles/fonts/roboto.css" />		
+		<link rel="stylesheet" type="text/css" href="styles/themes/default.css" id="themeStyleLink" />
+		
+		<link rel="stylesheet" type="text/css" href="styles/print.css" media="print" />
+		
+		<script type="text/javascript" src="scripts/all.js"></script>
+				
+		<!-- Libraries, helpers, and polyfills -->
+		<script type="text/javascript" src="scripts/lib/material-touch.js"></script>
+
+	</head>
+	<body onload="onloadFunc()">
+		<!-- Top toolbar -->
+		<div class="appBar z2" id="toolbar" role="toolbar"></div>
+		
+		<!-- Flow-positioned canvas size holder -->
+		<div class="canvas" id="canvasPositioner">
+			<!-- Image canvas -->
+			<canvas class="z1 canvas" id="canvas" width="1" height="1"></canvas>
+			<!-- Drawing canvas -->
+			<canvas class="canvas" id="preCanvas" width="1" height="1" touch-action="none"></canvas>
+			<!-- Grid canvas -->
+			<canvas class="canvas" id="gridCanvas" width="1" height="1"></canvas>
+		</div>
+		
+		<!-- Bottom toolbar -->
+		<div class="appBar z2" id="bottomBar" role="toolbar"></div>
+		
+		<!-- Dialog containers -->
+		<div id="dialogsContainer"></div>
+		<div id="bottomSheetsContainer"></div>
+		
+		<!-- Splash screen -->
+		<div id="splashScreen">
+			<img src="images/logo/512.png" alt="PaintZ logo" />
+			<br />
+			<noscript>
+				<p>PaintZ requires JavaScript to function.  Please <a href="https://enable-javascript.com" target="_blank">enable JavaScript</a> to use PaintZ.</p>
+			</noscript>
+			<br />
+			<script type="text/javascript">
+				document.write('<progress class="circular"></progress>');
+			</script>
+		</div>
+		
+		<!-- Invisible elements -->
+		<canvas id="cursorCanvas" width="64" height="64"></canvas>
+		<script>
+			function onloadFunc() {
+		    	let href = window.location.href
+				let url = new URL(href);
+				let filePath = url.searchParams.get("path");
+				console.log("loading: " + filePath);	
+				try {
+					openImage(filePath, true);
+				} catch (err) {
+					console.log('unable to load file:' + filePath);
+				}
+			}
+		</script>
+
+	</body>
+</html>

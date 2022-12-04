@@ -1,0 +1,18 @@
+<h1 role="toolbar" class="dialog-header">
+	<button type="button" title="Close" class="closeButton">
+		<svg role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><title>Close</title><path id="icon" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+	</button>
+	Save as
+</h1>
+<input name="fileName" type="text" readonly placeholder="File name" value="untitled.png" style="margin: 0 8px; width: 96%; width: calc(100% - 16px);" />
+<br />
+<select name="fileType" disabled="true">
+	<option value="image/jpeg">JPEG (Joint Photographic Experts Group)</option>
+	<option value="image/png" selected="selected">PNG (Portable Network Graphics)</option>
+</select>
+<div class="dialog-footer">
+	<button type="button" class="closeButton">Cancel</button><!--
+	--><!--
+	--><a role="button" class="submitLink" id="downloadLink" type="image/png" download="untitled.png" target="_blank">Save</a><!--
+	--><progress class="circular small" style="margin-right: 12px;"></progress>
+</div>

@@ -1,0 +1,144 @@
+body {
+	background-color: #303030;
+}
+
+hr {
+	border-color: rgba(255, 255, 255, 0.11);
+}
+
+input[type="text"]:focus,
+input[type="search"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+input[type="url"]:focus,
+input[type="number"]:focus,
+textarea:focus {
+	border-color: #7986cb;
+}
+input[type="checkbox"],
+input[type="radio"] {
+	color: rgba(255, 255, 255, 0.7);
+}
+	input[type="checkbox"]::after {
+		border-color: #424242;
+	}
+	input[type="checkbox"]:checked,
+	input[type="radio"]:checked {
+		color: #7986cb;
+	}
+select:not([size]),
+select[size="1"] {
+	background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAIAgMAAADCRZTUAAAACVBMVEUAAAD///////9zeKVjAAAAAnRSTlMAgJsrThgAAAAySURBVAjXY8hatWolAwxIrVq1BM5hW7VqApzDuGqVAwMcZAG1IDQBtSA0AbUgNCG0AAD8iAqhtDTiaAAAAABJRU5ErkJggg==);
+}
+
+button,
+[role="button"] {
+	color: #b4c0e4;
+}
+
+.appBar[role="toolbar"] {
+	background-color: #212121;
+}
+	.appBar[role="toolbar"] .divider {
+		background-color: rgba(255, 255, 255, 0.5);
+	}
+	.icon,
+	.appBar[role="toolbar"] button,
+	.appBar[role="toolbar"] [role="button"],
+	.floatingToolbar button {
+		fill: rgba(255, 255, 255, 0.9);
+	}
+		button:not(:disabled):hover,
+		button:not(:disabled):focus,
+		[role="button"]:not(:disabled):hover,
+		[role="button"]:not(:disabled):focus,
+		.appBar[role="toolbar"] button:not(:disabled):hover,
+		.appBar[role="toolbar"] button:not(:disabled):focus,
+		.appBar[role="toolbar"] [role="button"]:hover,
+		.appBar[role="toolbar"] [role="button"]:focus,
+		.floatingToolbar button:not(:disabled):hover,
+		.floatingToolbar button:not(:disabled):focus,
+		select:not([size]):not(:disabled):hover,
+		select:not([size]):not(:disabled):focus {
+			background-color: rgba(121, 134, 203, 0.15);
+		}
+		button:not(:disabled):active,
+		button:not(:disabled).active,
+		[role="button"]:not(:disabled):active,
+		[role="button"]:not(:disabled).active,
+		.appBar[role="toolbar"] button:not(:disabled):active,
+		.appBar[role="toolbar"] button:not(:disabled).active,
+		.appBar[role="toolbar"] [role="button"]:active,
+		.appBar[role="toolbar"] [role="button"].active,
+		.floatingToolbar button:not(:disabled):active,
+		.floatingToolbar button:not(:disabled).active,
+		select:not([size]):not(:disabled):active,
+		select:not([size]):not(:disabled).active {
+			background-color: rgba(121, 134, 203, 0.35);
+		}
+	.appBar[role="toolbar"] input[type="checkbox"] + label[role="button"],
+	.appBar[role="toolbar"] input[type="radio"] + label[role="button"] {
+		color: #7986cb;
+	}
+		.appBar[role="toolbar"] input[type="checkbox"]:checked + label[role="button"],
+		.appBar[role="toolbar"] input[type="radio"]:checked + label[role="button"] {
+			fill: #212121;
+		}
+#colorPicker button::before {
+	/* box-shadow color */
+	color: rgba(255, 255, 255, 0.9);
+}
+#colorPicker button.pacman::after {
+	border-right-color: #212121;
+}
+
+#dimensionsToolbox {
+	color: rgba(255, 255, 255, 0.9)
+}
+#zoomPercent:not(:disabled):focus {
+	border-bottom-color: white;
+}
+#zoomSlider {
+	background-color: white;
+}
+	#zoomSlider::-moz-range-track {
+		background-color: white;
+	}
+	#zoomSlider::-ms-track {
+		background-color: white;
+	}
+	#zoomSlider::-webkit-slider-thumb {
+		background-color: white;
+	}
+	#zoomSlider::-moz-range-thumb {
+		background-color: white;
+	}
+
+#progressContainer,
+#dialogsContainer {
+	background-color: transparent;
+	background-color: rgba(0, 0, 0, 0);
+}
+	#progressContainer.visible,
+	#dialogsContainer.visible {
+		background-color: #333333;
+		background-color: rgba(0, 0, 0, 0.75);
+	}
+option,
+.card,
+.dialog .dialog-header,
+.dialog .dialog-footer {
+	background-color: #424242;
+	color: white;
+}
+.dialog svg {
+	fill: rgba(255, 255, 255, 0.54);
+}
+.dialog .helpIcon {
+	background-color: #7986cb;
+	fill: #424242;
+}
+
+progress.circular {
+	color: #7986cb;
+}

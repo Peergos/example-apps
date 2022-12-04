@@ -1,0 +1,69 @@
+<h1 role="toolbar" class="dialog-header">
+	<button type="button" title="Close" class="closeButton">
+		<svg role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><title>Close</title><path id="icon" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+	</button>
+	Settings
+</h1>
+<ul class="list">
+	<li>
+		<select dir="rtl" name="theme" id="themeSelect">
+			<option value="default">Default</option>
+			<option value="dark">Dark</option>
+			<option value="light">Light</option>
+		</select>
+		<label for="themeSelect">
+			Interface theme
+		</label>
+	</li>
+	<li>
+		<label for="systemThemeOverrideCheckbox" role="button">
+			<input type="checkbox" name="systemThemeOverride" id="systemThemeOverrideCheckbox" style="float: right;" />
+			System theme overrides
+			<br />
+			<small>System dark theme setting overrides PaintZ setting</small>
+		</label>
+	</li>
+	<li>
+		<select dir="rtl" name="colorPalette" id="colorPaletteSelect">
+			<option value="material">Material</option>
+			<option value="classic">Windows Classic</option>
+			<option value="win7">Windows 7</option>
+		</select>
+		<label for="colorPaletteSelect">
+			Toolbar color palette
+		</label>
+	</li>
+	<li>
+		<label for="gridCheckbox" role="button">
+			<input type="checkbox" name="grid" id="gridCheckbox" style="float: right;" />
+			Show gridlines
+		</label>
+	</li>
+	<li>
+		<label for="ghostDrawCheckbox" role="button">
+			<input type="checkbox" name="ghostDraw" id="ghostDrawCheckbox" style="float: right;" />
+			Semi-transparent drawing previews
+		</label>
+	</li>
+	<li>
+		<label for="antiAliasCheckbox" role="button">
+			<input type="checkbox" name="antiAlias" id="antiAliasCheckbox" style="float: right;" />
+			Smooth edges of shapes
+			<br />
+			<small>Turn on for smoother edges or off for cleaner fills</small>
+		</label>
+	</li>
+	<li>
+		<label for="maxUndoStackDepthInput">
+			<input type="number" min="1" max="1000" step="1" required="required" name="maxUndoStackDepth" id="maxUndoStackDepthInput" style="float: right;" />
+			Maximum undo levels
+			<br />
+			<small>Decrease to save memory</small>
+		</label>
+	</li>
+</ul>
+<div class="dialog-footer">
+	<button type="button" id="resetButton" style="float: left;">Reset</button><!--
+	--><button type="button" class="closeButton">Cancel</button><!--
+	--><button type="submit">Save</button>
+</div>
