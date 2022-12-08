@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tldraw - example</title>
+    <script type="module" crossorigin src="assets/index.15896589.js"></script>
+    <link rel="stylesheet" href="assets/index.6dcd01da.css">
+  </head>
+    <body onload="run()">
+    <div id="root"></div>
+    <script>
+    var saving = false;
+    let href = window.location.href
+	let url = new URL(href);
+	let filePath = url.searchParams.get("path");
+
+    function run() {
+    	init(() => {
+    		addSaveButton(() => {
+    			loadFile();
+    		});
+    	});
+    }
+    function loadFile() {
+    	let tldr = window.app;
+    	setStatus('Loading file...'); 
+		fetch(filePath, { method: 'GET' }).then(function(response) {				
+      		if (response.status === 200) {
+				response.text().then(function(fileText) {
+					if (fileText.length > 0) {
+						try {
+							let file = JSON.parse(fileText);
+		        			tldr.loadDocument(file.document);
+        					//tldr.zoomToFit();
+    						setTimeout(() => setStatus(""), 1000);				
+    					} catch (ex) {
+			    			setStatus('Error reading file...'); 
+    					}
+    				} else {
+    					setTimeout(() => setStatus(""), 1000);				
+    				}
+    			});
+      		} else {
+    			setStatus('Error loading file...'); 
+      			console.log('error loading file:' + response.status);
+      		}
+		});	
+
+
+    }
+    function setStatus(msg) {
+        let status = document.getElementById('statusMsg');
+		if (status != null) {
+			status.remove();
+		}
+		let divMsg = document.createElement("div");
+	    divMsg.id = "statusMsg";
+	    divMsg.innerText = msg;
+	    divMsg.style.marginTop='15px';
+	    
+	    let menuIcon = document.getElementById('TD-MenuIcon');
+    	let parent = menuIcon.parentNode;   
+	    parent.appendChild(divMsg);
+    }
+    function addSaveButton(callback) {
+    	let menuIcon = document.getElementById('TD-MenuIcon');
+    	if (menuIcon != null) {
+    		let parent = menuIcon.parentNode;    		
+    		let div = document.createElement("div");
+	    	div.style.marginTop='5px';
+        	div.classList.add("toolbar-icon");  
+    		var btn = document.createElement("button");
+        	btn.id = "saveBtn";
+        	btn.title="Save";
+        	btn.type="button";
+        	btn.style.width="36px";
+        	btn.style.height="36px";
+        	btn.style.border="0px";
+        	btn.style.backgroundColor='white';
+        	btn.onclick=function() {
+		    	setStatus('Saving...'); 
+  				if (saving) {
+        			return;
+        		}
+        		saving = true;
+	        	let tldr = window.app;
+				let doc = tldr.copyJson().document; //FIXME hacky - the return object is a reference from which i can get the document!
+  				const file = {
+    				name: doc.name || 'New Document',
+    				fileHandle: null,
+    				document: doc,
+    				assets: {},
+  				}
+  				const json = JSON.stringify(file, null, 2)
+  				const blob = new Blob([json], {
+    				type: 'application/vnd.Tldraw+json',
+  				})
+  				blob.arrayBuffer().then(body => {			
+          			let headers = {};
+  					fetch(filePath, { method: 'PUT', headers: headers, body: blob })
+    				.then(function(response) {
+          			    saving = false;
+          			    if (response.status != 200) {
+			      			setStatus('Error saving file...'); 
+      						console.log('unable to save document:' + response.status);
+      					} else {
+			      			setStatus('File saved'); 
+			    	    	setTimeout(() => setStatus(""), 1000);      					
+      					}
+    				}); 
+    			});
+        	};   
+        	btn.classList.add("toolbar-image");  
+			//disk svg from paintZ - https://github.com/ZMYaro/paintz
+          	const iconSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  			const iconPath = document.createElementNS(
+    			'http://www.w3.org/2000/svg',
+    			'path'
+  			);
+  			iconSvg.setAttribute('viewBox', '0 0 24 24');
+  			iconPath.setAttribute(
+    			'd',
+        		"M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"
+  			);
+  			iconSvg.appendChild(iconPath);
+        	btn.appendChild(iconSvg);
+        	div.appendChild(btn);
+        	parent.appendChild(div);
+  
+    		callback();
+    	}
+    }
+    function init(callback) {
+    	let menuElement = document.getElementById('TD-MultiplayerMenuIcon');
+    	if (window.app != null && menuElement != null) {
+    	    window.app.reset();//fixme - shouldn't need to handle this
+    		window.exportTLDR = (data) => {
+			    setStatus('Exporting file'); 
+          		let headers = {};
+          		let extension = data.type == 'jpeg' ? 'jpg' : data.type;
+          		let filename = "export." + extension;
+				let apiCall = '/peergos-api/v0/save/' + filename;    		
+          		data.blob.arrayBuffer().then(body => {
+  					fetch(apiCall, { method: 'PUT', headers: headers, body: body })
+    				.then(function(response) {
+          			    if (response.status != 200) {
+			      			setStatus('Error exporting file...'); 
+      						console.log('unable to export file:' + response.status);
+      					} else {
+			      			setStatus('File exported'); 
+			    	    	setTimeout(() => setStatus(""), 1000);      					
+      					}
+    				}); 
+    			});	
+    		};
+    		menuElement.remove();
+    		callback();   	
+    	} else {
+    	    setTimeout(() => init(callback), 20);
+    	}
+    }
+    </script>
+	</body>
+
+</html>

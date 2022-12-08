@@ -1,0 +1,12 @@
+{
+    "displayName": "Tldraw",
+    "description": "Drawing/Whiteboard app - https://github.com/tldraw/tldraw",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": false,
+	"folderAction": false,    			
+    "fileExtensions": ["tldr"],	 
+    "appIcon": "icon.png", 
+    "permissions": ["EDIT_CHOSEN_FILE"]	
+}
+

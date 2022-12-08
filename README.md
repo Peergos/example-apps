@@ -32,6 +32,11 @@ Rich text editor. Loads/Saves .html files
 
 **Before installing, download SaxonJS2.js from https://www.saxonica.com/saxon-js/index.xml and copy into assets folder**
 
+## Tldraw Drawing & Whiteboard. Edit .tldr files
+#### https://github.com/tldraw/tldraw
+
+![Image editor](./screenshots/tldraw.png)
+
 
 ## TUI Image Editor
 #### https://github.com/nhn/tui.image-editor
