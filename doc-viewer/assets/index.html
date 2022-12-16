@@ -147,7 +147,11 @@ details.docx-thumbnails summary::marker {
       			}
 			});
 		}	
-        function renderDocx(bytes) {
+        function renderDocx(text) {
+		    if (text.length == 0) {	
+		    	setStatus("Unable to convert document");				
+		    	return;
+		    }
 	        const container = document.querySelector("#document-container");        
         	const docxOptions = Object.assign(docx.defaultOptions, {
             	debug: true,
@@ -155,7 +159,7 @@ details.docx-thumbnails summary::marker {
     	        useMathMLPolyfill: true
 	        });        
 			//docx.praseAsync(file, docxOptions)
-            docx.renderAsync(bytes, container, null, docxOptions).then((x) => {
+            docx.renderAsync(text, container, null, docxOptions).then((x) => {
 		    	setStatus("");				
                 container.style.display = '';
             	//renderThumbnails(container, document.querySelector("#thumbnails-container"));
