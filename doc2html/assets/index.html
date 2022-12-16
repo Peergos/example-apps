@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"> 
+    <title>doc2html</title>
+    <script src="mammoth.browser.min.js"></script>    
+    <script src="brotli.js"></script>
+    <script src="x2t.js"></script>    
+    <style>
+    .flex-container {
+  display: flex;
+  justify-content: center;
+}
+
+.flex-container > div {
+  width: 100px;
+  margin: 10px;
+  text-align: center;
+  line-height: 75px;
+  font-size: 30px;
+}
+.icon {
+    width: 100%;
+    height: 100%;
+}
+.icon-small {
+    width: 50%;
+    height: 100%;
+}
+.icon-done {
+    filter: invert(48%) sepia(79%) saturate(2476%) hue-rotate(86deg) brightness(118%) contrast(119%);
+}
+.icon-error {
+	filter: invert(13%) sepia(96%) saturate(6088%) hue-rotate(358deg) brightness(92%) contrast(119%);
+}
+/* https://stackoverflow.com/a/20217870 */
+.imageRotateHorizontal{
+    -moz-animation: spinHorizontal .8s infinite linear;
+    -o-animation: spinHorizontal .8s infinite linear;    
+    -webkit-animation: spinHorizontal .8s infinite linear;
+    animation: spinHorizontal .8s infinite linear;
+}
+
+@-moz-keyframes spinHorizontal {
+    0% {
+        -moz-transform: rotateY(0deg);
+    }
+
+    100% {
+        -moz-transform: rotateY(360deg);
+    }
+}
+
+@keyframes spinHorizontal {
+	0% { 
+        transform: rotateY(0deg); 
+	}
+    100% {
+        transform: rotateY(360deg);
+    }
+}
+
+
+@-ms-keyframes spinHorizontal {
+	0% { 
+        -ms-transform: rotateY(0deg); 
+	}
+    100% {
+        -ms-transform: rotateY(360deg);
+    }
+}
+
+@-o-keyframes spinHorizontal {
+	0% { 
+        -o-transform: rotateY(0deg); 
+	}
+	100% { 
+        -o-transform: rotateY(360deg); 
+	}
+}
+
+@-webkit-keyframes spinHorizontal {
+	0% { 
+        -webkit-transform: rotateY(0deg); 
+	}
+	100% { 
+        -webkit-transform: rotateY(360deg); 
+	}
+}
+    </style>
+  </head>
+  <body onload='onload();'>
+  	<h1 style="text-align:center;">Doc2Html</h1>
+  	<div>
+  		<p style="text-align:center;">
+  			doc2html uses a chain of conversion steps to convert a document (MS Word .docx, LibreOffice Writer .odt) to .html.
+		</p>  	
+  		<p style="text-align:center;">
+  			The output is optimised for editing in the ck-editor App.
+		</p>  	 		  	
+  		<p style="text-align:center;">
+  			The conversion works best if the source document only use styles to semantically mark up the document.
+		</p>  		  	
+  		<p style="text-align:center;">
+  			The doc-viewer App has higher fidelity for viewing a .docx or .odt file.
+		</p>  	
+  	</div>
+  	<div style="margin-left: 20%;">
+  	  	<h3>File:&nbsp;<span id='filename'></span></h3>
+  	</div>
+	<div class="flex-container">
+  		<div>
+  			<img id="readFileIcon" src="file-word-o.svg" class="icon">
+  		</div>
+  		<div>
+	  		<img src="arrow-circle-o-right.svg" class="icon-small">  		
+  		</div>
+  		<div>
+	  		<img id="convertFileIcon" src="gears.svg" class="icon">  		
+  		</div>  
+  		<div>
+	  		<img src="arrow-circle-o-right.svg" class="icon-small">  		
+  		</div>
+  		<div>
+	  		<img id="writeFileIcon" src="file-code-o.svg" class="icon">
+  		</div>  
+	</div>
+  	<p id='status' style="text-align:center;"></p>
+  	<div id='messages'></div>
+	<script>
+			let ckContent = '<div id="ck-content" class="ck-content">';
+			let postfixHTML = '</div></body></html>';
+			
+			let prefixHTML = 	'<!DOCTYPE html>\n' +
+							'<html>\n' +
+							'<head>\n' +
+							'<meta charset="UTF-8">\n' +
+    						'<style>\n' +
+							'.ck-content {font-size: larger;margin: 40px;}\n' +
+							'.ck-content .text-tiny {font-size: 0.7em;}\n' +
+							'.ck-content .text-small {font-size: 0.85em;}\n' +
+							'.ck-content .text-big {font-size: 1.4em;}\n' +
+							'.ck-content .text-huge {font-size: 1.8em;}\n' +
+							'.ck-content .marker-yellow {background-color: hsl(60, 97%, 73%);}\n' +
+							'.ck-content .marker-green {background-color: hsl(120, 93%, 68%);}\n' +
+							'.ck-content .marker-pink {background-color: hsl(345, 96%, 73%);}\n' +
+							'.ck-content .marker-blue {background-color: hsl(201, 97%, 72%);}\n' +
+							'.ck-content .pen-red {background-color: transparent;color: hsl(0, 85%, 49%);}\n' +
+							'.ck-content .pen-green {background-color: transparent;color: hsl(112, 100%, 27%);}\n' +
+							'.ck-content .todo-list {list-style: none;}\n' +
+							'.ck-content .todo-list li {margin-bottom: 5px;margin-top: 5px;}\n' +
+							'.ck-content .todo-list__label > input {-webkit-appearance: none;display: inline-block;position: relative;width: 16px;height: 16px;vertical-align: middle;border: 0;left: -25px;margin-right: -15px;right: 0;margin-left: 0;}\n' +
+							'.ck-content .todo-list__label > input::before {display: block;position: absolute;box-sizing: border-box;content: "";width: 100%;height: 100%;border: 1px solid hsl(0, 0%, 20%);border-radius: 2px;transition: 250ms ease-in-out box-shadow, 250ms ease-in-out background, 250ms ease-in-out border;}\n' +
+							'.ck-content .todo-list__label > input::after {display: block;position: absolute;box-sizing: content-box;pointer-events: none;content: "";left: calc( 16px / 3 );top: calc( 16px / 5.3 );width: calc( 16px / 5.3 );height: calc( 16px/ 2.6 );border-style: solid;border-color: transparent;border-width: 0 calc( 16px / 8 ) calc( 16px / 8 ) 0;transform: rotate(45deg);}\n' +
+							'.ck-content .todo-list__label > input[checked]::before {background: hsl(126, 64%, 41%);border-color: hsl(126, 64%, 41%);}\n' +
+							'.ck-content .todo-list__label > input[checked]::after {border-color: hsl(0, 0%, 100%);}\n' +
+							'.ck-content .todo-list__label__description {vertical-align: middle;}\n' +
+							'.ck-content .table{display:table;width: 90%;margin:.9em auto}\n' +
+							'.ck-content .table table{border:1px double #b3b3b3;border-collapse:collapse;border-spacing:0;height:100%;width:100%}\n' +
+							'.ck-content .table table td,\n' +
+							'.ck-content .table table th{border:1px solid #bfbfbf;min-width:2em;padding:.4em}\n' +
+							'.ck-content .table table th{background:rgba(0,0,0,.05);font-weight:700}\n' +
+							'.ck-content .table th{text-align:left}\n' +
+							'.ck-content blockquote {border-left: 5px solid #ccc;font-style: italic;margin-left: 0;margin-right: 0;overflow: hidden;padding-left: 1.5em;padding-right: 1.5em;}\n' +
+							'.ck-content .page-break {align-items: center;clear: both;display: flex;justify-content: center;padding: 5px 0;position: relative;}\n' +
+							'.ck-content pre {background: hsla(0,0%,78%,.3);border: 1px solid #c4c4c4;border-radius: 2px;color: #353535;direction: ltr;font-style: normal;min-width: 200px;padding: 1em;tab-size: 4;text-align: left;white-space: pre-wrap;}\n' +
+							'.ck-content code {background-color: hsla(0,0%,78%,.3);border-radius: 2px;padding: .15em;}\n' +
+							'code {font-family: monospace;}\n' +
+    						'</style>\n' +
+							'</head>\n' +
+							'<body>\n' +
+							ckContent;
+							
+	function getFormatId(ext) {
+        if (ext === 'docx') { return 65; }
+        if (ext === 'doc') { return 66; }
+        if (ext === 'odt') { return 67; }
+    }
+    function x2tConvertDataInternal(x2t, data, filename, inputFormat, outputFormat) {
+
+        x2t.FS.writeFile('/working/' + filename, data);
+
+        let params =  "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+                    + "<TaskQueueDataConvert xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">"
+                    + "<m_sFileFrom>/working/" + filename + "</m_sFileFrom>"
+                    + "<m_sThemeDir>/working/themes</m_sThemeDir>"
+                    + "<m_sFileTo>/working/" + filename + "." + outputFormat + "</m_sFileTo>"
+                    + '<m_nFormatFrom>'+getFormatId(inputFormat)+'</m_nFormatFrom>'
+                    + '<m_nFormatTo>'+getFormatId(outputFormat)+'</m_nFormatTo>'
+                    + "<m_bIsNoBase64>false</m_bIsNoBase64>"
+                    + "</TaskQueueDataConvert>";
+
+        x2t.FS.writeFile('/working/params.xml', params);
+        try {
+            x2t.ccall("runX2T", ["number"], ["string"], ["/working/params.xml"]);
+        } catch (e) {
+            console.log(e);
+            return "";
+        }
+        var result;
+        try {
+            result = x2t.FS.readFile('/working/' + filename + "." + outputFormat);
+        } catch (e) {
+            console.log("Failed reading converted file");
+            return "";
+        }
+        return result;
+    }
+    
+	function onload() {
+		let href = window.location.href
+		let url = new URL(href);
+		let filePath = url.searchParams.get("path");
+		let filename = filePath.substring(filePath.lastIndexOf('/') + 1);
+
+		document.getElementById("filename").innerText = filename;
+		document.getElementById("status").innerText = 'loading...';
+
+		fetch(filePath, { method: 'GET' }).then(function(response) {				
+    	  		if (response.status === 200) {  
+    	  			document.getElementById('readFileIcon').classList.add("icon-done");
+					response.arrayBuffer().then(function(arrayBuffer) {
+						document.getElementById("status").innerText = 'converting document...';
+						document.getElementById("convertFileIcon").classList.add("imageRotateHorizontal");
+						if (filePath.toLowerCase().endsWith('.odt')) {
+            				let x2t = window.Module;
+            				x2t.run();
+            				x2t.onRuntimeInitialized = function() {
+            	    			x2t.FS.mkdir('/working');
+								let data = new Uint8Array(arrayBuffer);
+        	            		let output = x2tConvertDataInternal(x2t, data, filename, 'odt', 'docx');			    	    		
+					            convertToHtml(output, filename);
+	            			};						
+						} else {
+				            convertToHtml(arrayBuffer, filename);
+		    	    	}	
+		    	    });					
+              	} else {
+    	  			document.getElementById('readFileIcon').classList.add("icon-error");              	
+					document.getElementById("status").innerText = 'unable to load file';
+      				console.log('error loading file:' + response.status);
+      			}
+			});
+    }
+function transformParagraph(element) {
+    if (element.alignment === "center") {
+        return {...element, styleId: "Center", styleName: "Center"};
+    }else if (element.alignment === "right") {
+        return {...element, styleId: "Right", styleName: "Right"};
+    }else if (element.alignment === "both") {
+        return {...element, styleId: "Justify", styleName: "Justify"};
+    } else {
+    	if (element.indent != null && element.indent.start != null) {
+    		let start = Number(element.indent.start);
+			let level = start/709;    	
+	        return {...element, styleId: "Indent-"+level, styleName: "Indent-"+level};
+    	} else {
+        	return element;
+        }
+    }
+}
+function transformRun(element) {
+    if (element.font == null) {
+        return element;    
+    } else if (element.font == "Times New Roman") {
+        return {...element, styleId: "Times", styleName: "Times"};
+    }else if (element.font == "Arial") {
+        return {...element, styleId: "Arial", styleName: "Arial"};
+    }else if (element.font == "Courier New") {
+        return {...element, styleId: "CourierNew", styleName: "CourierNew"};
+    }else if (element.font == "Georgia") {
+        return {...element, styleId: "Georgia", styleName: "Georgia"};
+    }else if (element.font.startsWith("Lucida")) {
+        return {...element, styleId: "Lucida", styleName: "Lucida"};
+    }else if (element.font == "Tahoma") {
+        return {...element, styleId: "Tahoma", styleName: "Tahoma"};
+    }else if (element.font == "Trebuchet MS") {
+        return {...element, styleId: "TrebuchetMS", styleName: "TrebuchetMS"};
+    }else if (element.font == "Verdana") {
+        return {...element, styleId: "Verdana", styleName: "Verdana"};
+    } else {
+        return element;
+    }
+}
+
+function transformElement(element) {
+    if (element.children) {
+        var children = element.children.map(transformElement);
+        element = {...element, children: children};
+    }
+
+    if (element.type === "paragraph") {
+        element = transformParagraph(element);
+    } else if(element.type === "run") {
+        element = transformRun(element);
+    }
+
+    return element;
+}
+
+    function convertToHtml(output, filename) {
+		let options = {
+    		styleMap: [
+       	 		"i => i", //italic
+       	 		"u => u", //underline
+       	 		"p[style-name='Center'] => p.custom-section-center:fresh",       	 		
+       	 		"p[style-name='Right'] => p.custom-section-right:fresh",       	 		
+       	 		"p[style-name='Justify'] => p.custom-section-justify:fresh",
+       	 		"p[style-name='Indent-1'] => p.custom-section-indent-1:fresh",
+       	 		"p[style-name='Indent-2'] => p.custom-section-indent-2:fresh",
+       	 		"p[style-name='Indent-3'] => p.custom-section-indent-3:fresh",
+       	 		"p[style-name='Indent-4'] => p.custom-section-indent-4:fresh",
+       	 		"p[style-name='Indent-5'] => p.custom-section-indent-5:fresh",
+       	 		"p[style-name='Title'] => h1:fresh",
+       	 		"r[style-name='Times'] => span.custom-section-times:fresh",
+       	 		"r[style-name='Arial'] => span.custom-section-arial:fresh",
+       	 		"r[style-name='CourierNew'] => span.custom-section-courier-new:fresh",
+       	 		"r[style-name='Georgia'] => span.custom-section-georgia:fresh",
+       	 		"r[style-name='Lucida'] => span.custom-section-lucida:fresh",
+       	 		"r[style-name='Tahoma'] => span.custom-section-tahoma:fresh",
+       	 		"r[style-name='TrebuchetMS'] => span.custom-section-trebuchet-MS:fresh",
+       	 		"r[style-name='Verdana'] => span.custom-section-verdana:fresh",       	 		
+    		],
+    		transformDocument: transformElement,
+		};
+		mammoth.convertToHtml({arrayBuffer: output}, options)
+        		        			.then(res => { 
+        		        				let html = postProcess(res);
+        		        				displayResult(html);
+		        	        			saveHTML(html, filename);
+		        	        		}).catch(error => {
+		        	        		    document.getElementById("convertFileIcon").classList.remove("imageRotateHorizontal");
+								    	document.getElementById('convertFileIcon').classList.add("icon-error");
+								    	document.getElementById("status").innerText = 'unable to covert file';
+      									console.log('unable to convert file:' + error);
+		        	        		});
+    }
+    function postProcess(transformed) {
+		transformed.value = transformed.value.replaceAll('class="custom-section-center">','style="text-align:center;">');
+		transformed.value = transformed.value.replaceAll('class="custom-section-right">','style="text-align:right;">');
+		transformed.value = transformed.value.replaceAll('class="custom-section-justify">','style="text-align:justify;">');
+		transformed.value = transformed.value.replaceAll('<table><tr><td><','<figure class="table"><table><tr><td><');
+		transformed.value = transformed.value.replaceAll('</td></tr></table>','</td></tr> </table></figure>');
+
+		transformed.value = transformed.value.replaceAll('class="custom-section-times">','style="font-family:\'Times New Roman\', Times, serif;">');
+		transformed.value = transformed.value.replaceAll('class="custom-section-arial">','style="font-family:Arial, Helvetica, sans-serif;">');
+		transformed.value = transformed.value.replaceAll('class="custom-section-courier-new">','style="font-family:\'Courier New\', Courier, monospace;">');
+		transformed.value = transformed.value.replaceAll('class="custom-section-georgia">','style="font-family:Georgia, serif;">');
+		transformed.value = transformed.value.replaceAll('class="custom-section-lucida">','style="font-family:\'Lucida Grande\', sans-serif;">');
+		transformed.value = transformed.value.replaceAll('class="custom-section-tahoma">','style="font-family:Tahoma, Geneva, sans-serif;">');
+		transformed.value = transformed.value.replaceAll('class="custom-section-times">','style="font-family:\'Times New Roman\', Times, serif;">');
+		transformed.value = transformed.value.replaceAll('class="custom-section-trebuchet-MS">','style="font-family:\'Trebuchet MS\', Helvetica, sans-serif;">');
+		transformed.value = transformed.value.replaceAll('class="custom-section-verdana">','style="font-family:Verdana, Geneva, sans-serif;">');
+
+		transformed.value = transformed.value.replaceAll('class="custom-section-indent-1">','style="margin-left:40px;">');
+		transformed.value = transformed.value.replaceAll('class="custom-section-indent-2">','style="margin-left:80px;">');
+		transformed.value = transformed.value.replaceAll('class="custom-section-indent-3">','style="margin-left:120px;">');
+		transformed.value = transformed.value.replaceAll('class="custom-section-indent-4">','style="margin-left:16px;">');
+		transformed.value = transformed.value.replaceAll('class="custom-section-indent-5">','style="margin-left:200px;">');
+
+
+		transformed.value = prefixHTML + '\n' + transformed.value + '\n' + postfixHTML; 
+
+		return transformed;
+    }
+    function saveHTML(result, filename){
+    	document.getElementById("convertFileIcon").classList.remove("imageRotateHorizontal");
+    	document.getElementById('convertFileIcon').classList.add("icon-done");
+    	let data = new TextEncoder().encode(result.value);
+    	let withoutExtension = filename.substring(0, filename.lastIndexOf('.'));
+    	let htmlFilename = withoutExtension + '.html';
+    	let fullPath = '/peergos-api/v0/save/' + htmlFilename;
+  		fetch(fullPath, { method: 'PUT', headers: {}, body: data })
+    		.then(function(response) {
+          		if (response.status != 200) {
+			    	document.getElementById('writeFileIcon').classList.add("icon-error");
+					document.getElementById("status").innerText = 'unable to save file';
+      				console.log('unable to save file:' + response.status);
+      			} else {
+			    	document.getElementById('writeFileIcon').classList.add("icon-done");
+					document.getElementById("status").innerText = 'saved file';
+      			}
+    		}); 
+    }
+    function displayResult(result) {
+		document.getElementById("status").innerText = 'done.';
+		for(var i=0; i < result.messages.length; i++) {
+			if (i==0) {
+		        console.log(result.messages.length + ' Problems found during conversion:');						
+			}
+			let msg = result.messages[i];
+	        console.log(msg.type + " " + msg.message);			
+		}
+        /*
+        var messageHtml = result.messages.map(function(message) {
+            return '<li class="' + message.type + '">' + escapeHtml(message.message) + "</li>";
+        }).join("");
+        document.getElementById("messages").innerHTML = "<ul>" + messageHtml + "</ul>";
+        */
+    }
+    
+    function escapeHtml(value) {
+        return value
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    </script>
+  </body>
+</html>
+

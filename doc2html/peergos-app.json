@@ -1,0 +1,12 @@
+{
+    "displayName": "doc2html",
+    "description": "docx, odt to html https://github.com/mwilliamson/mammoth.js/ github.com/xwiki-labs/office-converters",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": false,
+	"folderAction": false,    
+	"appIcon": "icon.png",			
+    "fileExtensions": ["docx","odt"],	 
+    "permissions": []	
+}
+

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <link href="bootstrap.min.css" rel="stylesheet">
+    <script src="bootstrap.bundle.min.js"></script>
+    <script src="core-js-bundle.min.js"></script>
+    <script src="jszip.min.js"></script>
+    <script src="docx-preview.js"></script>
+    <script src="brotli.js"></script>
+    <script src="x2t.js"></script>
+    <style>
+details.docx-thumbnails {
+    position: relative;
+    background-color: rgb(101, 101, 101);
+    border-right: 1px solid black;
+    min-width: 1rem;
+}
+
+details.docx-thumbnails[open] {
+    min-width: 120px;
+}
+
+details.docx-thumbnails summary {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 1rem;
+    padding-left: 3px;
+}
+
+details.docx-thumbnails summary:hover {
+    background-color: rgb(0 0 0 / 50%);
+}
+
+details.docx-thumbnails summary::marker {
+    color: white;
+}
+
+.docx-thumbnails:empty {
+    display: none;
+}
+
+.docx-thumbnails-container {
+    height: 100%;
+    overflow: auto;
+    scrollbar-gutter: stable both-edges;
+    padding: 0.25rem;
+}
+
+.docx-thumbnail-item {
+    display: flex;
+    background-color: white;
+    text-decoration: none;
+    color: black;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    aspect-ratio: 6 / 8;
+    width: 100px;
+    box-shadow: 0 0 10px rgb(0 0 0 / 50%);
+    margin: 1rem;
+}
+    </style>
+</head>
+
+<body class="vh-100 d-flex flex-column" onload='onload()'>
+    <div class="flex-grow-1 d-flex flex-row" style="height: 0;">
+        <details id="thumbnails" class="docx-thumbnails h-100" style="display: none">
+            <summary></summary>
+            <div id="thumbnails-container" class="docx-thumbnails-container"></div>
+        </details>
+		<div><span id="status"></span></div>
+        <div id="document-container" class="overflow-auto flex-grow-1 h-100" style="display: none"></div>
+    </div>
+
+    <script>
+    function getFormatId(ext) {
+        if (ext === 'docx') { return 65; }
+        if (ext === 'doc') { return 66; }
+        if (ext === 'odt') { return 67; }
+    }
+    function x2tConvertDataInternal(x2t, data, filename, inputFormat, outputFormat) {
+
+        x2t.FS.writeFile('/working/' + filename, data);
+
+        let params =  "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+                    + "<TaskQueueDataConvert xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">"
+                    + "<m_sFileFrom>/working/" + filename + "</m_sFileFrom>"
+                    + "<m_sThemeDir>/working/themes</m_sThemeDir>"
+                    + "<m_sFileTo>/working/" + filename + "." + outputFormat + "</m_sFileTo>"
+                    + '<m_nFormatFrom>'+getFormatId(inputFormat)+'</m_nFormatFrom>'
+                    + '<m_nFormatTo>'+getFormatId(outputFormat)+'</m_nFormatTo>'
+                    + "<m_bIsNoBase64>false</m_bIsNoBase64>"
+                    + "</TaskQueueDataConvert>";
+
+        x2t.FS.writeFile('/working/params.xml', params);
+        try {
+            x2t.ccall("runX2T", ["number"], ["string"], ["/working/params.xml"]);
+        } catch (e) {
+            console.log(e);
+            return "";
+        }
+        var result;
+        try {
+            result = x2t.FS.readFile('/working/' + filename + "." + outputFormat);
+        } catch (e) {
+            console.log("Failed reading converted file");
+            return "";
+        }
+        return result;
+    }
+    
+        function setStatus(msg) {
+        	console.log('set status:' + msg);
+        	let status = document.getElementById('status');
+			status.innerText = msg;
+    	}
+        function onload() {
+            setStatus('Loading file...'); 
+		    let href = window.location.href
+			let url = new URL(href);
+			let filePath = url.searchParams.get("path");
+			fetch(filePath, { method: 'GET' }).then(function(response) {				
+    	  		if (response.status === 200) {
+					response.arrayBuffer().then(function(fileContents) {
+						if (filePath.toLowerCase().endsWith('.odt')) {
+            				let x2t = window.Module;
+            				x2t.run();
+            				x2t.onRuntimeInitialized = function() {
+            	    			x2t.FS.mkdir('/working');
+								let data = new Uint8Array(fileContents);
+            	    			let filename = filePath.substring(filePath.lastIndexOf('/') + 1);
+        	            		let output = x2tConvertDataInternal(x2t, data, filename, 'odt', 'docx');
+			    	    		renderDocx(output);
+	            			};
+						
+						} else {
+		    	    		renderDocx(fileContents);
+		    	    	}
+    				});
+      			} else {
+    				setStatus('Error loading file...'); 
+      				console.log('error loading file:' + response.status);
+      			}
+			});
+		}	
+        function renderDocx(bytes) {
+	        const container = document.querySelector("#document-container");        
+        	const docxOptions = Object.assign(docx.defaultOptions, {
+            	debug: true,
+        	    experimental: true,
+    	        useMathMLPolyfill: true
+	        });        
+			//docx.praseAsync(file, docxOptions)
+            docx.renderAsync(bytes, container, null, docxOptions).then((x) => {
+		    	setStatus("");				
+                container.style.display = '';
+            	//renderThumbnails(container, document.querySelector("#thumbnails-container"));
+            	/*var s = new XMLSerializer();
+				var str = s.serializeToString(container);
+				console.log(str);*/
+            });
+        }
+        function renderThumbnails(docxContainer, thumbnailsContainer) {
+    		const sections = docxContainer.querySelectorAll('.docx-wrapper>section');
+
+    		thumbnailsContainer.innerHTML = "";
+    
+    		for (let i = 0; i < sections.length; i ++) {
+        		const id = `docx-page-${i + 1}`;
+        		const thumbnail = document.createElement('a');
+
+        		thumbnail.className = 'docx-thumbnail-item';
+        		thumbnail.href = `#${id}`;
+        		thumbnail.innerText = `${i + 1}`;
+        		thumbnailsContainer.appendChild(thumbnail);
+
+        		sections[i].setAttribute("id", id);
+    		}
+    		let thumbnails = document.getElementById('thumbnails');
+    		thumbnails.setAttribute('open', 'true');
+    		
+		}
+    </script>
+</body>
+
+</html>

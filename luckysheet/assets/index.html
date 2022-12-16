@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"> 
+    <title>LuckySheet</title>
+	<link rel='stylesheet' href='luckysheet-style.css' />
+	<script src="plugin.js"></script>
+	<script src="luckysheet.umd.js"></script>
+	<script src="luckyexcel.umd.js"></script>
+    <script src="brotli.js"></script>
+    <script src="x2t.js"></script>    	
+  </head>
+  <body onload='onload();'>
+  	<div id="luckysheet" style="position:absolute;margin:0px;padding:0px;width:100%;height:100%;left: 0px;top: 0px;"></div>
+	<script>
+		let href = window.location.href
+		let url = new URL(href);
+		let filePath = url.searchParams.get("path");
+		let filename = filePath.substring(filePath.lastIndexOf('/') + 1);
+		var fileWasConverted = false;
+    
+        let options = {
+            container: 'luckysheet', //luckysheet is the container id
+            	userMenuItem: [],
+  				myFolderUrl: "",
+  				lang: 'en',
+  				title: '', //filename, todo - can't use as import will change filename (maybe can get from resp on save call?)
+        };
+
+
+    function getFormatId(ext) {
+        if (ext === 'xlsx') { return 257; }
+        if (ext === 'xls') { return 258; }
+        if (ext === 'ods') { return 259; }
+        //if (ext === 'csv') { return 260; }
+    }
+    function x2tConvertDataInternal(x2t, data, filename, inputFormat, outputFormat) {
+
+        x2t.FS.writeFile('/working/' + filename, data);
+
+        let params =  "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+                    + "<TaskQueueDataConvert xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">"
+                    + "<m_sFileFrom>/working/" + filename + "</m_sFileFrom>"
+                    + "<m_sThemeDir>/working/themes</m_sThemeDir>"
+                    + "<m_sFileTo>/working/" + filename + "." + outputFormat + "</m_sFileTo>"
+                    + '<m_nFormatFrom>'+getFormatId(inputFormat)+'</m_nFormatFrom>'
+                    + '<m_nFormatTo>'+getFormatId(outputFormat)+'</m_nFormatTo>'
+                    + "<m_bIsNoBase64>false</m_bIsNoBase64>"
+                    + "</TaskQueueDataConvert>";
+
+        x2t.FS.writeFile('/working/params.xml', params);
+        try {
+            x2t.ccall("runX2T", ["number"], ["string"], ["/working/params.xml"]);
+        } catch (e) {
+            console.log(e);
+            return "";
+        }
+        var result;
+        try {
+            result = x2t.FS.readFile('/working/' + filename + "." + outputFormat);
+        } catch (e) {
+            console.log("Failed reading converted file");
+            return "";
+        }
+        return result;
+    }
+
+
+    function save() {
+    	let data = luckysheet.getluckysheetfile();
+    	let json = JSON.stringify(data);
+    	let bytes = new TextEncoder().encode(json);
+    	if (fileWasConverted) {
+    	    let withoutExtension = filename.substring(0, filename.lastIndexOf('.'));
+    		let sheetFilename = withoutExtension + '.sheet';
+    		let fullPath = '/peergos-api/v0/save/' + sheetFilename;
+  			fetch(fullPath, { method: 'PUT', headers: {}, body: bytes })
+    			.then(function(response) {
+          			if (response.status != 200) {
+						setStatus('save failed');
+      					console.log('unable to save converted file:' + response.status);
+      				}
+    		}); 
+    	} else {
+	  		fetch(filePath, { method: 'PUT', headers: {}, body: bytes })
+    			.then(function(response) {
+        	  		if (response.status != 200) {
+						setStatus('save failed');
+      					console.log('unable to save file:' + response.status);
+      				}
+    			});
+    	}	 	
+    }
+    function setStatus(msg) {
+    	//fixme, maybe use: options.title = msg;
+		let parent = document.getElementById("luckysheet_info_detail_title");
+        let status = document.getElementById('statusMsg');
+		if (status != null) {
+			status.remove();
+		}
+		let divMsg = document.createElement("div");
+	    divMsg.id = "statusMsg";
+	    divMsg.innerText = msg;
+	    parent.appendChild(divMsg);
+    }
+	function onload() {
+			fetch(filePath, { method: 'GET' }).then(function(response) {				
+    	  		if (response.status === 200) {    	  		
+					response.arrayBuffer().then(function(bytes) {
+        				if(bytes.byteLength > 0){
+        					if (filename.toLowerCase().endsWith('.sheet')){        					
+        						let text = new TextDecoder().decode(bytes);
+        						let json = JSON.parse(text);
+        						options.data = json;
+	        					luckysheet.create(options);
+        					} else if (filename.toLowerCase().endsWith('.xlsx')){
+        						fileWasConverted = true;
+    							LuckyExcel.transformExcelToLucky(bytes,         
+    							function(exportJson, luckysheetfile){
+    							    let withoutExtension = filename.substring(0, filename.lastIndexOf('.'));
+    								let sheetFilename = withoutExtension + '.sheet';
+									//options.title = sheetFilename;
+                					options.data = exportJson.sheets;
+		        					luckysheet.create(options);    									            	
+						        }, function(err){
+            						setStatus('Import failed');
+            						console.log('Xslx Import failed with error:' + err);
+						        });
+						        
+						    } else if (filePath.toLowerCase().endsWith('.ods') || filePath.toLowerCase().endsWith('.csv')) {
+            					let x2t = window.Module;
+            					x2t.run();
+            					x2t.onRuntimeInitialized = function() {
+            	    				x2t.FS.mkdir('/working');
+									let data = new Uint8Array(bytes);
+    								let extension = filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
+        	            			let output = x2tConvertDataInternal(x2t, data, filename, extension, 'xlsx');
+        							fileWasConverted = true;
+    								LuckyExcel.transformExcelToLucky(output,         
+    								function(exportJson, luckysheetfile){
+    								    let withoutExtension = filename.substring(0, filename.lastIndexOf('.'));
+    									let sheetFilename = withoutExtension + '.sheet';
+										//options.title = sheetFilename;
+                						options.data = exportJson.sheets;
+		        						luckysheet.create(options);    									            	
+							        }, function(err){
+        	    						setStatus('Import failed');
+    	        						console.log('ODS Import failed with error:' + err);
+							        });			    	    		
+	            				};						
+							}
+        				} else {
+        					if (!filename.toLowerCase().endsWith('.sheet')){        					
+        						fileWasConverted = true; //launched with something other then .sheet
+        					}
+        					luckysheet.create(options);
+        				}
+		    	    });					
+              	} else {
+					setStatus('unable to load file');
+      				console.log('error loading file:' + response.status);
+      			}
+			});
+	}
+    </script>
+  </body>
+</html>
+

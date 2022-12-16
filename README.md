@@ -23,8 +23,26 @@ github.com/Peergos/peergos
 #### https://github.com/ckeditor/ckeditor5
 
 Rich text editor. Loads/Saves .html files
-
+See doc2html app below to convert other document formats to html
 ![html editor](./screenshots/ck-editor.png)    
+
+## Doc2Html. Convert .docx and .odt files to .html files
+#### https://github.com/mwilliamson/mammoth.js/ github.com/xwiki-labs/office-converter
+
+![Image editor](./screenshots/doc2html.png)
+
+
+## Document Viewer. View .docx and .odt files
+#### https://github.com/VolodymyrBaydalka/docxjs, https://github.com/xwiki-labs/office-converters
+
+![Image editor](./screenshots/doc-viewer.png)
+
+
+## LuckySheet Spreadsheet
+#### https://github.com/dream-num/Luckysheet https://github.com/xwiki-labs/office-converters
+data is stored in a a json formatted file with extension .sheet 
+Can import to some degree xlsx, ods spreadsheet files
+![Image editor](./screenshots/luckysheet.png)
 
 
 ## .docx extractor. Save content as .html (Formatting not preserved)
