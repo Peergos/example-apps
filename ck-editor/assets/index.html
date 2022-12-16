@@ -72,6 +72,7 @@
 		        let href = window.location.href;
 				let url = new URL(href);
 				let filePath = url.searchParams.get("path");
+				var ignoreInitalSave = true; //act of loading document is enough to trigger save			
 				var addDefaultHtml = true;
 				DecoupledDocumentEditor.create( document.querySelector( '.editor' ), {					
 					autosave: {
@@ -120,6 +121,10 @@
 				function saveData(text) {
 					let data = addDefaultHtml ? prefixHTML + '\n' + text + '\n' + postfixHTML : text; 
 					return new Promise( resolve => {
+						if (ignoreInitalSave) {
+							ignoreInitalSave = false;
+            				resolve();
+						} else {
 		    				const statusIndicator = document.querySelector( '.editor-status' );
 		            		statusIndicator.innerText = 'Saving...';
   							let encoder = new TextEncoder();
@@ -132,6 +137,7 @@
       							}
             					resolve();
     						});     			
+    					}
     				});					
 				}
 		</script>
