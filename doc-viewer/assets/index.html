@@ -107,7 +107,7 @@ details.docx-thumbnails summary::marker {
         try {
             result = x2t.FS.readFile('/working/' + filename + "." + outputFormat);
         } catch (e) {
-            console.log("Failed reading converted file");
+            console.log("Failed reading converted file. error:" + e);
             return "";
         }
         return result;
