@@ -133,7 +133,8 @@
     						.then(function(response) {
           	  					statusIndicator.innerText = '';
           				    	if (response.status != 200) {
-      								console.log('unable to save document:' + response.status);
+				            		statusIndicator.innerText = 'Unable to save file...';
+      								console.log('unable to save file:' + response.status);
       							}
             					resolve();
     						});     			

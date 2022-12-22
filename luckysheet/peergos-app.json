@@ -1,7 +1,7 @@
 {
     "displayName": "Luckysheet",
     "description": ".sheet + import .xlsx .ods github.com/dream-num/Luckysheet github.com/xwiki-labs/office-converters",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "author": "peergos",
     "launchable": false,
 	"folderAction": false,    

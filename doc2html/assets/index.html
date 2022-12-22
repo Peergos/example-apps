@@ -93,7 +93,7 @@
   	<h1 style="text-align:center;">Doc2Html</h1>
   	<div>
   		<p style="text-align:center;">
-  			doc2html uses a chain of conversion steps to convert a document (MS Word .docx, LibreOffice Writer .odt) to .html.
+  			doc2html uses a chain of conversion steps to convert a document (Microsoft Word .docx, LibreOffice Writer .odt) to .html.
 		</p>  	
   		<p style="text-align:center;">
   			The output is optimised for editing in the ck-editor App.
@@ -201,7 +201,7 @@
         try {
             result = x2t.FS.readFile('/working/' + filename + "." + outputFormat);
         } catch (e) {
-            console.log("Failed reading converted file");
+            console.log("Failed reading converted file. error:" + e);
             return "";
         }
         return result;
@@ -214,7 +214,7 @@
 		let filename = filePath.substring(filePath.lastIndexOf('/') + 1);
 
 		document.getElementById("filename").innerText = filename;
-		document.getElementById("status").innerText = 'loading...';
+		document.getElementById("status").innerText = 'loading file...';
 
 		fetch(filePath, { method: 'GET' }).then(function(response) {				
     	  		if (response.status === 200) {  
@@ -228,8 +228,14 @@
             				x2t.onRuntimeInitialized = function() {
             	    			x2t.FS.mkdir('/working');
 								let data = new Uint8Array(arrayBuffer);
-        	            		let output = x2tConvertDataInternal(x2t, data, filename, 'odt', 'docx');			    	    		
-					            convertToHtml(output, filename);
+        	            		let output = x2tConvertDataInternal(x2t, data, filename, 'odt', 'docx');	
+        	            		if (output.length == 0) {
+        	            			document.getElementById("convertFileIcon").classList.remove("imageRotateHorizontal");
+        	            			document.getElementById('convertFileIcon').classList.add("icon-error");
+								    document.getElementById("status").innerText = 'unable to convert document';
+		    					} else {		    	    		
+					            	convertToHtml(output, filename);
+					            }
 	            			};						
 						} else {
 				            convertToHtml(arrayBuffer, filename);
@@ -324,16 +330,16 @@ function transformElement(element) {
     		transformDocument: transformElement,
 		};
 		mammoth.convertToHtml({arrayBuffer: output}, options)
-        		        			.then(res => { 
-        		        				let html = postProcess(res);
-        		        				displayResult(html);
-		        	        			saveHTML(html, filename);
-		        	        		}).catch(error => {
-		        	        		    document.getElementById("convertFileIcon").classList.remove("imageRotateHorizontal");
-								    	document.getElementById('convertFileIcon').classList.add("icon-error");
-								    	document.getElementById("status").innerText = 'unable to covert file';
-      									console.log('unable to convert file:' + error);
-		        	        		});
+        .then(res => { 
+        	let html = postProcess(res);
+        	displayResult(html);
+		    saveHTML(html, filename);
+		}).catch(error => {
+		    document.getElementById("convertFileIcon").classList.remove("imageRotateHorizontal");
+			document.getElementById('convertFileIcon').classList.add("icon-error");
+			document.getElementById("status").innerText = 'unable to convert document';
+      		console.log('unable to convert file:' + error);
+		});
     }
     function postProcess(transformed) {
 		transformed.value = transformed.value.replaceAll('class="custom-section-center">','style="text-align:center;">');
@@ -366,6 +372,7 @@ function transformElement(element) {
     function saveHTML(result, filename){
     	document.getElementById("convertFileIcon").classList.remove("imageRotateHorizontal");
     	document.getElementById('convertFileIcon').classList.add("icon-done");
+		document.getElementById("status").innerText = 'saving file...';
     	let data = new TextEncoder().encode(result.value);
     	let withoutExtension = filename.substring(0, filename.lastIndexOf('.'));
     	let htmlFilename = withoutExtension + '.html';
@@ -378,12 +385,12 @@ function transformElement(element) {
       				console.log('unable to save file:' + response.status);
       			} else {
 			    	document.getElementById('writeFileIcon').classList.add("icon-done");
-					document.getElementById("status").innerText = 'saved file';
+					document.getElementById("status").innerText = 'file saved';
       			}
     		}); 
     }
     function displayResult(result) {
-		document.getElementById("status").innerText = 'done.';
+		document.getElementById("status").innerText = 'conversion complete';
 		for(var i=0; i < result.messages.length; i++) {
 			if (i==0) {
 		        console.log(result.messages.length + ' Problems found during conversion:');						

@@ -59,7 +59,7 @@
         try {
             result = x2t.FS.readFile('/working/' + filename + "." + outputFormat);
         } catch (e) {
-            console.log("Failed reading converted file");
+            console.log("Failed reading converted file. error:" + e);
             return "";
         }
         return result;
@@ -127,7 +127,7 @@
             						console.log('Xslx Import failed with error:' + err);
 						        });
 						        
-						    } else if (filePath.toLowerCase().endsWith('.ods') || filePath.toLowerCase().endsWith('.csv')) {
+						    } else if (filePath.toLowerCase().endsWith('.ods')) {
             					let x2t = window.Module;
             					x2t.run();
             					x2t.onRuntimeInitialized = function() {
@@ -135,6 +135,10 @@
 									let data = new Uint8Array(bytes);
     								let extension = filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
         	            			let output = x2tConvertDataInternal(x2t, data, filename, extension, 'xlsx');
+        	            			if (output.length == 0) {
+        	            				setStatus("Unable to convert document");				
+		    							return;
+		    						}
         							fileWasConverted = true;
     								LuckyExcel.transformExcelToLucky(output,         
     								function(exportJson, luckysheetfile){

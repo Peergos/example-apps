@@ -3296,12 +3296,17 @@ SaveDialog.prototype._handleSave = function (e) {
 	let filePath = url.searchParams.get("path");
 	let folder = filePath.substring(0, filePath.lastIndexOf('/') + 1);
 	let fullPathWithFilename = folder + this._downloadLink.download;
+	document.getElementById("status").innerText = " Saving file...";
 	var headers = {};
 	this._blob.arrayBuffer().then(data => {
   		fetch(fullPathWithFilename, { method: 'PUT', headers: headers, body: data })
     	.then(function(response) {
           	if (response.status != 200) {
+				document.getElementById("status").innerText = " Unable to save file";
       			console.log('unable to save image:' + response.status);
+      		} else {
+				document.getElementById("status").innerText = " File saved";
+				setTimeout(() => document.getElementById("status").innerText = "", 1000);
       		}
     	}); 
     });

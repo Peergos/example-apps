@@ -1,7 +1,7 @@
 {
     "displayName": "Document Viewer",
     "description": "View .docx .odt github.com/VolodymyrBaydalka/docxjs, github.com/xwiki-labs/office-converters",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "author": "peergos",
     "launchable": false,
 	"folderAction": false,    
