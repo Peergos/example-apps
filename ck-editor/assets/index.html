@@ -104,7 +104,10 @@
 										editor.setData(text);
 									}
 								}
+								let saveButton = createSaveButton(editor);
 								document.querySelector( '.document-editor__toolbar' ).appendChild( editor.ui.view.toolbar.element );
+								const items = document.querySelector( '.ck-toolbar__items' );
+								items.insertBefore(saveButton, items.children[0]);
 								document.querySelector( '.ck-toolbar' ).classList.add( 'ck-reset_all' );
     						});
       					} else {
@@ -118,6 +121,33 @@
 		            statusIndicator.innerText = 'Unable to launch editor';
 					console.error( error );
 				} );
+				function createSaveButton(editor) {
+ 			   		var btn = document.createElement("button");
+ 			       	btn.id = "saveBtn";
+ 			       	btn.title="Save";
+ 			       	btn.type="button";
+  			      	btn.style.width="36px";
+  			      	btn.style.height="36px";
+   			     	btn.style.border="0px";
+  			      	btn.style.backgroundColor='#f7f7f7';
+  			      	btn.onclick=function() {
+  		  	    	    saveData( editor.getData() );
+   		   	  		};   
+					//disk svg from paintZ - https://github.com/ZMYaro/paintz
+   		 			const iconSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  					const iconPath = document.createElementNS(
+   			 			'http://www.w3.org/2000/svg',
+  			  			'path'
+  					);
+  					iconSvg.setAttribute('viewBox', '0 0 24 24');
+  					iconPath.setAttribute(
+    					'd',
+        				"M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"
+  					);
+  					iconSvg.appendChild(iconPath);
+    				btn.appendChild(iconSvg);
+					return btn;
+	    		}
 				function saveData(text) {
 					let data = addDefaultHtml ? prefixHTML + '\n' + text + '\n' + postfixHTML : text; 
 					return new Promise( resolve => {
