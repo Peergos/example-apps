@@ -12,7 +12,7 @@
                 let href = window.location.href
 				let url = new URL(href);
 				let filePath = url.searchParams.get("path");
-				let isFileWritable = url.searchParams.get("isFileWritable") == 'true';
+				let isPathWritable = url.searchParams.get("isPathWritable") == 'true';
 				let baseDirectory = filePath.substring(0, filePath.lastIndexOf('/') + 1);
 				let theme = url.searchParams.get("theme");
 				let editorTheme = theme == 'dark-mode' ? 'dark' : 'light';
@@ -50,7 +50,7 @@
       		}
             function startEditor(text) {
             	var toolbar = null;
-            	if (isFileWritable) {
+            	if (isPathWritable) {
             	    toolbar = [
           					['heading', 'bold', 'italic', 'strike'],
           					['hr', 'quote'],

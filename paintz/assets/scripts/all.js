@@ -3295,10 +3295,10 @@ SaveDialog.prototype._handleSave = function (e) {
 	let url = new URL(href);
 	let filePath = url.searchParams.get("path");
 	
-	let isFileWritable = url.searchParams.get("isFileWritable") == 'true';
+	let isPathWritable = url.searchParams.get("isPathWritable") == 'true';
 	let folder = filePath.substring(0, filePath.lastIndexOf('/') + 1);
 	let fullPathWithFilename = folder + this._downloadLink.download;
-	if (!isFileWritable) {
+	if (!isPathWritable) {
 		document.getElementById("status").innerText = " File access is read only";	
 	} else {
 		document.getElementById("status").innerText = " Saving file...";

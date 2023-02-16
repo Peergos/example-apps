@@ -18,7 +18,7 @@
 		let filePath = url.searchParams.get("path");
 		let filename = filePath.substring(filePath.lastIndexOf('/') + 1);
 		var fileWasConverted = false;
-    	let isFileWritable = url.searchParams.get("isFileWritable") == 'true';
+    	let isPathWritable = url.searchParams.get("isPathWritable") == 'true';
         let options = {
             container: 'luckysheet', //luckysheet is the container id
             	userMenuItem: [],
@@ -67,7 +67,7 @@
 
 
     function save() {
-    	if (!isFileWritable) {
+    	if (!isPathWritable) {
 			setStatus('File access is read only');    	
 			return;
     	}

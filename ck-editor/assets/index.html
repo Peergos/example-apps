@@ -72,7 +72,7 @@
 		        let href = window.location.href;
 				let url = new URL(href);
 				let filePath = url.searchParams.get("path");
-				let isFileWritable = url.searchParams.get("isFileWritable") == 'true';
+				let isPathWritable = url.searchParams.get("isPathWritable") == 'true';
 				var ignoreInitalSave = true; //act of loading document is enough to trigger save			
 				var addDefaultHtml = true;
 				var isSaving = false;
@@ -157,7 +157,7 @@
 							resolve();
 						}
 		    			const statusIndicator = document.querySelector( '.editor-status' );
-						if (!isFileWritable) {
+						if (!isPathWritable) {
 		            		statusIndicator.innerText = 'File access is read only';
 							resolve();
 						} else if (ignoreInitalSave) {

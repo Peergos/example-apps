@@ -15,7 +15,7 @@
     let href = window.location.href
 	let url = new URL(href);
 	let filePath = url.searchParams.get("path");
-    let isFileWritable = url.searchParams.get("isFileWritable") == 'true';
+    let isPathWritable = url.searchParams.get("isPathWritable") == 'true';
     function run() {
     	init(() => {
     		addSaveButton(() => {
@@ -80,7 +80,7 @@
         	btn.style.border="0px";
         	btn.style.backgroundColor='white';
         	btn.onclick=function() {
-        		if (!isFileWritable) {
+        		if (!isPathWritable) {
 		    		setStatus('File access is read only');         		
 		    		return;
         		}

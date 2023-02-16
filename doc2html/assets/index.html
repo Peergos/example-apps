@@ -212,9 +212,9 @@
 		let url = new URL(href);
 		let filePath = url.searchParams.get("path");
 		let filename = filePath.substring(filePath.lastIndexOf('/') + 1);
-		let isFileWritable = url.searchParams.get("isFileWritable") == 'true';
+		let isPathWritable = url.searchParams.get("isPathWritable") == 'true';
 		document.getElementById("filename").innerText = filename;
-		if (!isFileWritable) {
+		if (!isPathWritable) {
 			document.getElementById("status").innerText = 'File access is read only';		
 		} else {
 			document.getElementById("status").innerText = 'loading file...';
