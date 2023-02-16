@@ -12,6 +12,7 @@
                 let href = window.location.href
 				let url = new URL(href);
 				let filePath = url.searchParams.get("path");
+				let isFileWritable = url.searchParams.get("isFileWritable") == 'true';
 				let baseDirectory = filePath.substring(0, filePath.lastIndexOf('/') + 1);
 				let theme = url.searchParams.get("theme");
 				let editorTheme = theme == 'dark-mode' ? 'dark' : 'light';
@@ -48,14 +49,9 @@
         		return button;
       		}
             function startEditor(text) {
-			    editor = new toastui.Editor({
-        			el: document.querySelector('#editor'),
-        			height: (window.innerHeight -5) + 'px',
-        			initialValue: text,
-        			initialEditType: 'wysiwyg',
-        			theme: editorTheme,
-        			usageStatistics: false,
-        			toolbarItems: [
+            	var toolbar = null;
+            	if (isFileWritable) {
+            	    toolbar = [
           					['heading', 'bold', 'italic', 'strike'],
           					['hr', 'quote'],
           					['ul', 'ol', 'task', 'indent', 'outdent'],
@@ -65,8 +61,23 @@
 								el: createSaveButton(),
             					command: null,
            			 			tooltip: 'Save'
-          					}]
-        			],
+          					}]];
+            	} else {
+            		toolbar = [
+          					['heading', 'bold', 'italic', 'strike'],
+          					['hr', 'quote'],
+          					['ul', 'ol', 'task', 'indent', 'outdent'],
+          					['table'],//, 'image', 'link'],
+          					['code', 'codeblock']];
+            	}
+			    editor = new toastui.Editor({
+        			el: document.querySelector('#editor'),
+        			height: (window.innerHeight -5) + 'px',
+        			initialValue: text,
+        			initialEditType: 'wysiwyg',
+        			theme: editorTheme,
+        			usageStatistics: false,
+        			toolbarItems: toolbar,
   					customHTMLRenderer: {
     					image(node, context) {
       						var src = node.destination;

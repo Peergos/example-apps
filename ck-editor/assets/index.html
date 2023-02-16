@@ -72,8 +72,10 @@
 		        let href = window.location.href;
 				let url = new URL(href);
 				let filePath = url.searchParams.get("path");
+				let isFileWritable = url.searchParams.get("isFileWritable") == 'true';
 				var ignoreInitalSave = true; //act of loading document is enough to trigger save			
 				var addDefaultHtml = true;
+				var isSaving = false;
 				DecoupledDocumentEditor.create( document.querySelector( '.editor' ), {					
 					autosave: {
 						waitingTime: 2000, // in ms
@@ -104,8 +106,8 @@
 										editor.setData(text);
 									}
 								}
-								let saveButton = createSaveButton(editor);
 								document.querySelector( '.document-editor__toolbar' ).appendChild( editor.ui.view.toolbar.element );
+								let saveButton = createSaveButton(editor);
 								const items = document.querySelector( '.ck-toolbar__items' );
 								items.insertBefore(saveButton, items.children[0]);
 								document.querySelector( '.ck-toolbar' ).classList.add( 'ck-reset_all' );
@@ -151,21 +153,33 @@
 				function saveData(text) {
 					let data = addDefaultHtml ? prefixHTML + '\n' + text + '\n' + postfixHTML : text; 
 					return new Promise( resolve => {
-						if (ignoreInitalSave) {
+						if (isSaving) {
+							resolve();
+						}
+		    			const statusIndicator = document.querySelector( '.editor-status' );
+						if (!isFileWritable) {
+		            		statusIndicator.innerText = 'File access is read only';
+							resolve();
+						} else if (ignoreInitalSave) {
 							ignoreInitalSave = false;
             				resolve();
 						} else {
-		    				const statusIndicator = document.querySelector( '.editor-status' );
+							isSaving = true;
 		            		statusIndicator.innerText = 'Saving...';
   							let encoder = new TextEncoder();
     						let body = encoder.encode(data);
-  							fetch(filePath, { method: 'PUT', headers: {}, body: body })
-    						.then(function(response) {
+  							fetch(filePath, { method: 'PUT', headers: {}, body: body }).then(function(response) {
+  								isSaving = false;
           	  					statusIndicator.innerText = '';
           				    	if (response.status != 200) {
 				            		statusIndicator.innerText = 'Unable to save file...';
       								console.log('unable to save file:' + response.status);
       							}
+            					resolve();
+    						}).catch( err => {
+				            	statusIndicator.innerText = 'Unable to contact server...';
+      							console.log('unable to contact server:' + err);
+	    						isSaving = false;
             					resolve();
     						});     			
     					}

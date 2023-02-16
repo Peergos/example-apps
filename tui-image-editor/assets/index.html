@@ -18,6 +18,7 @@
         	let href = window.location.href
 			let url = new URL(href);
 			let filePath = url.searchParams.get("path");
+			let isFileWritable = url.searchParams.get("isFileWritable") == 'true';
 			console.log("loading: " + filePath);	
 			let theme = url.searchParams.get("theme");
 			let editorTheme = theme == 'dark-mode' ? blackTheme : whiteTheme;
@@ -43,6 +44,9 @@
       		loadBtn.style.display = 'none';
       		let saveBtn = document.getElementById('downloadBtnId');
 			saveBtn.innerText = 'Save';
+			if (!isFileWritable) {
+				saveBtn.style.display = 'none';
+			}
 	      	window.onresize = function () {
 	      		//FIXME
     	    	imageEditor.ui.resizeEditor();

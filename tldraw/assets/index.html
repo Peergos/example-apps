@@ -15,7 +15,7 @@
     let href = window.location.href
 	let url = new URL(href);
 	let filePath = url.searchParams.get("path");
-
+    let isFileWritable = url.searchParams.get("isFileWritable") == 'true';
     function run() {
     	init(() => {
     		addSaveButton(() => {
@@ -34,12 +34,12 @@
 							let file = JSON.parse(fileText);
 		        			tldr.loadDocument(file.document);
         					//tldr.zoomToFit();
-    						setTimeout(() => setStatus(""), 1000);				
+    						window.setTimeout(() => setStatus(""), 1000);				
     					} catch (ex) {
 			    			setStatus('Error reading file...'); 
     					}
     				} else {
-    					setTimeout(() => setStatus(""), 1000);				
+    					window.setTimeout(() => setStatus(""), 1000);				
     				}
     			});
       		} else {
@@ -80,6 +80,10 @@
         	btn.style.border="0px";
         	btn.style.backgroundColor='white';
         	btn.onclick=function() {
+        		if (!isFileWritable) {
+		    		setStatus('File access is read only');         		
+		    		return;
+        		}
 		    	setStatus('Saving...'); 
   				if (saving) {
         			return;
@@ -107,7 +111,7 @@
       						console.log('unable to save document:' + response.status);
       					} else {
 			      			setStatus('File saved'); 
-			    	    	setTimeout(() => setStatus(""), 1000);      					
+			    	    	window.setTimeout(() => setStatus(""), 1000);      					
       					}
     				}); 
     			});
@@ -150,7 +154,7 @@
       						console.log('unable to export file:' + response.status);
       					} else {
 			      			setStatus('File exported'); 
-			    	    	setTimeout(() => setStatus(""), 1000);      					
+			    	    	window.setTimeout(() => setStatus(""), 1000);      					
       					}
     				}); 
     			});	
@@ -158,7 +162,7 @@
     		menuElement.remove();
     		callback();   	
     	} else {
-    	    setTimeout(() => init(callback), 20);
+    	    window.setTimeout(() => init(callback), 20);
     	}
     }
     </script>

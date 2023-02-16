@@ -212,11 +212,13 @@
 		let url = new URL(href);
 		let filePath = url.searchParams.get("path");
 		let filename = filePath.substring(filePath.lastIndexOf('/') + 1);
-
+		let isFileWritable = url.searchParams.get("isFileWritable") == 'true';
 		document.getElementById("filename").innerText = filename;
-		document.getElementById("status").innerText = 'loading file...';
-
-		fetch(filePath, { method: 'GET' }).then(function(response) {				
+		if (!isFileWritable) {
+			document.getElementById("status").innerText = 'File access is read only';		
+		} else {
+			document.getElementById("status").innerText = 'loading file...';
+			fetch(filePath, { method: 'GET' }).then(function(response) {				
     	  		if (response.status === 200) {  
     	  			document.getElementById('readFileIcon').classList.add("icon-done");
 					response.arrayBuffer().then(function(arrayBuffer) {
@@ -247,6 +249,7 @@
       				console.log('error loading file:' + response.status);
       			}
 			});
+		}
     }
 function transformParagraph(element) {
     if (element.alignment === "center") {

@@ -3294,22 +3294,28 @@ SaveDialog.prototype._handleSave = function (e) {
 	let href = window.location.href
 	let url = new URL(href);
 	let filePath = url.searchParams.get("path");
+	
+	let isFileWritable = url.searchParams.get("isFileWritable") == 'true';
 	let folder = filePath.substring(0, filePath.lastIndexOf('/') + 1);
 	let fullPathWithFilename = folder + this._downloadLink.download;
-	document.getElementById("status").innerText = " Saving file...";
-	var headers = {};
-	this._blob.arrayBuffer().then(data => {
-  		fetch(fullPathWithFilename, { method: 'PUT', headers: headers, body: data })
-    	.then(function(response) {
-          	if (response.status != 200) {
-				document.getElementById("status").innerText = " Unable to save file";
-      			console.log('unable to save image:' + response.status);
-      		} else {
-				document.getElementById("status").innerText = " File saved";
-				setTimeout(() => document.getElementById("status").innerText = "", 1000);
-      		}
-    	}); 
-    });
+	if (!isFileWritable) {
+		document.getElementById("status").innerText = " File access is read only";	
+	} else {
+		document.getElementById("status").innerText = " Saving file...";
+		var headers = {};
+		this._blob.arrayBuffer().then(data => {
+  			fetch(fullPathWithFilename, { method: 'PUT', headers: headers, body: data })
+    		.then(function(response) {
+          		if (response.status != 200) {
+					document.getElementById("status").innerText = " Unable to save file";
+      				console.log('unable to save image:' + response.status);
+      			} else {
+					document.getElementById("status").innerText = " File saved";
+					setTimeout(() => document.getElementById("status").innerText = "", 1000);
+      			}
+    		}); 
+    	});
+    }
 	document.title = this._downloadLink.download + PAGE_TITLE_SUFFIX;
 	// Web app cannot confirm the user went through with the download, but assume xe did.
 	undoStack.changedSinceSave = false;
@@ -9009,15 +9015,15 @@ function openImage(file, isFilePath) {
 	// Deactivate and reactivate the current tool in case it is being used.
 	tools.currentTool.deactivate();
 	tools.currentTool.activate();
-	
+	//setTimeout(() => {
 	Utils.readImage(file, isFilePath).then(function (image) {
 		// There is no need to clear the canvas.  Resizing the canvas will do that.
 		canvas.width =
 			preCanvas.width = image.width;
 		canvas.height =
 			preCanvas.height = image.height;
-		settings.set('width', image.width);
-		settings.set('height', image.height);
+			settings.set('width', image.width);
+			settings.set('height', image.height);
 		cxt.fillStyle = 'white';
 		cxt.fillRect(0, 0, canvas.width, canvas.height);
 		cxt.drawImage(image, 0, 0);
@@ -9049,6 +9055,7 @@ function openImage(file, isFilePath) {
 		// Hide the progress spinner.
 		progressSpinner.hide();
 	});
+	//}, 2000);
 }
 
 /**
