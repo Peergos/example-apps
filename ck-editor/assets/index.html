@@ -5,6 +5,8 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<link rel="stylesheet" type="text/css" href="styles.css">
+		<script src="purify.min.js"></script>
+		<script src="print.js"></script>
 	</head>
 	<body data-editor="DecoupledDocumentEditor" data-collaboration="false" data-revision-history="false">
 		<main>
@@ -12,6 +14,7 @@
 			<div class="header" style="position: absolute; top: 10px; right: 10px;">
 				<i id="savingId" style="display: none; font-size: x-large">Updating...</i>
 			</div>
+			<iframe id="print-data-container" aria-hidden="true" tabindex="-1"></iframe>
 			<div class="centered">
 				<div class="row">
 					<div class="document-editor__toolbar"></div>
@@ -108,8 +111,10 @@
 								}
 								document.querySelector( '.document-editor__toolbar' ).appendChild( editor.ui.view.toolbar.element );
 								let saveButton = createSaveButton(editor);
+								let printPreviewButton = createPrintButton(editor);
 								const items = document.querySelector( '.ck-toolbar__items' );
 								items.insertBefore(saveButton, items.children[0]);
+								items.insertBefore(printPreviewButton, items.children[0]);
 								document.querySelector( '.ck-toolbar' ).classList.add( 'ck-reset_all' );
     						});
       					} else {
@@ -123,13 +128,42 @@
 		            statusIndicator.innerText = 'Unable to launch editor';
 					console.error( error );
 				} );
+				function createPrintButton(editor) {
+ 			   		var btn = document.createElement("button");
+ 			       	btn.id = "printBtn";
+ 			       	btn.title="Print";
+ 			       	btn.type="button";
+  			      	btn.style.width="24px";
+  			      	btn.style.height="24px";
+   			     	btn.style.border="0px";
+  			      	btn.style.backgroundColor='#f7f7f7';
+  			      	btn.onclick=function() {
+  			      	    let sanitizedHTML = DOMPurify.sanitize(editor.getData());
+  		  	    	    printPreview(sanitizedHTML, filePath.substring(filePath.lastIndexOf('/') + 1));
+   		   	  		};   
+					//print svg from paintZ - https://github.com/ZMYaro/paintz
+   		 			const iconSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  					const iconPath = document.createElementNS(
+   			 			'http://www.w3.org/2000/svg',
+  			  			'path'
+  					);
+  					iconSvg.setAttribute('viewBox', '0 0 24 24');
+  					iconPath.setAttribute(
+    					'd',
+  						"M18 3H6V7H18M19 12A1 1 0 0 1 18 11 1 1 0 0 1 19 10 1 1 0 0 1 20 11 1 1 0 0 1 19 12M16 19H8V14H16M19 8H5A3 3 0 0 0 2 11V17H6V21H18V17H22V11A3 3 0 0 0 19 8Z"
+  					);  					
+  					iconSvg.appendChild(iconPath);
+    				btn.appendChild(iconSvg);
+					return btn;
+	    		}
+
 				function createSaveButton(editor) {
  			   		var btn = document.createElement("button");
  			       	btn.id = "saveBtn";
  			       	btn.title="Save";
  			       	btn.type="button";
-  			      	btn.style.width="36px";
-  			      	btn.style.height="36px";
+  			      	btn.style.width="24px";
+  			      	btn.style.height="24px";
    			     	btn.style.border="0px";
   			      	btn.style.backgroundColor='#f7f7f7';
   			      	btn.onclick=function() {

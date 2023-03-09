@@ -1,7 +1,7 @@
 {
     "displayName": "CK Editor",
     "description": "Based on CK Editor: https://github.com/ckeditor/ckeditor5",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "author": "peergos",
     "launchable": false,
     "folderAction": false,    			

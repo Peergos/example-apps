@@ -5,8 +5,11 @@
     <title>TUI Markdown editor</title>
    	 	<link rel="stylesheet" href="toastui-editor.css">
     	<script src="toastui-editor-min.js"></script>
+    	<script src="purify.min.js"></script>
+    	<script src="print.js"></script>
   </head>
   <body>
+  		<iframe id="print-data-container" aria-hidden="true" tabindex="-1"></iframe>
 	  	<div id="editor"></div>
         <script>
                 let href = window.location.href
@@ -18,13 +21,61 @@
 				let editorTheme = theme == 'dark-mode' ? 'dark' : 'light';
 				console.log("loading: " + filePath);	
 				var saving = false;
+				
+				
+			function createStatusText() {
+    			const label = document.createElement("i");//label
+    			label.className = 'last';
+        		label.style.backgroundImage = 'none';
+        		label.style.margin = '0';
+        		label.style.fontSize = 'large';
+    			label.id = 'in-progress'
+    			label.innerText = 'Saving...';
+    			label.style="display:none;";
+        		return label;
+      		}
+			function createPrintButton() {
+        		const button = document.createElement('button');
+        		button.className = 'toastui-editor-toolbar-icons last';
+        		button.style.backgroundImage = 'none';
+        		button.style.margin = '0';
+        		button.style.fontSize = 'large';
+ 			   	button.title="Print";
+ 			   	button.type="button";
+  			  	button.style.width="32px";
+  			  	button.style.height="32px";
+   			 	button.style.border="0px";
+  			  	button.style.backgroundColor='#f7f7f7';	
+        		button.addEventListener('click', () => {
+          			let contents = editor.getHTML();    
+          			let sanitizedHTML = DOMPurify.sanitize(contents);
+          			 printPreview(sanitizedHTML, filePath.substring(filePath.lastIndexOf('/') + 1));   			
+        		});
+        		//disk svg from paintZ - https://github.com/ZMYaro/paintz
+   		 		const iconSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  				const iconPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  				iconSvg.setAttribute('viewBox', '0 0 24 24');
+  				iconPath.setAttribute(
+    				'd',
+  					"M18 3H6V7H18M19 12A1 1 0 0 1 18 11 1 1 0 0 1 19 10 1 1 0 0 1 20 11 1 1 0 0 1 19 12M16 19H8V14H16M19 8H5A3 3 0 0 0 2 11V17H6V21H18V17H22V11A3 3 0 0 0 19 8Z"
+  				);
+  				iconSvg.appendChild(iconPath);
+    			button.appendChild(iconSvg);
+        		return button;
+      		}
+
             function createSaveButton() {
         		const button = document.createElement('button');
         		button.className = 'toastui-editor-toolbar-icons last';
         		button.style.backgroundImage = 'none';
         		button.style.margin = '0';
         		button.style.fontSize = 'large';
-        		button.innerHTML = `<i>Save</i><i id='in-progress' style="display: none">...</i>`;
+ 			   	button.title="Save";
+ 			   	button.type="button";
+  			  	button.style.width="32px";
+  			  	button.style.height="32px";
+   			 	button.style.border="0px";
+  			  	button.style.backgroundColor='#f7f7f7';	
         		button.addEventListener('click', () => {
         			if (saving) {
         				return;
@@ -32,20 +83,32 @@
         			saving = true;
           			let contents = editor.getMarkdown();          			
           			let progress = document.getElementById('in-progress');
+          			progress.innerText = 'Saving...';
           			progress.style.display = '';          			
           			var headers = {};
   					let encoder = new TextEncoder();
     				let body = encoder.encode(contents);
   					fetch(filePath, { method: 'PUT', headers: headers, body: body })
     				.then(function(response) {
-          			    progress.style.display = 'none';
           			    saving = false;
-          			    if (response.status != 200) {
+          			    if (response.status == 200) {
+	          			    progress.style.display = 'none';          			    
+          			    } else {
+          			    	progress.innerText = 'Unable to save file...';
       						console.log('unable to save document:' + response.status);
       					}
     				});             
         		});
-
+        		//disk svg from paintZ - https://github.com/ZMYaro/paintz
+   		 		const iconSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  				const iconPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  				iconSvg.setAttribute('viewBox', '0 0 24 24');
+  				iconPath.setAttribute(
+    				'd',
+        			"M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"
+  				);
+  				iconSvg.appendChild(iconPath);
+    			button.appendChild(iconSvg);
         		return button;
       		}
             function startEditor(text) {
@@ -58,10 +121,21 @@
           					['table'],//, 'image', 'link'],
           					['code', 'codeblock'],
           					[{
+								el: createPrintButton(),
+            					command: null,
+           			 			tooltip: 'Print'
+          					}],
+          					[{
 								el: createSaveButton(),
             					command: null,
            			 			tooltip: 'Save'
-          					}]];
+          					}],
+          					[{
+								el: createStatusText(),
+            					command: null,
+           			 			tooltip: ''
+          					}]          					
+          					];
             	} else {
             		toolbar = [
           					['heading', 'bold', 'italic', 'strike'],
