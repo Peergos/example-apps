@@ -343,10 +343,10 @@ var Utils = {
 				reject();
 				return;
 			}
-			if (!isFilePath && !file.type.match('image.*')) {
+			/*if (!isFilePath && !file.type.match('image.*')) {
 				reject('PaintZ can only open valid image files.');
 				return;
-			}
+			}*/
 			
 			if (isFilePath) {
 					var image = new Image();
@@ -3833,7 +3833,9 @@ DimensionsToolbox.prototype._setUp = function (contents) {
  * Update the displayed resolution to reflect the current settings.
  */
 DimensionsToolbox.prototype.updateResolution = function () {
-	this._resolution.innerHTML = settings.get('width') + ' &times; ' + settings.get('height') + 'px';
+	if (this._resolution != null) {
+		this._resolution.innerHTML = settings.get('width') + ' &times; ' + settings.get('height') + 'px';
+	}
 };
 
 /**
