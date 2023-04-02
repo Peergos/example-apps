@@ -1,0 +1,9 @@
+{
+    		"displayName": "TextEditor",
+    		"description": "Simple text editor",
+    		"launchable": false,
+    		"folderAction": false,    			
+    		"fileExtensions": ["txt"],	    	
+    	"permissions": ["EDIT_CHOSEN_FILE"]
+}
+

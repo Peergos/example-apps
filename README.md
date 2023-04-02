@@ -105,6 +105,8 @@ Example of how to use the chat-api for App communication (eg multi-player games)
 
 ![Chat-api](./screenshots/chat-api.png)  
 
+## text-editor
+very simple text-editor using a html textarea
 
 ## Chess (over chat-api)
 #### https://github.com/webxdc/ChessBoard.xdc

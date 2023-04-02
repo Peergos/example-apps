@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <body>
+ <div class="header">
+	<span id='updateLoadStatus' style='display:none'>Loading...</span>
+	<span id='updateSaveStatus' style='display:none'>Saving...</span>
+	<div style="width: 100%; text-align: center;">
+		<h2 ><span id="filenameId"></span></h2>
+	</div>
+	<div style="margin: 10px;">
+  	 	<button type="button" onclick="save()">Save</button> 
+	</div>
+	<div>
+  		<textarea id="textId" rows="20" cols="60" style="width: 100%;">
+  		</textarea>  	
+  	</div>
+ </div>
+<script>    
+ 
+	let href = window.frames.frameElement.contentWindow.location.href
+	let url = new URL(href);
+	let filePath = url.searchParams.get("path");
+	document.getElementById("filenameId").innerText = 'Filename: ' + filePath.substring(filePath.lastIndexOf('/') + 1);
+	
+function save() {
+  	var contents = document.getElementById("textId").value;
+	var statusElement = document.getElementById("updateSaveStatus");
+	statusElement.style.display = "block";
+  	let encoder = new TextEncoder();
+  	fetch(filePath, { method: 'PUT', headers: {}, body: encoder.encode(contents) }).then(function(response) {
+		statusElement.style.display = "none";
+    });    	
+}
+function load() {
+	console.log("load");
+	var statusElement = document.getElementById("updateLoadStatus");
+	statusElement.style.display = "block";
+	fetch(filePath, { method: 'GET' }).then(function(response) {
+		statusElement.style.display = "none";  				
+      	if (response.status === 200) {
+			response.arrayBuffer().then(function(buffer) {
+    			let text = new TextDecoder().decode(buffer);
+    			document.getElementById("textId").value = text;
+    		});
+      	}
+	});	
+}
+
+load();
+    </script>
+  </body>
+</html>

@@ -75,12 +75,52 @@
 .chat-messages-container {
   height: 516px;
   overflow-y: auto;
-}    
+}   
+.modalDialog {
+    position: fixed;
+    font-family: Arial, Helvetica, sans-serif;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: rgba(0,0,0,0.8);
+    z-index:99999;
+    opacity: 0;
+    -webkit-transition: opacity 400ms ease-in;
+    -moz-transition: opacity 400ms ease-in;
+    transition: opacity 400ms ease-in;
+    pointer-events: none;
+}
+.modalDialog:target{
+    opacity: 1;
+    pointer-events: auto;
+}
+.modalDialog > div {
+    width: 400px;
+    position: relative;
+    margin: 10% auto;
+    padding: 5px 20px 13px 20px;
+    border-radius: 10px;
+    background: #fff;
+} 
 </style>
 </head>
 <body>
+<div>
+    <a style="display: none" id="setupModel" href="#openModal">Setup</a>
+    <div id="openModal" class="modalDialog">
+        <div><a id="closeModal" href="#" style="display: none"></a>
+            <div>
+                <button type="button" onclick="newChat()" style="margin: 20px;font-size: x-large;">New Chat</button> 
+                <div>
+					<div id="items" class="scroll-style"></div>
+				</div>
+            </div>
+        </div>
+    </div>
+</div>
 <div class="chat-container">
-<div class="chat-messaging">
+	<div class="chat-messaging">
       <div class="chat-border">
         <div class="chat-messages">
           <div id="chatMessagesId" class="chat-messages-container">
@@ -94,7 +134,7 @@
           </div>
         </div>
       </div>
-</div>
+	</div>
 </div>
 <script>
 function addMessage(isSent, msgText, author) {
@@ -134,26 +174,53 @@ console.log("chatId=" + chatId);
 var username = url.searchParams.get("username");
 
 if (chatId == null) {
-   	let func = () => createChat("new Chat", () => mainLoop());	
-   	listChats(func);		
+   	listChats((chats) => {
+   	 	let root = document.getElementById('items');
+        root.innerHTML = '';
+        let listElement = document.createElement("lu");
+        for(let i = 0; i < chats.length; i++) {
+            let chat = chats[i];
+            let element = document.createElement("li");
+            element.style="margin: 10px;"
+            var shareLink = document.createElement("a");
+        	shareLink.style.cursor="pointer";
+        	shareLink.style="margin: 5px; font-size: large;"
+        	shareLink.href="#";
+        	shareLink.innerText = (chat.title == null || chat.title.length == 0) 
+        		? chat.chatId.substring(chat.chatId.lastIndexOf('-') + 1) : chat.title;
+        	shareLink.onclick=function() {
+   				ChatState.chatId = chat.chatId;
+   				document.getElementById('initId').style.display = 'none';
+   				document.getElementById('closeModal').click();
+				mainLoop();
+        	};
+        	element.appendChild(shareLink);
+            listElement.appendChild(element);
+        }
+        root.appendChild(listElement);
+		document.getElementById('setupModel').click()	
+   	});		
 } else {
    	ChatState.chatId = chatId;
    	document.getElementById('initId').style.display = 'none';
 	mainLoop();
 }
-	
+function newChat() {
+   	document.getElementById('closeModal').click();
+	let now = new Date();
+	createChat(now.toString(), () => mainLoop());
+}	
 function listChats(callback) {
 	fetch('/peergos-api/v0/chat/', { method: 'GET' })
     .then(function(response) {
       	if (response.status === 200) {
 			response.arrayBuffer().then(function(buffer) {
     			let body = new TextDecoder().decode(buffer);
-  				let messages = JSON.parse(body);
-				for(var i = 0; i < messages.length; i++) {
-					let message = messages[i];
-					console.log('chatId=' + message.chatId + " title=" + message.title);			
+  				let chats = JSON.parse(body);
+				for(var i = 0; i < chats.length; i++) {
+					let chat = chats[i];
 				}
-				callback();
+				callback(chats);
     		});
       	} else {
       		console.log('call to get messages failed');
@@ -163,7 +230,7 @@ function listChats(callback) {
 
 function createChat(title, callback) {
 	let data = new FormData();
-	data.append("title", "Chat");
+	data.append("title", title);
 	data.append("maxInvites", 	ChatState.maxInvites);
 	console.log('creating chat');
 	fetch('/peergos-api/v0/chat/', { method: 'POST', headers: {}, body: data }).then(function(response) {
