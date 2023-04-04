@@ -5,8 +5,6 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<link rel="stylesheet" type="text/css" href="styles.css">
-		<script src="purify.min.js"></script>
-		<script src="print.js"></script>
 	</head>
 	<body data-editor="DecoupledDocumentEditor" data-collaboration="false" data-revision-history="false">
 		<main>
@@ -14,7 +12,6 @@
 			<div class="header" style="position: absolute; top: 10px; right: 10px;">
 				<i id="savingId" style="display: none; font-size: x-large">Updating...</i>
 			</div>
-			<iframe id="print-data-container" aria-hidden="true" tabindex="-1"></iframe>
 			<div class="centered">
 				<div class="row">
 					<div class="document-editor__toolbar"></div>
@@ -31,46 +28,45 @@
 		<script>
 			let ckContent = '<div id="ck-content" class="ck-content">';
 			let postfixHTML = '</div></body></html>';
-			
+			let css = '.ck-content {font-size: larger;margin: 40px;}\n' +
+						'.ck-content .text-tiny {font-size: 0.7em;}\n' +
+						'.ck-content .text-small {font-size: 0.85em;}\n' +
+						'.ck-content .text-big {font-size: 1.4em;}\n' +
+						'.ck-content .text-huge {font-size: 1.8em;}\n' +
+						'.ck-content .marker-yellow {background-color: hsl(60, 97%, 73%);}\n' +
+						'.ck-content .marker-green {background-color: hsl(120, 93%, 68%);}\n' +
+						'.ck-content .marker-pink {background-color: hsl(345, 96%, 73%);}\n' +
+						'.ck-content .marker-blue {background-color: hsl(201, 97%, 72%);}\n' +
+						'.ck-content .pen-red {background-color: transparent;color: hsl(0, 85%, 49%);}\n' +
+						'.ck-content .pen-green {background-color: transparent;color: hsl(112, 100%, 27%);}\n' +
+						'.ck-content .todo-list {list-style: none;}\n' +
+						'.ck-content .todo-list li {margin-bottom: 5px;margin-top: 5px;}\n' +
+						'.ck-content .todo-list__label > input {-webkit-appearance: none;display: inline-block;position: relative;width: 16px;height: 16px;vertical-align: middle;border: 0;left: -25px;margin-right: -15px;right: 0;margin-left: 0;}\n' +
+						'.ck-content .todo-list__label > input::before {display: block;position: absolute;box-sizing: border-box;content: "";width: 100%;height: 100%;border: 1px solid hsl(0, 0%, 20%);border-radius: 2px;transition: 250ms ease-in-out box-shadow, 250ms ease-in-out background, 250ms ease-in-out border;}\n' +
+						'.ck-content .todo-list__label > input::after {display: block;position: absolute;box-sizing: content-box;pointer-events: none;content: "";left: calc( 16px / 3 );top: calc( 16px / 5.3 );width: calc( 16px / 5.3 );height: calc( 16px/ 2.6 );border-style: solid;border-color: transparent;border-width: 0 calc( 16px / 8 ) calc( 16px / 8 ) 0;transform: rotate(45deg);}\n' +
+						'.ck-content .todo-list__label > input[checked]::before {background: hsl(126, 64%, 41%);border-color: hsl(126, 64%, 41%);}\n' +
+						'.ck-content .todo-list__label > input[checked]::after {border-color: hsl(0, 0%, 100%);}\n' +
+						'.ck-content .todo-list__label__description {vertical-align: middle;}\n' +
+						'.ck-content .table{display:table;width: 90%;margin:.9em auto}\n' +
+						'.ck-content .table table{border:1px double #b3b3b3;border-collapse:collapse;border-spacing:0;height:100%;width:100%}\n' +
+						'.ck-content .table table td,\n' +
+						'.ck-content .table table th{border:1px solid #bfbfbf;min-width:2em;padding:.4em}\n' +
+						'.ck-content .table table th{background:rgba(0,0,0,.05);font-weight:700}\n' +
+						'.ck-content .table th{text-align:left}\n' +
+						'.ck-content blockquote {border-left: 5px solid #ccc;font-style: italic;margin-left: 0;margin-right: 0;overflow: hidden;padding-left: 1.5em;padding-right: 1.5em;}\n' +
+						'.ck-content .page-break {align-items: center;clear: both;display: flex;justify-content: center;padding: 5px 0;position: relative;}\n' +
+						'.ck-content pre {background: hsla(0,0%,78%,.3);border: 1px solid #c4c4c4;border-radius: 2px;color: #353535;direction: ltr;font-style: normal;min-width: 200px;padding: 1em;tab-size: 4;text-align: left;white-space: pre-wrap;}\n' +
+						'.ck-content code {background-color: hsla(0,0%,78%,.3);border-radius: 2px;padding: .15em;}\n' +
+						'code {font-family: monospace;}\n';
 			let prefixHTML = 	'<!DOCTYPE html>\n' +
-							'<html>\n' +
-							'<head>\n' +
-							'<meta charset="UTF-8">\n' +
-    						'<style>\n' +
-							'.ck-content {font-size: larger;margin: 40px;}\n' +
-							'.ck-content .text-tiny {font-size: 0.7em;}\n' +
-							'.ck-content .text-small {font-size: 0.85em;}\n' +
-							'.ck-content .text-big {font-size: 1.4em;}\n' +
-							'.ck-content .text-huge {font-size: 1.8em;}\n' +
-							'.ck-content .marker-yellow {background-color: hsl(60, 97%, 73%);}\n' +
-							'.ck-content .marker-green {background-color: hsl(120, 93%, 68%);}\n' +
-							'.ck-content .marker-pink {background-color: hsl(345, 96%, 73%);}\n' +
-							'.ck-content .marker-blue {background-color: hsl(201, 97%, 72%);}\n' +
-							'.ck-content .pen-red {background-color: transparent;color: hsl(0, 85%, 49%);}\n' +
-							'.ck-content .pen-green {background-color: transparent;color: hsl(112, 100%, 27%);}\n' +
-							'.ck-content .todo-list {list-style: none;}\n' +
-							'.ck-content .todo-list li {margin-bottom: 5px;margin-top: 5px;}\n' +
-							'.ck-content .todo-list__label > input {-webkit-appearance: none;display: inline-block;position: relative;width: 16px;height: 16px;vertical-align: middle;border: 0;left: -25px;margin-right: -15px;right: 0;margin-left: 0;}\n' +
-							'.ck-content .todo-list__label > input::before {display: block;position: absolute;box-sizing: border-box;content: "";width: 100%;height: 100%;border: 1px solid hsl(0, 0%, 20%);border-radius: 2px;transition: 250ms ease-in-out box-shadow, 250ms ease-in-out background, 250ms ease-in-out border;}\n' +
-							'.ck-content .todo-list__label > input::after {display: block;position: absolute;box-sizing: content-box;pointer-events: none;content: "";left: calc( 16px / 3 );top: calc( 16px / 5.3 );width: calc( 16px / 5.3 );height: calc( 16px/ 2.6 );border-style: solid;border-color: transparent;border-width: 0 calc( 16px / 8 ) calc( 16px / 8 ) 0;transform: rotate(45deg);}\n' +
-							'.ck-content .todo-list__label > input[checked]::before {background: hsl(126, 64%, 41%);border-color: hsl(126, 64%, 41%);}\n' +
-							'.ck-content .todo-list__label > input[checked]::after {border-color: hsl(0, 0%, 100%);}\n' +
-							'.ck-content .todo-list__label__description {vertical-align: middle;}\n' +
-							'.ck-content .table{display:table;width: 90%;margin:.9em auto}\n' +
-							'.ck-content .table table{border:1px double #b3b3b3;border-collapse:collapse;border-spacing:0;height:100%;width:100%}\n' +
-							'.ck-content .table table td,\n' +
-							'.ck-content .table table th{border:1px solid #bfbfbf;min-width:2em;padding:.4em}\n' +
-							'.ck-content .table table th{background:rgba(0,0,0,.05);font-weight:700}\n' +
-							'.ck-content .table th{text-align:left}\n' +
-							'.ck-content blockquote {border-left: 5px solid #ccc;font-style: italic;margin-left: 0;margin-right: 0;overflow: hidden;padding-left: 1.5em;padding-right: 1.5em;}\n' +
-							'.ck-content .page-break {align-items: center;clear: both;display: flex;justify-content: center;padding: 5px 0;position: relative;}\n' +
-							'.ck-content pre {background: hsla(0,0%,78%,.3);border: 1px solid #c4c4c4;border-radius: 2px;color: #353535;direction: ltr;font-style: normal;min-width: 200px;padding: 1em;tab-size: 4;text-align: left;white-space: pre-wrap;}\n' +
-							'.ck-content code {background-color: hsla(0,0%,78%,.3);border-radius: 2px;padding: .15em;}\n' +
-							'code {font-family: monospace;}\n' +
-    						'</style>\n' +
-							'</head>\n' +
-							'<body>\n' +
-							ckContent;
+						'<html>\n' +
+						'<head>\n' +
+						'<meta charset="UTF-8">\n' +
+    					'<style>\n' + css
+    					'</style>\n' +
+						'</head>\n' +
+						'<body>\n' +
+						ckContent;
 			
 		        let href = window.location.href;
 				let url = new URL(href);
@@ -78,7 +74,6 @@
 				let isPathWritable = url.searchParams.get("isPathWritable") == 'true';
 				var ignoreInitalSave = true; //act of loading document is enough to trigger save			
 				var addDefaultHtml = true;
-				var isSaving = false;
 				DecoupledDocumentEditor.create( document.querySelector( '.editor' ), {					
 					autosave: {
 						waitingTime: 2000, // in ms
@@ -138,8 +133,16 @@
    			     	btn.style.border="0px";
   			      	btn.style.backgroundColor='#f7f7f7';
   			      	btn.onclick=function() {
-  			      	    let sanitizedHTML = DOMPurify.sanitize(editor.getData());
-  		  	    	    printPreview(sanitizedHTML, filePath.substring(filePath.lastIndexOf('/') + 1));
+  		  	    	    let title = filePath.substring(filePath.lastIndexOf('/') + 1);  
+    					let data = new FormData();
+						data.append("title", title);
+						data.append("html", ckContent + editor.getData() + '</div>');
+						data.append("css", css);
+  						fetch('/peergos-api/v0/print/', { method: 'POST', headers: {}, body: data }).then(function(response) {
+      						console.log('calling print preview');
+    					}).catch( err => {
+      						console.log('unable to call print preview:' + err);
+    					});  
    		   	  		};   
 					//print svg from paintZ - https://github.com/ZMYaro/paintz
    		 			const iconSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -175,6 +178,7 @@
    			 			'http://www.w3.org/2000/svg',
   			  			'path'
   					);
+  					iconSvg.setAttribute('id', 'save-svg');
   					iconSvg.setAttribute('viewBox', '0 0 24 24');
   					iconPath.setAttribute(
     					'd',
@@ -187,33 +191,41 @@
 				function saveData(text) {
 					let data = addDefaultHtml ? prefixHTML + '\n' + text + '\n' + postfixHTML : text; 
 					return new Promise( resolve => {
-						if (isSaving) {
+						let saveSvg = document.getElementById('save-svg');
+						let saveBtn = document.getElementById('saveBtn');
+						if (saveBtn.disabled == true) {
 							resolve();
 						}
 		    			const statusIndicator = document.querySelector( '.editor-status' );
 						if (!isPathWritable) {
 		            		statusIndicator.innerText = 'File access is read only';
+		            		saveBtn.disabled = true;
 							resolve();
 						} else if (ignoreInitalSave) {
 							ignoreInitalSave = false;
             				resolve();
 						} else {
-							isSaving = true;
+							saveBtn.disabled = true;
+							saveSvg.classList.add("save-disabled");
 		            		statusIndicator.innerText = 'Saving...';
   							let encoder = new TextEncoder();
     						let body = encoder.encode(data);
   							fetch(filePath, { method: 'PUT', headers: {}, body: body }).then(function(response) {
-  								isSaving = false;
           	  					statusIndicator.innerText = '';
           				    	if (response.status != 200) {
 				            		statusIndicator.innerText = 'Unable to save file...';
       								console.log('unable to save file:' + response.status);
       							}
-            					resolve();
+      							window.setTimeout(function() {
+	  								saveSvg.classList.remove("save-disabled");
+	  								saveBtn.disabled = false;
+      							}, 1000);
+      							resolve();
     						}).catch( err => {
 				            	statusIndicator.innerText = 'Unable to contact server...';
       							console.log('unable to contact server:' + err);
-	    						isSaving = false;
+	  							saveSvg.classList.remove("save-disabled");
+	  							saveBtn.disabled = false;
             					resolve();
     						});     			
     					}
