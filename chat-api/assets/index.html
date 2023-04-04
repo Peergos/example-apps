@@ -182,6 +182,13 @@ if (chatId == null) {
             let chat = chats[i];
             let element = document.createElement("li");
             element.style="margin: 10px;"
+            
+            var deleteButton = document.createElement("button");
+           deleteButton.innerText = 'X';
+           deleteButton.style = "margin-right: 5px;";
+           deleteButton.addEventListener('click', function(){deleteChat(element, chat.chatId);});
+           element.appendChild(deleteButton);
+           
             var shareLink = document.createElement("a");
         	shareLink.style.cursor="pointer";
         	shareLink.style="margin: 5px; font-size: large;"
@@ -205,10 +212,20 @@ if (chatId == null) {
    	document.getElementById('initId').style.display = 'none';
 	mainLoop();
 }
+function deleteChat(element, chatId) {
+	fetch('/peergos-api/v0/chat/' + chatId, { method: 'DELETE' })
+    .then(function(response) {
+      	if (response.status === 204) {
+			element.remove();
+      	} else {
+      		console.log('call to delete chat failed. chatId: ' + chatId);
+      	}
+	});
+}
 function newChat() {
    	document.getElementById('closeModal').click();
 	let now = new Date();
-	createChat(now.toString(), () => mainLoop());
+	createChat(now.toISOString(), () => mainLoop());
 }	
 function listChats(callback) {
 	fetch('/peergos-api/v0/chat/', { method: 'GET' })
@@ -270,7 +287,7 @@ function sendMessage() {
 	}
 }
 function getMessages(callback) {
-	let params = '?from=' + ChatState.messagesRead + '&to=' + (ChatState.messagesRead + 10); 
+	let params = '?from=' + ChatState.messagesRead + '&to=' + (ChatState.messagesRead + 100); 
 	fetch('/peergos-api/v0/chat/' + ChatState.chatId + params, { method: 'GET' })
     .then(function(response) {
       	if (response.status === 200) {
