@@ -62,7 +62,7 @@
 						'<html>\n' +
 						'<head>\n' +
 						'<meta charset="UTF-8">\n' +
-    					'<style>\n' + css
+    					'<style>\n' + css +
     					'</style>\n' +
 						'</head>\n' +
 						'<body>\n' +
@@ -72,16 +72,8 @@
 				let url = new URL(href);
 				let filePath = url.searchParams.get("path");
 				let isPathWritable = url.searchParams.get("isPathWritable") == 'true';
-				var ignoreInitalSave = true; //act of loading document is enough to trigger save			
 				var addDefaultHtml = true;
-				DecoupledDocumentEditor.create( document.querySelector( '.editor' ), {					
-					autosave: {
-						waitingTime: 2000, // in ms
-            			save( editor ) {
-                			return saveData( editor.getData() );
-            			}
-        			},					
-				} )
+				DecoupledDocumentEditor.create( document.querySelector( '.editor' ), {} )
 				.then( editor => {
 					window.editor = editor;
     				const statusIndicator = document.querySelector( '.editor-status' );
@@ -201,9 +193,6 @@
 		            		statusIndicator.innerText = 'File access is read only';
 		            		saveBtn.disabled = true;
 							resolve();
-						} else if (ignoreInitalSave) {
-							ignoreInitalSave = false;
-            				resolve();
 						} else {
 							saveBtn.disabled = true;
 							saveSvg.classList.add("save-disabled");
