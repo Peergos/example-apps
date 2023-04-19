@@ -6,8 +6,14 @@
     <script src="mammoth.browser.min.js"></script>    
     <script src="brotli.js"></script>
     <script src="x2t.js"></script>    
+    <script src="buffer.js"></script>
+    <script>
+    var Buffer = buffer.Buffer;
+    process = {}; process.env = {};
+    </script>
+    <script src="main.js"></script>
     <style>
-    .flex-container {
+.flex-container {
   display: flex;
   justify-content: center;
 }
@@ -87,13 +93,60 @@
         -webkit-transform: rotateY(360deg); 
 	}
 }
+.modalDialog {
+    position: fixed;
+    font-family: Arial, Helvetica, sans-serif;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: rgba(0,0,0,0.8);
+    z-index:99999;
+    opacity: 0;
+    -webkit-transition: opacity 400ms ease-in;
+    -moz-transition: opacity 400ms ease-in;
+    transition: opacity 400ms ease-in;
+    pointer-events: none;
+}
+.modalDialog:target{
+    opacity: 1;
+    pointer-events: auto;
+}
+.modalDialog > div {
+    width: 400px;
+    position: relative;
+    margin: 10% auto;
+    padding: 5px 20px 13px 20px;
+    border-radius: 10px;
+    background: #fff;
+}
     </style>
   </head>
   <body onload='onload();'>
+<div>
+    <a style="display: none" id="launch-save-as" href="#openModal"></a>
+    <div id="openModal" class="modalDialog">
+        <div><a id="closeModal" href="#" style="display: none"></a>
+            <div>
+                <h3>Select File Format</h3>
+                <div style="margin: 10px">
+                    <form id="save-as-form">                        
+  							<select name="file format" id="file-format">
+    							<option value="docx">Microsoft Word (.docx)</option>
+    							<option value="odt">LibreOffice Writer (.odt)</option>
+  							</select>
+  						<br><br>
+  						<input type="submit" value="Confirm">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
   	<h1 style="text-align:center;">Doc2Html</h1>
   	<div>
   		<p style="text-align:center;">
-  			doc2html uses a chain of conversion steps to convert a document (Microsoft Word .docx, LibreOffice Writer .odt) to .html.
+  			Document conversion between Microsoft Word .docx, LibreOffice Writer .odt and .html.
 		</p>  	
   		<p style="text-align:center;">
   			The output is optimised for editing in the ck-editor App.
@@ -110,7 +163,7 @@
   	</div>
 	<div class="flex-container">
   		<div>
-  			<img id="readFileIcon" src="file-word-o.svg" class="icon">
+  			<img id="readFileIcon" src="" class="icon">
   		</div>
   		<div>
 	  		<img src="arrow-circle-o-right.svg" class="icon-small">  		
@@ -122,12 +175,28 @@
 	  		<img src="arrow-circle-o-right.svg" class="icon-small">  		
   		</div>
   		<div>
-	  		<img id="writeFileIcon" src="file-code-o.svg" class="icon">
+	  		<img id="writeFileIcon" src="" class="icon">
   		</div>  
 	</div>
   	<p id='status' style="text-align:center;"></p>
   	<div id='messages'></div>
 	<script>
+	// credit to:
+	// github.com/mwilliamson/mammoth.js
+	// github.com/xwiki-labs/office-converters
+	// github.com/t3rmian/html-to-docx-js-client-demo
+	
+		let href = window.location.href
+		let url = new URL(href);
+		let filePath = url.searchParams.get("path");
+		let filename = filePath.substring(filePath.lastIndexOf('/') + 1);
+		let isPathWritable = url.searchParams.get("isPathWritable") == 'true';
+
+		let saveAsForm = document.getElementById('save-as-form');
+		saveAsForm.addEventListener('submit', function(e){return saveAsDocument(e);});
+
+		var currentFileContents = null;
+		
 			let ckContent = '<div id="ck-content" class="ck-content">';
 			let postfixHTML = '</div></body></html>';
 			
@@ -208,12 +277,16 @@
     }
     
 	function onload() {
-		let href = window.location.href
-		let url = new URL(href);
-		let filePath = url.searchParams.get("path");
-		let filename = filePath.substring(filePath.lastIndexOf('/') + 1);
-		let isPathWritable = url.searchParams.get("isPathWritable") == 'true';
 		document.getElementById("filename").innerText = filename;
+		
+		if(filePath.toLowerCase().endsWith('.html')) {
+			document.getElementById('writeFileIcon').src="file-word-o.svg";
+			document.getElementById('readFileIcon').src="file-code-o.svg";
+		} else {
+			document.getElementById('readFileIcon').src="file-word-o.svg";
+			document.getElementById('writeFileIcon').src="file-code-o.svg";
+		}
+	  		
 		if (!isPathWritable) {
 			document.getElementById("status").innerText = 'File access is read only';		
 		} else {
@@ -238,7 +311,9 @@
 		    					} else {		    	    		
 					            	convertToHtml(output, filename);
 					            }
-	            			};						
+	            			};	
+	            		} else if (filePath.toLowerCase().endsWith('.html')) {					
+							convertHtmlToDocument(arrayBuffer);	            		
 						} else {
 				            convertToHtml(arrayBuffer, filename);
 		    	    	}	
@@ -336,7 +411,7 @@ function transformElement(element) {
         .then(res => { 
         	let html = postProcess(res);
         	displayResult(html);
-		    saveHTML(html, filename);
+		    saveHTML(html);
 		}).catch(error => {
 		    document.getElementById("convertFileIcon").classList.remove("imageRotateHorizontal");
 			document.getElementById('convertFileIcon').classList.add("icon-error");
@@ -372,7 +447,7 @@ function transformElement(element) {
 
 		return transformed;
     }
-    function saveHTML(result, filename){
+    function saveHTML(result){
     	document.getElementById("convertFileIcon").classList.remove("imageRotateHorizontal");
     	document.getElementById('convertFileIcon').classList.add("icon-done");
 		document.getElementById("status").innerText = 'saving file...';
@@ -416,7 +491,83 @@ function transformElement(element) {
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;');
     }
-
+    function convertHtmlToDocument(output) {
+	    currentFileContents = output;
+    	//enable when shared buffer array works in sandbox document.getElementById('launch-save-as').click();
+    	convertHtmlToDocx();
+    }
+    function saveAsDocument(e) {
+    	e.preventDefault();
+		let selectElement = document.getElementById("file-format");
+		let selectedFormat = selectElement.value;
+    	document.getElementById('closeModal').click();
+    	if (selectedFormat == 'docx') {
+	    	convertHtmlToDocx();
+    	} else if (selectedFormat == 'odt'){
+    		convertHtmlToOdt();
+    	} else {
+    		document.getElementById("convertFileIcon").classList.remove("imageRotateHorizontal");
+			document.getElementById('convertFileIcon').classList.add("icon-error");
+			document.getElementById("status").innerText = 'unknown file format';
+      		console.log('unknown file format:' + selectedFormat);
+    	}
+	}
+    function convertHtmlToDocx() {
+    	let html = new TextDecoder().decode(currentFileContents);    
+		window.html2docx(html).then(res => { 
+			document.getElementById("status").innerText = 'conversion complete';
+		    saveDocument(res, "docx");
+		}).catch(error => {
+		    document.getElementById("convertFileIcon").classList.remove("imageRotateHorizontal");
+			document.getElementById('convertFileIcon').classList.add("icon-error");
+			document.getElementById("status").innerText = 'unable to convert document to docx';
+      		console.log('unable to convert file to docx:' + error);
+		});
+	}
+	function convertHtmlToOdt() {
+    	let html = new TextDecoder().decode(currentFileContents);   
+    	//convert to docx then to odt 
+		window.html2docx(html).then(arrayBuffer => { 		    
+		    let x2t = window.Module;
+            x2t.run();
+            x2t.onRuntimeInitialized = function() {
+            	x2t.FS.mkdir('/working');
+				let data = new Uint8Array(arrayBuffer);
+        		let output = x2tConvertDataInternal(x2t, data, filename, 'docx', 'odt');	
+        	    if (output.length == 0) {
+            		document.getElementById("convertFileIcon").classList.remove("imageRotateHorizontal");
+        			document.getElementById('convertFileIcon').classList.add("icon-error");
+					document.getElementById("status").innerText = 'unable to convert document';
+				} else {		    	    		
+					saveDocument(output, "odt");
+	            }
+	        };	
+		}).catch(error => {
+		    document.getElementById("convertFileIcon").classList.remove("imageRotateHorizontal");
+			document.getElementById('convertFileIcon').classList.add("icon-error");
+			document.getElementById("status").innerText = 'unable to convert document to odt';
+      		console.log('unable to convert file to odt:' + error);
+		});
+	}
+	function saveDocument(data, extension){
+    	document.getElementById("convertFileIcon").classList.remove("imageRotateHorizontal");
+    	document.getElementById('convertFileIcon').classList.add("icon-done");
+		document.getElementById("status").innerText = 'saving file...';
+    	let withoutExtension = filename.substring(0, filename.lastIndexOf('.'));
+    	let docxFilename = withoutExtension + '.' + extension;
+    	let fullPath = '/peergos-api/v0/save/' + docxFilename;
+  		fetch(fullPath, { method: 'PUT', headers: {}, body: data })
+    		.then(function(response) {
+          		if (response.status != 200) {
+			    	document.getElementById('writeFileIcon').classList.add("icon-error");
+					document.getElementById("status").innerText = 'unable to save file';
+      				console.log('unable to save file:' + response.status);
+      			} else {
+			    	document.getElementById('writeFileIcon').classList.add("icon-done");
+					document.getElementById("status").innerText = 'file saved';
+      			}
+    		}); 
+    }
     </script>
   </body>
 </html>
