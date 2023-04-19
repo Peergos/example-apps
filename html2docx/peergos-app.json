@@ -1,0 +1,12 @@
+{
+    "displayName": "html2docx",
+    "description": "html to docx, https://github.com/t3rmian/html-to-docx-js-client-demo",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": false,
+	"folderAction": false,    
+	"appIcon": "icon.png",			
+    "fileExtensions": ["html"],	 
+    "permissions": []	
+}
+

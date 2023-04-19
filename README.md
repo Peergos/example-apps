@@ -31,6 +31,8 @@ See doc2html app below to convert other document formats to html
 
 ![Image editor](./screenshots/doc2html.png)
 
+## Html2docx. Convert .html to .docx files
+#### https://github.com/t3rmian/html-to-docx-js-client-demo
 
 ## Document Viewer. View .docx and .odt files
 #### https://github.com/VolodymyrBaydalka/docxjs, https://github.com/xwiki-labs/office-converters
