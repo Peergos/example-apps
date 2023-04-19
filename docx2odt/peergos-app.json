@@ -1,0 +1,12 @@
+{
+    "displayName": "docx2odt",
+    "description": "convert between docx and odt. github.com/xwiki-labs/office-converters",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": false,
+	"folderAction": false,    
+	"appIcon": "icon.png",			
+    "fileExtensions": ["docx","odt"],	 
+    "permissions": []	
+}
+

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"> 
+    <title>docx2odt</title>
+    <script src="brotli.js"></script>
+    <script src="x2t.js"></script>    
+    <style>
+.flex-container {
+  display: flex;
+  justify-content: center;
+}
+
+.flex-container > div {
+  width: 100px;
+  margin: 10px;
+  text-align: center;
+  line-height: 75px;
+  font-size: 30px;
+}
+.icon {
+    width: 100%;
+    height: 100%;
+}
+.icon-small {
+    width: 50%;
+    height: 100%;
+}
+.icon-done {
+    filter: invert(48%) sepia(79%) saturate(2476%) hue-rotate(86deg) brightness(118%) contrast(119%);
+}
+.icon-error {
+	filter: invert(13%) sepia(96%) saturate(6088%) hue-rotate(358deg) brightness(92%) contrast(119%);
+}
+/* https://stackoverflow.com/a/20217870 */
+.imageRotateHorizontal{
+    -moz-animation: spinHorizontal .8s infinite linear;
+    -o-animation: spinHorizontal .8s infinite linear;    
+    -webkit-animation: spinHorizontal .8s infinite linear;
+    animation: spinHorizontal .8s infinite linear;
+}
+
+@-moz-keyframes spinHorizontal {
+    0% {
+        -moz-transform: rotateY(0deg);
+    }
+
+    100% {
+        -moz-transform: rotateY(360deg);
+    }
+}
+
+@keyframes spinHorizontal {
+	0% { 
+        transform: rotateY(0deg); 
+	}
+    100% {
+        transform: rotateY(360deg);
+    }
+}
+
+
+@-ms-keyframes spinHorizontal {
+	0% { 
+        -ms-transform: rotateY(0deg); 
+	}
+    100% {
+        -ms-transform: rotateY(360deg);
+    }
+}
+
+@-o-keyframes spinHorizontal {
+	0% { 
+        -o-transform: rotateY(0deg); 
+	}
+	100% { 
+        -o-transform: rotateY(360deg); 
+	}
+}
+
+@-webkit-keyframes spinHorizontal {
+	0% { 
+        -webkit-transform: rotateY(0deg); 
+	}
+	100% { 
+        -webkit-transform: rotateY(360deg); 
+	}
+}
+    </style>
+  </head>
+  <body onload='onload();'>
+  	<h1 style="text-align:center;">Docx2odt</h1>
+  	<div>
+  		<p style="text-align:center;">
+  			Convert between Microsoft Word .docx and LibreOffice Writer .odt file formats.
+		</p>  	
+  		<p style="text-align:center;">
+  			The conversion works best if the source document only use styles to semantically mark up the document.
+		</p>  		  	
+  	</div>
+  	<div style="margin-left: 20%;">
+  	  	<h3>File:&nbsp;<span id='filename'></span></h3>
+  	</div>
+	<div class="flex-container">
+  		<div>
+  			<img id="readFileIcon" src="file-word-o.svg" class="icon">
+  		</div>
+  		<div>
+	  		<img src="arrow-circle-o-right.svg" class="icon-small">  		
+  		</div>
+  		<div>
+	  		<img id="convertFileIcon" src="gears.svg" class="icon">  		
+  		</div>  
+  		<div>
+	  		<img src="arrow-circle-o-right.svg" class="icon-small">  		
+  		</div>
+  		<div>
+	  		<img id="writeFileIcon" src="file-word-o.svg" class="icon">
+  		</div>  
+	</div>
+  	<p id='status' style="text-align:center;"></p>
+  	<div id='messages'></div>
+	<script>							
+	function getFormatId(ext) {
+        if (ext === 'docx') { return 65; }
+        if (ext === 'doc') { return 66; }
+        if (ext === 'odt') { return 67; }
+    }
+    function x2tConvertDataInternal(x2t, data, filename, inputFormat, outputFormat) {
+
+        x2t.FS.writeFile('/working/' + filename, data);
+
+        let params =  "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+                    + "<TaskQueueDataConvert xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">"
+                    + "<m_sFileFrom>/working/" + filename + "</m_sFileFrom>"
+                    + "<m_sThemeDir>/working/themes</m_sThemeDir>"
+                    + "<m_sFileTo>/working/" + filename + "." + outputFormat + "</m_sFileTo>"
+                    + '<m_nFormatFrom>'+getFormatId(inputFormat)+'</m_nFormatFrom>'
+                    + '<m_nFormatTo>'+getFormatId(outputFormat)+'</m_nFormatTo>'
+                    + "<m_bIsNoBase64>false</m_bIsNoBase64>"
+                    + "</TaskQueueDataConvert>";
+
+        x2t.FS.writeFile('/working/params.xml', params);
+        try {
+            x2t.ccall("runX2T", ["number"], ["string"], ["/working/params.xml"]);
+        } catch (e) {
+            console.log(e);
+            return "";
+        }
+        var result;
+        try {
+            result = x2t.FS.readFile('/working/' + filename + "." + outputFormat);
+        } catch (e) {
+            console.log("Failed reading converted file. error:" + e);
+            return "";
+        }
+        return result;
+    }
+    
+	function onload() {
+		let href = window.location.href
+		let url = new URL(href);
+		let filePath = url.searchParams.get("path");
+		let filename = filePath.substring(filePath.lastIndexOf('/') + 1);
+		let isPathWritable = url.searchParams.get("isPathWritable") == 'true';
+		document.getElementById("filename").innerText = filename;
+		if (!isPathWritable) {
+			document.getElementById("status").innerText = 'File access is read only';		
+		} else {
+			document.getElementById("status").innerText = 'loading file...';
+			fetch(filePath, { method: 'GET' }).then(function(response) {				
+    	  		if (response.status === 200) {  
+    	  			document.getElementById('readFileIcon').classList.add("icon-done");
+					response.arrayBuffer().then(function(arrayBuffer) {
+						document.getElementById("status").innerText = 'converting document...';
+						document.getElementById("convertFileIcon").classList.add("imageRotateHorizontal");
+						let srcIsODT = filePath.toLowerCase().endsWith('.odt');
+						let srcFormat = srcIsODT ? 'odt' : 'docx';
+						let destinationFormat = srcIsODT ? 'docx' : 'odt';
+						
+            			let x2t = window.Module;
+            			x2t.run();
+            			x2t.onRuntimeInitialized = function() {
+            	    		x2t.FS.mkdir('/working');
+							let data = new Uint8Array(arrayBuffer);
+        	            	let output = x2tConvertDataInternal(x2t, data, filename, srcFormat, destinationFormat);	
+        	            	if (output.length == 0) {
+        	            		document.getElementById("convertFileIcon").classList.remove("imageRotateHorizontal");
+        	            		document.getElementById('convertFileIcon').classList.add("icon-error");
+								document.getElementById("status").innerText = 'unable to convert document';
+		    				} else {		    	    		
+					            saveDocument(output, filename, destinationFormat);
+					        }
+	            		};						
+		    	    });					
+              	} else {
+    	  			document.getElementById('readFileIcon').classList.add("icon-error");              	
+					document.getElementById("status").innerText = 'unable to load file';
+      				console.log('error loading file:' + response.status);
+      			}
+			});
+		}
+    }
+    function saveDocument(result, filename, extension){
+    	document.getElementById("convertFileIcon").classList.remove("imageRotateHorizontal");
+    	document.getElementById('convertFileIcon').classList.add("icon-done");
+		document.getElementById("status").innerText = 'saving file...';
+    	let data = new TextEncoder().encode(result.value);
+    	let withoutExtension = filename.substring(0, filename.lastIndexOf('.'));
+    	let htmlFilename = withoutExtension + '.' + extension;
+    	let fullPath = '/peergos-api/v0/save/' + htmlFilename;
+  		fetch(fullPath, { method: 'PUT', headers: {}, body: data })
+    		.then(function(response) {
+          		if (response.status != 200) {
+			    	document.getElementById('writeFileIcon').classList.add("icon-error");
+					document.getElementById("status").innerText = 'unable to save file';
+      				console.log('unable to save file:' + response.status);
+      			} else {
+			    	document.getElementById('writeFileIcon').classList.add("icon-done");
+					document.getElementById("status").innerText = 'file saved';
+      			}
+    		}); 
+    }
+    </script>
+  </body>
+</html>
+
