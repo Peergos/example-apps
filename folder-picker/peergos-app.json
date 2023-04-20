@@ -1,0 +1,10 @@
+{
+    "displayName": "folder picker",
+    "description": "testing folder picker",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": true,
+	"folderAction": false,  			
+    "permissions": ["READ_CHOSEN_FOLDER"]
+}
+
