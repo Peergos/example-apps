@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Testing folder picker</title>
+		<style>
+		</style>
+	</head>
+	<body>
+		<button onclick="go()">launch folder picker</button>
+		<div>
+			<i id="outputId" style="font-size: x-large"></i>
+		</div>
+	<script>
+	function go() {
+		const output = document.getElementById('outputId');
+        output.innerText = 'Loading...';
+		fetch('/peergos-api/v0/folders/', { method: 'GET' }).then(function(response) {
+            	output.innerText = '';
+      			if (response.status === 200) {
+					response.arrayBuffer().then(function(buffer) {
+						let text = new TextDecoder().decode(buffer);
+						output.innerText = text;
+						let folders = JSON.parse(text);
+						retrieveFolders(folders, 0);
+    				});
+      			} else {
+		            output.innerText = 'Error...';
+      				console.log('error:' + response.status);
+      			}
+		});  
+	}		
+	function loadFolder(folderPath) {
+		fetch(folderPath, { method: 'GET' }).then(function(response) {				
+      		if (response.status === 200) {
+				response.arrayBuffer().then(function(buffer) {
+    				let contents = new TextDecoder().decode(buffer);
+  					console.log('folder: ' + folderPath + ' contents: ' + contents); 
+    			});
+      		} else {
+      			console.log('nothing loaded...');
+      		}
+		});	
+	}	
+	function retrieveFolders(folders, index) {
+		if (index < folders.length) {
+			loadFolder(folders[index]);
+			retrieveFolders(folders, index + 1);
+		}
+	}
+	</script>
+	</body>
+</html>

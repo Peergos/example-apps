@@ -121,6 +121,9 @@ very simple text-editor using a html textarea
 
 ![TicTacToe](./screenshots/tictactoe.png)  
 
+## folder-picker
+Example of how to use the folder picker api call
+
 
 
 
