@@ -1,9 +1,9 @@
 {
     "displayName": "TiddlyWiki",
     "description": "TiddlyWiki 5 - a non-linear personal web notebook: https://github.com/Jermolene/TiddlyWiki5",
-    "version": "2.0.1",
+    "version": "2.0.2",
     "author": "peergos",
-    "launchable": false,
+    "launchable": true,
     "fileExtensions": ["html"],
     "permissions": ["EDIT_CHOSEN_FILE", "CSP_UNSAFE_EVAL"]	
 }

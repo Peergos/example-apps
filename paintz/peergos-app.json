@@ -1,9 +1,9 @@
 {
     "displayName": "PaintZ",
     "description": "MS Paint clone - https://github.com/ZMYaro/paintz",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "author": "peergos",
-    "launchable": false,
+    "launchable": true,
 	"folderAction": false,    
 	"appIcon": "icon.png",			
     "fileExtensions": ["jpg","png"],	 
