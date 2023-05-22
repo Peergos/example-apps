@@ -33,7 +33,7 @@
 		<script type="text/javascript" src="scripts/lib/material-touch.js"></script>
 
 	</head>
-	<body onload="onloadFunc()">
+	<body>
 		<!-- Top toolbar -->
 		<div class="appBar z2" id="toolbar" role="toolbar"></div>
 		
@@ -69,19 +69,6 @@
 		
 		<!-- Invisible elements -->
 		<canvas id="cursorCanvas" width="64" height="64"></canvas>
-		<script>
-			function onloadFunc() {
-		    	let href = window.location.href
-				let url = new URL(href);
-				let filePath = url.searchParams.get("path");
-				console.log("loading: " + filePath);	
-				try {
-					openImage(filePath, true);
-				} catch (err) {
-					console.log('unable to load file:' + filePath);
-				}
-			}
-		</script>
 
 	</body>
 </html>

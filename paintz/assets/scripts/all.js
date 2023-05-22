@@ -3215,15 +3215,15 @@ SaveDialog.prototype._createDownloadURL = function () {
  */
 SaveDialog.prototype._setDownloadURL = function (blob) {
 	// Remove any old blob URL.
-	//URL.revokeObjectURL(this._downloadLink.href);
+	URL.revokeObjectURL(this._downloadLink.href);
 	
 	// Save the new blob in case it needs to be shared or saved with `msSaveBlob`.
 	this._blob = blob;
-	/*
+	
 	// Create a new URL to save.
 	var url = URL.createObjectURL(blob);
 	this._downloadLink.href = url;
-	
+	/*
 	// If the web share API is supported, create a file to test whether it can be shared.
 	if (navigator.canShare) {
 		var file = new File([blob], this._element.fileName.value, { type: blob.type });
@@ -3833,9 +3833,7 @@ DimensionsToolbox.prototype._setUp = function (contents) {
  * Update the displayed resolution to reflect the current settings.
  */
 DimensionsToolbox.prototype.updateResolution = function () {
-	if (this._resolution != null) {
-		this._resolution.innerHTML = settings.get('width') + ' &times; ' + settings.get('height') + 'px';
-	}
+	this._resolution.innerHTML = settings.get('width') + ' &times; ' + settings.get('height') + 'px';
 };
 
 /**
@@ -8961,6 +8959,15 @@ function initCanvasContents() {
 			});
 		});
 	}*/
+	let href = window.location.href
+	let url = new URL(href);
+	let filePath = url.searchParams.get("path");
+	console.log("loading: " + filePath);	
+	try {
+		openImage(filePath, true);
+	} catch (err) {
+		console.log('unable to load file:' + filePath);
+	}
 }
 
 /**
