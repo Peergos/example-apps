@@ -29,7 +29,7 @@ See doc2html app below to convert other document formats to html
 ## Doc2Html. Convert .docx and .odt files to .html files
 #### https://github.com/mwilliamson/mammoth.js/ github.com/xwiki-labs/office-converter
 
-![Image editor](./screenshots/doc2html.png)
+![Document converter](./screenshots/doc2html.png)
 
 ## Html2docx. Convert .html to .docx files
 #### https://github.com/t3rmian/html-to-docx-js-client-demo
@@ -37,14 +37,14 @@ See doc2html app below to convert other document formats to html
 ## Document Viewer. View .docx and .odt files
 #### https://github.com/VolodymyrBaydalka/docxjs, https://github.com/xwiki-labs/office-converters
 
-![Image editor](./screenshots/doc-viewer.png)
+![Document viewer](./screenshots/doc-viewer.png)
 
 
 ## LuckySheet Spreadsheet
 #### https://github.com/dream-num/Luckysheet https://github.com/xwiki-labs/office-converters
 data is stored in a a json formatted file with extension .sheet 
 Can import to some degree xlsx, ods spreadsheet files
-![Image editor](./screenshots/luckysheet.png)
+![Spreadsheet](./screenshots/luckysheet.png)
 
 
 ## .docx extractor. Save content as .html (Formatting not preserved)
@@ -55,7 +55,12 @@ Can import to some degree xlsx, ods spreadsheet files
 ## Tldraw Drawing & Whiteboard. Edit .tldr files
 #### https://github.com/tldraw/tldraw
 
-![Image editor](./screenshots/tldraw.png)
+![Drawing](./screenshots/tldraw.png)
+
+## Draw.io Diagramming and visualization. Edit .drawio files
+#### https://github.com/jgraph/drawio
+
+![Diagramming](./screenshots/drawio.png)
 
 
 ## TUI Image Editor
@@ -66,7 +71,7 @@ Can import to some degree xlsx, ods spreadsheet files
 ## PaintZ MS Paint clone
 #### https://github.com/zmyaro/paintz
 
-![Image editor](./screenshots/paintz.png)
+![Paint](./screenshots/paintz.png)
 
 ## TUI Markdown WYSIWYG Markdown Editor
 #### https://github.com/nhn/tui.editor
