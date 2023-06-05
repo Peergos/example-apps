@@ -9,6 +9,12 @@ github.com/Peergos/peergos
 
 
 ### Installation
+If you are self-hosting or have an account on peergos.net or peergos-demo.net
+1. click the launcher icon (top icon on left hand side menu)
+2. click recommended apps button
+3. click install next to desired app
+
+Manual instructions for additional/experimental apps
 1. From the top of this page click the green 'Code' button and select 'Download Zip'.
 2. Unzip file and upload desired application folder to Peergos
 3. Navigate into application folder, open the context menu for the file 'peergos-app.json' and choose 'Install App'
