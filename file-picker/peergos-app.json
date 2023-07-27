@@ -1,0 +1,9 @@
+{
+    "displayName": "file picker",
+    "description": "testing file picker",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": true,
+	"folderAction": false		
+}
+

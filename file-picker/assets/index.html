@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Testing file picker</title>
+		<style>
+		</style>
+	</head>
+	<body>
+		<button onclick="go()">launch file picker</button>
+		<div>
+			<i id="outputId" style="font-size: x-large"></i>
+		</div>
+	<script>
+	function go() {
+		const output = document.getElementById('outputId');
+        output.innerText = 'Loading...';
+        let extension = ""; // "html"
+		fetch('/peergos-api/v0/file-picker/?extension=' + extension, { method: 'GET' }).then(function(response) {
+            	output.innerText = '';
+      			if (response.status === 200) {
+					response.arrayBuffer().then(function(buffer) {
+						let text = new TextDecoder().decode(buffer);
+						let files = JSON.parse(text);
+						let file = files[0];
+						console.log('selected file:' + file);
+						output.innerText = file;
+    				});
+      			} else {
+		            output.innerText = 'Error...';
+      				console.log('error:' + response.status);
+      			}
+		});  
+	}		
+	</script>
+	</body>
+</html>
