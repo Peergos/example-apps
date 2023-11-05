@@ -68,6 +68,11 @@ Can import to some degree xlsx, ods spreadsheet files
 
 ![Diagramming](./screenshots/drawio.png)
 
+## Block-style editor. Based on editor.js. Edit .note files
+#### https://github.com/codex-team/editor.js
+
+![Diagramming](./screenshots/notes.png)
+
 
 ## TUI Image Editor
 #### https://github.com/nhn/tui.image-editor
