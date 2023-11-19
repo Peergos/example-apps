@@ -12,7 +12,7 @@
       <div id="editorjs"></div>
       <div class="ce-example__statusbar">
       	<div class="ce-example__button" id="saveButton">
-        	Save
+        	Loading...
       	</div>     	
       </div>
     </div>
@@ -81,9 +81,6 @@
 	console.log("loading: " + filePath);	
 	var saving = false;     
     const saveButton = document.getElementById('saveButton');
-    if (!isPathWritable) {
-    	saveButton.style.display = 'none';
-	}
     
 fetch(filePath, { method: 'GET' }).then(function(response) {
     if (response.status === 200) {
@@ -226,6 +223,11 @@ fetch(filePath, { method: 'GET' }).then(function(response) {
       					data: jsonData,
       					onReady: function(){
 	    					new DragDrop(editor);
+	    					if (isPathWritable) {
+    							saveButton.textContent = 'Save';
+							} else {
+						    	saveButton.style.display = 'none';						
+							}
       					},
       					onChange: function(api, event) {
         					//console.log('change event: ', event);
@@ -233,8 +235,7 @@ fetch(filePath, { method: 'GET' }).then(function(response) {
     				});
     				
     		saveButton.addEventListener('click', function () {
-      		editor.save()
-        		.then((savedData) => {
+      			editor.save().then((savedData) => {
           			if (saving || !isPathWritable) {
         				return;
         			}
@@ -253,12 +254,13 @@ fetch(filePath, { method: 'GET' }).then(function(response) {
           				if (response.status === 200) {
           					progress.textContent = 'Save';        			
           				} else {
-          					progress.textContent = 'Unable to save file...';
-      						console.log('unable to save document:' + response.status);
+          					alert(`Unable to save file`);
+      						console.log('unable to save file:' + response.status);
       					}
     				});      		
         		})
         		.catch((error) => {
+			     	alert(`Unable to save changes`);
           			console.error('Saving error', error);
         		});
     		});
