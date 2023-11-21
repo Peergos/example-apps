@@ -224,6 +224,36 @@ fetch(filePath, { method: 'GET' }).then(function(response) {
       					onReady: function(){
 	    					new DragDrop(editor);
 	    					if (isPathWritable) {
+		    					saveButton.addEventListener('click', function () {
+      								editor.save().then((savedData) => {
+          								if (saving) {
+        									return;
+        								}
+        								saving = true;        			
+          								let progress = document.getElementById('saveButton');
+          								progress.textContent = 'Saving...';        			
+          								let headers = {};
+  										let encoder = new TextEncoder();
+  										let contents = JSON.stringify(savedData);
+    									let body = encoder.encode(contents);
+  										fetch(filePath, { method: 'PUT', headers: headers, body: body })
+    									.then(function(response) {
+        	  								window.setTimeout(function() {
+	  											saving = false;
+      										}, 1000);
+          									if (response.status === 200) {
+          										progress.textContent = 'Save';        			
+          									} else {
+          										alert(`Unable to save file`);
+      											console.log('unable to save file:' + response.status);
+      										}
+    									});      		
+        							})
+        							.catch((error) => {
+			     						alert(`Unable to save changes`);
+          								console.error('Saving error', error);
+        							});
+    							});			    					
     							saveButton.textContent = 'Save';
 							} else {
 						    	saveButton.style.display = 'none';						
@@ -232,38 +262,7 @@ fetch(filePath, { method: 'GET' }).then(function(response) {
       					onChange: function(api, event) {
         					//console.log('change event: ', event);
       					}
-    				});
-    				
-    		saveButton.addEventListener('click', function () {
-      			editor.save().then((savedData) => {
-          			if (saving || !isPathWritable) {
-        				return;
-        			}
-        			saving = true;        			
-          			let progress = document.getElementById('saveButton');
-          			progress.textContent = 'Saving...';        			
-          			let headers = {};
-  					let encoder = new TextEncoder();
-  					let contents = JSON.stringify(savedData);
-    				let body = encoder.encode(contents);
-  					fetch(filePath, { method: 'PUT', headers: headers, body: body })
-    				.then(function(response) {
-        	  			window.setTimeout(function() {
-	  						saving = false;
-      					}, 1000);
-          				if (response.status === 200) {
-          					progress.textContent = 'Save';        			
-          				} else {
-          					alert(`Unable to save file`);
-      						console.log('unable to save file:' + response.status);
-      					}
-    				});      		
-        		})
-        		.catch((error) => {
-			     	alert(`Unable to save changes`);
-          			console.error('Saving error', error);
-        		});
-    		});
+    				});    				
     	});
      } else {
      	alert(`Unable to read file: ${filePath}`);
