@@ -1,0 +1,103 @@
+<project name="chat UI" default="dist" basedir=".">
+  <description>
+    Build chat app
+  </description>
+
+  <property name="peergos_project_root" location="../Peergos"/>
+  <property name="app" location="chat"/>
+  <property name="ui_src" location="src"/>
+  <property name="ui" location="${app}/assets"/>
+  <property name="assets" location="assets"/>
+  <property name="vendor" location="vendor"/>
+  <property name="timestamp.millis" value="1489731900000"/>
+
+  <available file="peergos/README.md" type="file" property="submodule.present"/>
+
+  <target name="init">
+    <mkdir dir="${ui}/css/"/>
+  </target>
+
+  <target name="assets" description="copy static unminified assets">
+    <mkdir dir="${ui}"/>
+    <copy todir="${ui}">
+      <fileset dir="${assets}"/>
+    </copy>
+  </target>
+
+  <target name="js_vendor_dev" description="concat (don't minify) the vendor JS for development">
+    <concat destfile="${ui}/js/vendor.js" encoding="utf8">
+      <fileset dir="${vendor}/priors" includes="*.js"/>
+      <fileset dir="${vendor}/dev" includes="*.js"/>
+      <fileset dir="${vendor}/common" includes="*.js"/>
+    </concat>
+  </target>
+
+  <target name="css_vendor" description="concat the vendor CSS">
+    <concat destfile="${ui}/css/vendor.css" encoding="utf8">
+      <fileset dir="${vendor}/priors" includes="*.css"/>
+      <fileset dir="${vendor}/min" includes="*.css"/>
+      <fileset dir="${vendor}/common" includes="*.css"/>
+    </concat>
+  </target>
+
+  <target name="css" description="concat the CSS">
+    <concat destfile="${ui}/css/app.css" encoding="utf8">
+      <fileset dir="${ui_src}/" includes="*.css"/>
+    </concat>
+  </target>
+
+  <target name="ui_dev_vendor" depends="assets,js_vendor_dev,css_vendor" description="build the ui vendor dependencies in development mode">
+  </target>
+
+  <target name="js" description="bundle all our vuejs components into js">
+    <exec executable="java" dir="." failonerror="true" >
+      <arg value="-jar"/>
+      <arg value="JPack.jar"/>
+      <arg value="-root"/>
+      <arg value="${ui_src}/app.js"/>
+      <arg value="-out"/>
+      <arg value="${ui}/js/app.js"/>
+      <arg value="-css-out"/>
+      <arg value="tmp.css"/>
+    </exec>
+    <concat destfile="app.css" encoding="utf8">
+      <fileset dir="${ui}/css/" includes="app.css"/>
+      <fileset dir="." includes="tmp.css"/>
+    </concat>
+    <copy todir="${ui}/css/" overwrite="true">
+      <fileset dir="." includes="app.css"/>
+    </copy>
+    <copy todir="${app}" overwrite="true">
+      <fileset dir="." includes="peergos-app.json"/>
+    </copy>
+    <delete file="tmp.css"/>
+    <delete file="app.css"/>
+  </target>
+
+  <target name="ui" depends="init,ui_dev_vendor,assets,css,js" description="build our part of the ui">
+  </target>
+
+  <target name="compile" depends="init" description="compile">
+    <exec executable="java" failonerror="true">
+      <arg value="CompileSubmodule.java"/>
+      <arg value="${peergos_project_root}"/>
+    </exec>
+  </target>
+
+  <target name="dist" depends="clean, clean_server, compile, ui" description="regenerate">
+    <mkdir dir="${app}"/>
+    <mkdir dir="${app}/assets"/>
+
+    <copy todir="${ui}/js">
+      <fileset file="${peergos_project_root}/war/peergoslib/*cache.js"/>
+    </copy>
+  </target>
+
+  <target name="clean" description="clean up">
+    <delete dir="${ui}"/>
+  </target>
+
+  <target name="clean_server" description="clean up">
+    <delete dir="${app}"/>
+  </target>
+</project>

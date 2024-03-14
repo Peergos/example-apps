@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="theme-color" content="white">
+		<title>Chat</title>
+		<link rel="stylesheet" type="text/css" href="css/vendor.css">
+		<link rel="stylesheet" type="text/css" href="css/app.css">
+
+		<script src="js/vendor.js"></script>
+		<script src="js/peergoslib.nocache.js"></script>
+	</head>
+<body>
+	<script src="js/app.js" defer></script>
+	<div id="app">
+		<component :is="currentView"></component>
+	</div>
+</body>
+</html>
