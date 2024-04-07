@@ -11,10 +11,10 @@ public class CompileSubmodule {
     public static void main(String[] a) throws Exception {
         String dir = a[0];
         if (isWindows()) {
-            runCommand(dir, "cmd", "/c", "ant", "dist");
+            runCommand(dir, "cmd", "/c", "ant", "compile");
             runCommand(dir, "cmd", "/c", "ant", "gwtc");
         } else {
-            runCommand(dir, "ant", "dist");
+            runCommand(dir, "ant", "compile");
             runCommand(dir, "ant", "gwtc");
         }
     }

@@ -1,0 +1,15 @@
+<module rename-to='applib'>
+
+  <set-property name="compiler.useSourceMaps" value="false"/>
+  <set-property name="user.agent" value="safari"/>
+  
+  <entry-point class='app.client.Start'/>
+  <public path="gwt/resources"/>
+  <super-source path="gwt/emu" />
+  <source path="gwt">
+    <exclude name="**/emu/**" />
+  </source>
+  <source path='client'/>
+  <source path='shared'/>
+  	<add-linker name="sso" />
+</module>

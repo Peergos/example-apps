@@ -335,7 +335,7 @@
                                                     </i>
                                                 </button>
                                                 <input type="file" id="uploadInput" @change="addAttachments" style="display:none;" multiple />
-                                                <button id="attachmentBtn" :disabled="selectedChatId == null || selectedChatIsReadOnly" class="chat-btn btn-success attachment-btn" type="button" @click="launchUploadDialog()">
+                                                <button id="attachmentBtn" :disabled="selectedChatId == null || selectedChatIsReadOnly || editMessage != null" class="chat-btn btn-success attachment-btn" type="button" @click="launchUploadDialog()">
                                                     <i aria-hidden="true">
                                                         <svg class="larger-inline-svg" viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path d="M1596 1385q0 117-79 196t-196 79q-135 0-235-100l-777-776q-113-115-113-271 0-159 110-270t269-111q158 0 273 113l605 606q10 10 10 22 0 16-30.5 46.5t-46.5 30.5q-13 0-23-10l-606-607q-79-77-181-77-106 0-179 75t-73 181q0 105 76 181l776 777q63 63 145 63 64 0 106-42t42-106q0-82-63-145l-581-581q-26-24-60-24-29 0-48 19t-19 48q0 32 25 59l410 410q10 10 10 22 0 16-31 47t-47 31q-12 0-22-10l-410-410q-63-61-63-149 0-82 57-139t139-57q88 0 149 63l581 581q100 98 100 235z" fill="#fff"/></svg>
                                                     </i>
@@ -440,7 +440,7 @@ module.exports = {
         newConversation: function() {
             let that = this;
             this.drainCommandQueue(() => {
-                let future = peergos.shared.util.Futures.incomplete();
+                let future = app.shared.util.Futures.incomplete();
                 fetch('/peergos-api/v1/chat/', { method: 'POST' }).then(function(response) {
                     future.complete(true);
                     if (response.status === 201) {
@@ -448,6 +448,7 @@ module.exports = {
                         let chat = JSON.parse(location);
                         chat.otherMembers = []; //chat.members.filter(v => v != this.username);
                         chat.readonly = false;
+                        chat.hasFriendsInChat = true;
                         chat.hasUnreadMessages = false;
                         chat.chatVisibilityWarningDisplayed = false;
                         chat.triedLoadingProfileImage = false;
@@ -481,7 +482,7 @@ module.exports = {
                 }
                 let that = this;
                 this.drainCommandQueue(() => {
-                    let future = peergos.shared.util.Futures.incomplete();
+                    let future = app.shared.util.Futures.incomplete();
                     fetch('/peergos-api/v1/chat/' + this.selectedChatId, { method: 'POST' }).then(function(response) {
                         future.complete(true);
                         if (response.status === 200) {
@@ -505,7 +506,9 @@ module.exports = {
             let mediaList = message.mediaFiles;
             let currentMediaItem = mediaList[mediaIndex];
             let that = this;
-            var bytes = message.envelope.payload.body.getAtIndex(1).ref.serialize();
+            let fileRef = currentMediaItem.fileRef;
+            let encoder = new TextEncoder();
+            let bytes = encoder.encode(JSON.stringify(fileRef));
             if (this.isViewableMediaType(currentMediaItem) ) { // || currentMediaItem.fileType == 'pdf' || currentMediaItem.fileType == 'text' || currentMediaItem.fileType == 'calendar'
                     fetch('/peergos-api/v1/chat/' + this.selectedChatId + '/?view=true', { method: 'POST', body: bytes }).then(function(response) {
                         if (response.status !== 200) {
@@ -566,7 +569,7 @@ module.exports = {
             let that = this;
             if (!that.executingCommands) {
                 that.executingCommands = true;
-                let future = peergos.shared.util.Futures.incomplete();
+                let future = app.shared.util.Futures.incomplete();
                 that.reduceCommands(future);
                 future.thenApply(res => {
                     that.executingCommands = false;
@@ -687,17 +690,17 @@ module.exports = {
             let that = this;
             this.drainCommandQueue(() => {
                 that.spinner(true);
-                let future = peergos.shared.util.Futures.incomplete();
-                let uriSafePath = encodeURIComponent(attachment.mediaItem.path);
+                let future = app.shared.util.Futures.incomplete();
+                let uriSafePath = encodeURIComponent(attachment.fileRef.path);
                 fetch('/peergos-api/v1/chat/' + uriSafePath, { method: 'DELETE' }).then(function(response) {
                     that.spinner(false);
                     if (response.status === 204) {
-                        let idx = that.attachmentList.findIndex(v => v.mediaItem.path === attachment.mediaItem.path);
+                        let idx = that.attachmentList.findIndex(v => v.fileRef.path === attachment.fileRef.path);
                         if (idx > -1) {
                             that.attachmentList.splice(idx, 1);
                         }
                     } else {
-                        console.log('Unable to delete file:' + attachment.mediaItem.path);
+                        console.log('Unable to delete file:' + attachment.fileRef.path);
                         that.showToastError("Unable to delete file");
                     }
                     future.complete(true);
@@ -806,6 +809,7 @@ module.exports = {
                         }
                     });
                 } else {
+                    document.getElementById('uploadInput').value = "";
                     that.showToastError("Unable to calculate available space");
                 }
             });
@@ -813,7 +817,7 @@ module.exports = {
         uploadAllAttachments: function(files, chatId) {
             let that = this;
             this.drainCommandQueue(() => {
-                let future = peergos.shared.util.Futures.incomplete();
+                let future = app.shared.util.Futures.incomplete();
                 that.reduceUploadAllAttachments(0, files, future, chatId);
                 return future;
             });
@@ -827,14 +831,12 @@ module.exports = {
                 let file = files[index];
                 let fileReader = new FileReader();
                 fileReader.onload = function(){
-                    const data = new Int8Array(this.result);
-                    let attachmentData = new peergos.shared.messaging.Attachment(file.name, convertToByteArray(data));
-                    let request = new peergos.shared.messaging.AttachmentRequest(attachmentData);
-                    fetch('/peergos-api/v1/chat/' + chatId +"/attachment", { method: 'POST', body: request.serialize() }).then(function(response) {
+                    let data = new Int8Array(this.result);
+                    let filename = encodeURIComponent(file.name);
+                    fetch('/peergos-api/v1/chat/' + chatId +"/attachment?filename=" + filename, { method: 'POST', body: data }).then(function(response) {
                         if (response.status === 201) {
                             let location = response.headers.get('location');
                             let json = JSON.parse(location);
-                            json.mediaItem = decodeFileRef(json.mediaItemBase64);
                             that.attachmentList.push(json);
                             that.reduceUploadAllAttachments(++index, files, future, chatId);
                         } else {
@@ -870,7 +872,7 @@ module.exports = {
                 return this.isNoLongerPartOfChat(chat);
             }
         },
-        updateMessageThread: function (chatId, messagePairs, attachmentMap, authorMap) {
+        updateMessageThread: function (chatId, messages) {
             let messageThread = this.allMessageThreads.get(chatId);
             var hashToIndex = this.allThreadsHashToIndex.get(chatId);
             if (hashToIndex == null) {
@@ -878,25 +880,20 @@ module.exports = {
                 this.allThreadsHashToIndex.set(chatId, hashToIndex);
             }
             let chat = this.allChats.get(chatId);
-            for(var j = 0; j < messagePairs.length; j++) {
-                let chatEnvelope = messagePairs[j].message;
-                let messageRef = messagePairs[j].messageRef;
-                let messageHash = messageRef.toString();
-                let payload = chatEnvelope.payload;
-                let type = payload.type().toString();
-                let author = authorMap.get(messageHash).author;
-                if (type == 'GroupState') {
-                    if(payload.key == "title") {
-                        messageThread.push(this.createStatusMessage(chatEnvelope.creationTime, "Chat name changed to " + payload.value));
-                        chat.title = payload.value;
-                    } else if(payload.key == "admins") {
-                        messageThread.push(this.createStatusMessage(chatEnvelope.creationTime, "Chat admins changed to " + payload.value));
-                        chat.admins = payload.value.split(",");
+            for(var j = 0; j < messages.length; j++) {
+                let message = messages[j];
+                if (message.type == 'GroupState') {
+                    if(message.groupState.key == "title") {
+                        messageThread.push(this.createStatusMessage(message.timestamp, "Chat name changed to " + message.groupState.value));
+                        chat.title = message.groupState.value;
+                    } else if(message.groupState.key == "admins") {
+                        messageThread.push(this.createStatusMessage(message.timestamp, "Chat admins changed to " + message.groupState.value));
+                        chat.admins = message.groupState.value.split(",");
                     }
-                } else if(type == 'Invite') {
-                    let username = chatEnvelope.payload.username;
-                    messageThread.push(this.createStatusMessage(chatEnvelope.creationTime, author + " invited " + username));
-                    var memberIndex = chat.members.findIndex(v => v === username);
+                } else if(message.type == 'Invite') {
+                    let username = message.inviteUsername;
+                    messageThread.push(this.createStatusMessage(message.timestamp, message.author + " invited " + username));
+                    let memberIndex = chat.members.findIndex(v => v === username);
                     if (memberIndex == -1) {
                         chat.members.push(username);
                     }
@@ -907,14 +904,14 @@ module.exports = {
                         }
                     }
                     chat.readonly = this.isConversationReadOnly(chat);
-                } else if(type == 'RemoveMember') {
-                    let username = authorMap.get(messageHash).memberToRemove;
-                    if (author == username) {
-                        messageThread.push(this.createStatusMessage(chatEnvelope.creationTime, username + " left"));
+                } else if(message.type == 'RemoveMember') {
+                    let username = message.removeUsername;
+                    if (message.author == username) {
+                        messageThread.push(this.createStatusMessage(message.timestamp, username + " left"));
                     } else {
-                        messageThread.push(this.createStatusMessage(chatEnvelope.creationTime, author + " removed " + username));
+                        messageThread.push(this.createStatusMessage(message.timestamp, message.author + " removed " + username));
                     }
-                    var memberIndex = chat.members.findIndex(v => v === username);
+                    let memberIndex = chat.members.findIndex(v => v === username);
                     if (memberIndex > -1) {
                         chat.members.splice(memberIndex, 1);
                     }
@@ -923,58 +920,59 @@ module.exports = {
                         chat.otherMembers.splice(memberIndex, 1);
                     }
                     chat.readonly = this.isConversationReadOnly(chat);
-                } else if(type == 'Join') {
-                    let username = chatEnvelope.payload.username;
-                    messageThread.push(this.createStatusMessage(chatEnvelope.creationTime, username + " joined the chat"));
+                } else if(message.type == 'Join') {
+                    let username = message.joinUsername;
+                    messageThread.push(this.createStatusMessage(message.timestamp, username + " joined the chat"));
                     if (username != this.username) {
                         memberIndex = chat.otherMembers.findIndex(v => v === username);
                         if (memberIndex == -1) {
                             chat.otherMembers.push(username);
                         }
                     }
-                } else if(type == 'Application') {
-                    let appMsg = this.createMessage(author, chatEnvelope, payload.body.toArray(), attachmentMap, null, messageRef);
+                } else if(message.type == 'Application') {
+                    let contents = message.text;
+                    let appMsg = this.createMessage(message.author, message.envelope, contents, message.attachments, null, message.messageRef, message.timestamp);
                     let appMsgKey = this.msgKey(appMsg);
                     let draftMessageIndex = this.draftMessages.findIndex(v => v.key == appMsgKey);
                     if (draftMessageIndex > -1) {
                         let messageThreadIndex = this.draftMessages[draftMessageIndex].index;
                         messageThread[messageThreadIndex] = appMsg;
                         this.draftMessages.splice(draftMessageIndex, 1);
-                        hashToIndex.set(messageHash, messageThreadIndex);
+                        hashToIndex.set(message.messageRef, messageThreadIndex);
                     } else {
-                        hashToIndex.set(messageHash, messageThread.length);
+                        hashToIndex.set(message.messageRef, messageThread.length);
                         messageThread.push(appMsg);
                     }
-                } else if(type == 'Edit') {
-                    let messageIndex = hashToIndex.get(payload.priorVersion.toString());
-                    let message = messageThread[messageIndex];
-                    if (author == message.sender) {
-                        message.contents = payload.content.body.toArray()[0].inlineText();
-                        message.edited = true;
+                } else if(message.type == 'Edit') {
+                    let contents = message.text;
+                    let messageIndex = hashToIndex.get(message.editPriorVersion);
+                    let existingMessage = messageThread[messageIndex];
+                    if (message.author == existingMessage.sender) {
+                        existingMessage.contents = contents;
+                        existingMessage.edited = true;
                     }
-                } else if(type == 'Delete') {
-                    let messageIndex = hashToIndex.get(payload.target.toString());
-                    let message = messageThread[messageIndex];
-                    if (author == message.sender) {
-                        message.contents = "[Message Deleted]";
-                        message.deleted = true;
-                        message.mediaFiles = [];
-                        message.file = null;
+                } else if(message.type == 'Delete') {
+                    let messageIndex = hashToIndex.get(message.deleteTarget);
+                    let existingMessage = messageThread[messageIndex];
+                    if (message.author == existingMessage.sender) {
+                        existingMessage.contents = "[Message Deleted]";
+                        existingMessage.deleted = true;
+                        existingMessage.mediaFiles = [];
+                        existingMessage.file = null;
                     }
-                } else if(type == 'ReplyTo') {
-                    let parentRef = payload.parent;
-                    let messageIndex = hashToIndex.get(parentRef.toString());
+                } else if(message.type == 'ReplyTo') {
+                    let messageIndex = hashToIndex.get(message.replyToParent);
                     let parentMessage = messageThread[messageIndex];
-                    let appMsg = this.createMessage(author, chatEnvelope, payload.content.body.toArray(), attachmentMap, parentMessage, messageRef);
+                    let appMsg = this.createMessage(message.author, message.envelope, message.text, message.attachments, parentMessage, message.messageRef, message.timestamp);
                     let appMsgKey = this.msgKey(appMsg);
                     let draftMessageIndex = this.draftMessages.findIndex(v => v.key == appMsgKey);
                     if (draftMessageIndex > -1) {
                         let messageThreadIndex = this.draftMessages[draftMessageIndex].index;
                         messageThread[messageThreadIndex] = appMsg;
                         this.draftMessages.splice(draftMessageIndex, 1);
-                        hashToIndex.set(messageHash, messageThreadIndex);
+                        hashToIndex.set(message.messageRef, messageThreadIndex);
                     } else {
-                        hashToIndex.set(messageHash, messageThread.length);
+                        hashToIndex.set(message.messageRef, messageThread.length);
                         messageThread.push(appMsg);
                     }
                 }
@@ -1026,7 +1024,7 @@ module.exports = {
             setTimeout(intervalFunc, 1000 * 10);
         },
         executeInit: function() {
-            let future = peergos.shared.util.Futures.incomplete();
+            let future = app.shared.util.Futures.incomplete();
             if (this.closedChat) {
                 future.complete(false);
                 return future;
@@ -1062,7 +1060,7 @@ module.exports = {
             }
             let that = this;
             this.drainCommandQueue(() => {
-                let future = peergos.shared.util.Futures.incomplete();
+                let future = app.shared.util.Futures.incomplete();
                 that.reduceRetrieveAllChatMessages(0, conversations, future);
                 return future;
             });
@@ -1087,7 +1085,9 @@ module.exports = {
                 fetch('/peergos-api/v1/chat/' + chat.chatId + '/?startIndex=' + startIndex, { method: 'GET' }).then(function(response) {
                     if (response.status === 200) {
                         response.arrayBuffer().then(function(buffer) {
-                            that.readChatMessagesActionResponse(buffer, startIndex);
+                            let reply = new TextDecoder().decode(buffer);
+                            let replyObj = JSON.parse(reply);
+                            that.readChatMessagesActionResponse(replyObj, startIndex);
                             that.reduceRetrieveAllChatMessages(++index, chats, future);
                         });
                     }
@@ -1097,7 +1097,7 @@ module.exports = {
         retrieveChatMessages: function(chatId, showSpinner) {
             let that = this;
             this.drainCommandQueue(() => {
-                let future = peergos.shared.util.Futures.incomplete();
+                let future = app.shared.util.Futures.incomplete();
                 if (showSpinner) {
                     that.spinner(true);
                 }
@@ -1110,7 +1110,9 @@ module.exports = {
                     }
                     if (response.status === 200) {
                         response.arrayBuffer().then(function(buffer) {
-                            that.readChatMessagesActionResponse(buffer, startIndex);
+                            let reply = new TextDecoder().decode(buffer);
+                            let replyObj = JSON.parse(reply);
+                            that.readChatMessagesActionResponse(replyObj, startIndex);
                         });
                     } else if (response.status === 400) {
                         console.log('retrieveChatMessages failed');
@@ -1119,11 +1121,10 @@ module.exports = {
                 return future;
             });
         },
-        readChatMessagesActionResponse: function(responseBytes, oldStartIndex) {
-            let response = deserializeReadMessagesResponse(responseBytes);
+        readChatMessagesActionResponse: function(response, oldStartIndex) {
             let chat = this.allChats.get(response.chatId);
             let firstGet = chat.startIndex == 0;
-            if (!firstGet && response.messagePairs.length > 0) {
+            if (!firstGet && response.messages.length > 0) {
                 chat.hasUnreadMessages = true;
             }
             if (chat.startIndex == oldStartIndex) {
@@ -1132,7 +1133,8 @@ module.exports = {
                 //race condition.
                 return;
             }
-            this.updateMessageThread(response.chatId, response.messagePairs, response.attachmentMap, response.authorMap);
+            chat.hasFriendsInChat = response.hasFriendsInChat;
+            this.updateMessageThread(response.chatId, response.messages);
             if (response.chatId == this.selectedChatId) {
                 this.buildMessageThread(response.chatId);
                 this.buildConversations();
@@ -1147,30 +1149,11 @@ module.exports = {
             if (chat.readonly && this.selectedChatId == chat.chatId) {
                 this.selectedChatIsReadOnly = true;
             }
-            if (!chat.readonly) {
-                let that = this;
-                this.drainCommandQueue(() => {
-                    let future = peergos.shared.util.Futures.incomplete();
-                    fetch('/peergos-api/v1/chat/' + chat.chatId + '?isVisible=true', { method: 'GET' }).then(function(response) {
-                        if (response.status === 200) {
-                            response.arrayBuffer().then(function(buffer) {
-                                let reply = new TextDecoder().decode(buffer);
-                                let replyObj = JSON.parse(reply);
-                                if (replyObj.result == false) {
-                                    if (! chat.chatVisibilityWarningDisplayed) {
-                                        that.showToastError("Chat no longer contains any of your friends. Your messages will not be seen by others");
-                                    }
-                                    chat.chatVisibilityWarningDisplayed = true;
-                                    chat.members = replyObj.members;
-                                    chat.otherMembers = replyObj.members.filter(v => v != that.username);
-                                    chat.readonly = that.isConversationReadOnly(chat);
-                                }
-                            });
-                        }
-                        future.complete(true);
-                    });
-                    return future;
-                });
+            if (!chat.hasFriendsInChat) {
+                if (! chat.chatVisibilityWarningDisplayed) {
+                    this.showToastError("Chat no longer contains any of your friends. Your messages will not be seen by others");
+                }
+                chat.chatVisibilityWarningDisplayed = true;
             }
         },
         displayChatAccessRemoved: function(chat) {
@@ -1190,7 +1173,7 @@ module.exports = {
                 () => { that.showConfirm = false;
                     that.drainCommandQueue(() => {
                         that.spinner(true);
-                        let future = peergos.shared.util.Futures.incomplete();
+                        let future = app.shared.util.Futures.incomplete();
                         fetch('/peergos-api/v1/chat/' + chatId, { method: 'DELETE' }).then(function(response) {
                             that.spinner(false);
                             if (response.status === 204) {
@@ -1270,7 +1253,7 @@ module.exports = {
                 let chatItem = {chatId: chat.chatId, members: chat.members
                     , otherMembers: []
                     , title: chat.title, admins: chat.admins, hasUnreadMessages: false
-                    , chatVisibilityWarningDisplayed: false, readonly: false
+                    , chatVisibilityWarningDisplayed: false, readonly: false, hasFriendsInChat: true
                     , startIndex: 0, blurb: "", lastModified: "", triedLoadingProfileImage: false
                     , hasProfileImage: false};
                 that.allChats.set(chat.chatId, chatItem);
@@ -1374,15 +1357,13 @@ module.exports = {
                 }
             }
             let chatId = this.selectedChatId;
-            let msg = this.attachmentList.length > 0 ?
-                peergos.shared.messaging.messages.ApplicationMessage.attachment(text, this.buildAttachmentFileRefList())
-                : peergos.shared.messaging.messages.ApplicationMessage.text(text);
-            let attachmentMap = new Map();
+            let attachmentFileRefs = this.attachmentList.map(i => i.fileRef);
+            let attachments = [];
             for(var i = 0; i < this.attachmentList.length; i++) {
                 let attachmentListItem = this.attachmentList[i];
-                let mediaPath = attachmentListItem.mediaItem.path;
+                let mediaPath = attachmentListItem.fileRef.path;
                 let path = mediaPath.startsWith("/") ? mediaPath : "/" + mediaPath;
-                attachmentMap.set(path, {mimeType: attachmentListItem.mimeType, fileType: attachmentListItem.fileType,
+                attachments.push({fileRef: attachmentListItem.fileRef, mimeType: attachmentListItem.mimeType, fileType: attachmentListItem.fileType,
                     thumbnail: attachmentListItem.hasThumbnail ? attachmentListItem.thumbnail : ""});
             }
             that.attachmentList = [];
@@ -1390,46 +1371,54 @@ module.exports = {
             that.editMessage = null;
             let replyToMessage = this.replyToMessage;
             that.replyToMessage = null;
-            var showProgress = false;
             if (editMessage != null) {
-                if (editMessage.envelope == null) {
-                    showProgress = true;
-                } else {
-                    var hashToIndex = this.allThreadsHashToIndex.get(chatId);
-                    let messageIndex = hashToIndex.get(editMessage.messageRef.toString());
-                    let messageThread = this.allMessageThreads.get(chatId);
-                    let message = messageThread[messageIndex];
-                    message.contents = text;
-                    message.edited = true;
-                }
+                var hashToIndex = this.allThreadsHashToIndex.get(chatId);
+                let messageIndex = hashToIndex.get(editMessage.messageRef);
+                let messageThread = this.allMessageThreads.get(chatId);
+                let message = messageThread[messageIndex];
+                message.contents = text;
+                message.edited = true;
             } else if (replyToMessage != null) {
-                if (replyToMessage.envelope == null) {
-                    showProgress = true;
-                } else {
-                    that.draftMessage(chatId, msg, attachmentMap, replyToMessage);
-                }
+                that.draftMessage(chatId, text, attachments, replyToMessage);
             } else {
-                that.draftMessage(chatId, msg, attachmentMap, null);
+                that.draftMessage(chatId, text, attachments, null);
             }
             function command() {
-                return that.executeSend(chatId, editMessage, replyToMessage, msg);
+                return that.executeSend(chatId, editMessage, replyToMessage, text, attachmentFileRefs);
             }
             this.drainCommandQueue(() => command());
         },
-        executeSend: function(chatId, editMessage, replyToMessage, message) {
+        executeSend: function(chatId, editMessage, replyToMessage, message, attachmentFileRefs) {
             let that = this;
             let chat = this.allChats.get(chatId);
-            let future = peergos.shared.util.Futures.incomplete();
-            var request = null;
+            let future = app.shared.util.Futures.incomplete();
+            var requestJson = {};
             if (editMessage != null) {
-                let edit = new peergos.shared.messaging.messages.EditMessage(editMessage.messageRef, message);
-                request = new peergos.shared.messaging.SendMessageRequest(edit, peergos.client.JsUtil.emptyOptional());
+                requestJson = {
+                    editMessage: {
+                        text: message,
+                        messageRef: editMessage.messageRef
+                    }
+                };
             } else if (replyToMessage != null) {
-                request = new peergos.shared.messaging.SendMessageRequest(message, peergos.client.JsUtil.optionalOf(replyToMessage.envelope));
+                requestJson = {
+                    replyMessage: {
+                        text: message,
+                        attachments: attachmentFileRefs,
+                        replyTo: replyToMessage.serialised
+                    }
+                };
             } else {
-                request = new peergos.shared.messaging.SendMessageRequest(message, peergos.client.JsUtil.emptyOptional());
+                requestJson = {
+                    createMessage : {
+                        text: message,
+                        attachments: attachmentFileRefs
+                    }
+                };
             }
-            fetch('/peergos-api/v1/chat/' + chatId, { method: 'PUT', body: request.serialize() }).then(function(response) {
+            let encoder = new TextEncoder();
+            let bytes = encoder.encode(JSON.stringify(requestJson));
+            fetch('/peergos-api/v1/chat/' + chatId, { method: 'PUT', body: bytes }).then(function(response) {
                 if (response.status === 201) {
                     future.complete(true);
                     that.retrieveChatMessages(chatId, false);
@@ -1437,19 +1426,19 @@ module.exports = {
             });
             return future;
         },
-        buildAttachmentFileRefList: function() {
-            let fileRefs = this.attachmentList.map(i => i.mediaItem);
-            let fileRefList = peergos.client.JsUtil.asList(fileRefs);
-            return fileRefList;
-        },
         deleteChatMessage: function(message, chatId) {
             let that = this;
             this.drainCommandQueue(() => {
                 that.spinner(true);
-                let msg = new peergos.shared.messaging.messages.DeleteMessage(message.messageRef);
-                let deleteRequest = new peergos.shared.messaging.SendMessageRequest(msg, peergos.client.JsUtil.emptyOptional());
-                let future = peergos.shared.util.Futures.incomplete();
-                fetch('/peergos-api/v1/chat/' + chatId, { method: 'PUT', body: deleteRequest.serialize() }).then(function(response) {
+                let requestJson = {
+                    deleteMessage: {
+                        messageRef: message.messageRef
+                    }
+                };
+                let future = app.shared.util.Futures.incomplete();
+                let encoder = new TextEncoder();
+                let bytes = encoder.encode(JSON.stringify(requestJson));
+                fetch('/peergos-api/v1/chat/' + chatId, { method: 'PUT', body: bytes }).then(function(response) {
                     that.spinner(false);
                     future.complete(true);
                     if (response.status === 201) {
@@ -1459,39 +1448,30 @@ module.exports = {
                 return future;
             });
         },
-        draftMessage: function(chatId, message, attachmentMap, parentMessage) {
+        draftMessage: function(chatId, text, attachments, parentMessage) {
             let messageThread = this.allMessageThreads.get(chatId);
-            let draftMsg = this.createMessage(this.username, null, message.body.toArray(), attachmentMap, parentMessage, null);
+            let draftMsg = this.createMessage(this.username, null, text, attachments, parentMessage, null, "");
             this.draftMessages.push({key: this.msgKey(draftMsg), index:messageThread.length});
             messageThread.push(draftMsg);
             this.buildMessageThread(chatId);
             this.updateScrollPane(true);
         },
-        createMessage: function(author, messageEnvelope, body, attachmentMap, parentMessage, messageRef) {
-            let content = body[0].inlineText();
+        createMessage: function(author, serialised, contents, attachments, parentMessage, messageRef, timestamp) {
             let mediaFiles = [];
-            for(var i = 1; i < body.length; i++) {
-                let refPath = body[i].reference().ref.path;
-                let path = refPath.startsWith("/") ? refPath : "/" + refPath;
-                let mediaFile = attachmentMap.get(path);
-                if (mediaFile != null) {
-                    let fileType = mediaFile.fileType;
-                    let mimeType = mediaFile.mimeType;
-                    let thumbnail = mediaFile.thumbnail;
-                    mediaFiles.push({loaded: true, path: path, file: mediaFile, mimeType: mimeType, fileType: fileType, thumbnail: thumbnail, hasThumbnail: thumbnail.length > 0});
-                } else {
-                    mediaFiles.push({loaded: false, path: path, file: null, mimeType: null, fileType: null, thumbnail: "", hasThumbnail: false});
-                }
-            }
-            let timestamp = messageEnvelope == null ? "" : this.fromUTCtoLocal(messageEnvelope.creationTime);
+            attachments.forEach (function(mediaFile) {
+                let fileType = mediaFile.fileType;
+                let mimeType = mediaFile.mimeType;
+                let thumbnail = mediaFile.thumbnail;
+                mediaFiles.push({loaded: true, fileRef: mediaFile.fileRef, path: mediaFile.fileRef.path, file: mediaFile, mimeType: mimeType, fileType: fileType, thumbnail: thumbnail, hasThumbnail: thumbnail.length > 0});
+            });
             let entry = {isStatusMsg: false, mediaFiles: mediaFiles,
-                sender: author, sendTime: timestamp, contents: content
-                , envelope: messageEnvelope, parentMessage: parentMessage, edited: false, deleted : false, messageRef: messageRef};
+                sender: author, sendTime: timestamp, contents: contents
+                , serialised: serialised, parentMessage: parentMessage, edited: false, deleted : false, messageRef: messageRef};
             return entry;
         },
         createStatusMessage: function(timestamp, message) {
             let entry = {isStatusMsg: true, sender: null, hasThumbnail: false,
-                sendTime: this.fromUTCtoLocal(timestamp), contents: message};
+                sendTime: timestamp, contents: message};
             return entry;
         },
         fromUTCtoLocal: function(dateTime) {

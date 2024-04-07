@@ -3,15 +3,13 @@
     Build chat app
   </description>
 
-  <property name="peergos_project_root" location="../Peergos"/>
+  <property name="gwt_app_root" location="../gwt-vue-min"/>
   <property name="app" location="chat"/>
   <property name="ui_src" location="src"/>
   <property name="ui" location="${app}/assets"/>
   <property name="assets" location="assets"/>
   <property name="vendor" location="vendor"/>
   <property name="timestamp.millis" value="1489731900000"/>
-
-  <available file="peergos/README.md" type="file" property="submodule.present"/>
 
   <target name="init">
     <mkdir dir="${ui}/css/"/>
@@ -26,7 +24,6 @@
 
   <target name="js_vendor_dev" description="concat (don't minify) the vendor JS for development">
     <concat destfile="${ui}/js/vendor.js" encoding="utf8">
-      <fileset dir="${vendor}/priors" includes="*.js"/>
       <fileset dir="${vendor}/dev" includes="*.js"/>
       <fileset dir="${vendor}/common" includes="*.js"/>
     </concat>
@@ -34,8 +31,6 @@
 
   <target name="css_vendor" description="concat the vendor CSS">
     <concat destfile="${ui}/css/vendor.css" encoding="utf8">
-      <fileset dir="${vendor}/priors" includes="*.css"/>
-      <fileset dir="${vendor}/min" includes="*.css"/>
       <fileset dir="${vendor}/common" includes="*.css"/>
     </concat>
   </target>
@@ -80,7 +75,7 @@
   <target name="compile" depends="init" description="compile">
     <exec executable="java" failonerror="true">
       <arg value="CompileSubmodule.java"/>
-      <arg value="${peergos_project_root}"/>
+      <arg value="${gwt_app_root}"/>
     </exec>
   </target>
 
@@ -89,7 +84,7 @@
     <mkdir dir="${app}/assets"/>
 
     <copy todir="${ui}/js">
-      <fileset file="${peergos_project_root}/war/peergoslib/*cache.js"/>
+      <fileset file="${gwt_app_root}/war/applib/*cache.js"/>
     </copy>
   </target>
 
