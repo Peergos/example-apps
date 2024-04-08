@@ -1,0 +1,9 @@
+*~
+.idea/**
+chat/.idea/**
+gwt-vue-min/build/**
+gwt-vue-min/war/**
+gwt-vue-min/gwt-unitCache/**
+.DS_Store
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]

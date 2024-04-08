@@ -73,13 +73,13 @@
                                             <div class="chat_img">
                                                 <img v-if="conversation.hasProfileImage" v-on:click="viewProfile(conversation)" v-bind:src="conversation.profileImage" class="img-thumbnail-chat">
                                                 <span v-if="!conversation.hasProfileImage && conversation.otherMembers.length < 1" class="picon-chat img-thumbnail-chat">
-                                                    <svg class="svg-thumbnail-chat" viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path fill="#a9a9a9" d="M1536 1399q0 109-62.5 187t-150.5 78h-854q-88 0-150.5-78t-62.5-187q0-85 8.5-160.5t31.5-152 58.5-131 94-89 134.5-34.5q131 128 313 128t313-128q76 0 134.5 34.5t94 89 58.5 131 31.5 152 8.5 160.5zm-256-887q0 159-112.5 271.5t-271.5 112.5-271.5-112.5-112.5-271.5 112.5-271.5 271.5-112.5 271.5 112.5 112.5 271.5z"/></svg>
+                                                    <svg class="svg-thumbnail-chat" viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path fill="#989898" d="M1536 1399q0 109-62.5 187t-150.5 78h-854q-88 0-150.5-78t-62.5-187q0-85 8.5-160.5t31.5-152 58.5-131 94-89 134.5-34.5q131 128 313 128t313-128q76 0 134.5 34.5t94 89 58.5 131 31.5 152 8.5 160.5zm-256-887q0 159-112.5 271.5t-271.5 112.5-271.5-112.5-112.5-271.5 112.5-271.5 271.5-112.5 271.5 112.5 112.5 271.5z"/></svg>
                                                 </span>
                                                 <span v-if="!conversation.hasProfileImage && conversation.otherMembers.length == 1" v-on:click="viewProfile(conversation)" class="picon-chat img-thumbnail-chat">
-                                                    <svg class="svg-thumbnail-chat" viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path fill="#a9a9a9" d="M1536 1399q0 109-62.5 187t-150.5 78h-854q-88 0-150.5-78t-62.5-187q0-85 8.5-160.5t31.5-152 58.5-131 94-89 134.5-34.5q131 128 313 128t313-128q76 0 134.5 34.5t94 89 58.5 131 31.5 152 8.5 160.5zm-256-887q0 159-112.5 271.5t-271.5 112.5-271.5-112.5-112.5-271.5 112.5-271.5 271.5-112.5 271.5 112.5 112.5 271.5z"/></svg>
+                                                    <svg class="svg-thumbnail-chat" viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path fill="#989898" d="M1536 1399q0 109-62.5 187t-150.5 78h-854q-88 0-150.5-78t-62.5-187q0-85 8.5-160.5t31.5-152 58.5-131 94-89 134.5-34.5q131 128 313 128t313-128q76 0 134.5 34.5t94 89 58.5 131 31.5 152 8.5 160.5zm-256-887q0 159-112.5 271.5t-271.5 112.5-271.5-112.5-112.5-271.5 112.5-271.5 271.5-112.5 271.5 112.5 112.5 271.5z"/></svg>
                                                 </span>
                                                 <span v-if="!conversation.hasProfileImage && conversation.otherMembers.length > 1" class="picon-chat img-thumbnail-chat">
-                                                    <svg class="svg-thumbnail-chat" viewBox="0 0 2048 1792" xmlns="http://www.w3.org/2000/svg"><path fill="#a9a9a9" d="M657 896q-162 5-265 128h-134q-82 0-138-40.5t-56-118.5q0-353 124-353 6 0 43.5 21t97.5 42.5 119 21.5q67 0 133-23-5 37-5 66 0 139 81 256zm1071 637q0 120-73 189.5t-194 69.5h-874q-121 0-194-69.5t-73-189.5q0-53 3.5-103.5t14-109 26.5-108.5 43-97.5 62-81 85.5-53.5 111.5-20q10 0 43 21.5t73 48 107 48 135 21.5 135-21.5 107-48 73-48 43-21.5q61 0 111.5 20t85.5 53.5 62 81 43 97.5 26.5 108.5 14 109 3.5 103.5zm-1024-1277q0 106-75 181t-181 75-181-75-75-181 75-181 181-75 181 75 75 181zm704 384q0 159-112.5 271.5t-271.5 112.5-271.5-112.5-112.5-271.5 112.5-271.5 271.5-112.5 271.5 112.5 112.5 271.5zm576 225q0 78-56 118.5t-138 40.5h-134q-103-123-265-128 81-117 81-256 0-29-5-66 66 23 133 23 59 0 119-21.5t97.5-42.5 43.5-21q124 0 124 353zm-128-609q0 106-75 181t-181 75-181-75-75-181 75-181 181-75 181 75 75 181z" fill="#fff"/></svg>
+                                                    <svg class="svg-thumbnail-chat" viewBox="0 0 2048 1792" xmlns="http://www.w3.org/2000/svg"><path fill="#a9a9a9" d="M657 896q-162 5-265 128h-134q-82 0-138-40.5t-56-118.5q0-353 124-353 6 0 43.5 21t97.5 42.5 119 21.5q67 0 133-23-5 37-5 66 0 139 81 256zm1071 637q0 120-73 189.5t-194 69.5h-874q-121 0-194-69.5t-73-189.5q0-53 3.5-103.5t14-109 26.5-108.5 43-97.5 62-81 85.5-53.5 111.5-20q10 0 43 21.5t73 48 107 48 135 21.5 135-21.5 107-48 73-48 43-21.5q61 0 111.5 20t85.5 53.5 62 81 43 97.5 26.5 108.5 14 109 3.5 103.5zm-1024-1277q0 106-75 181t-181 75-181-75-75-181 75-181 181-75 181 75 75 181zm704 384q0 159-112.5 271.5t-271.5 112.5-271.5-112.5-112.5-271.5 112.5-271.5 271.5-112.5 271.5 112.5 112.5 271.5zm576 225q0 78-56 118.5t-138 40.5h-134q-103-123-265-128 81-117 81-256 0-29-5-66 66 23 133 23 59 0 119-21.5t97.5-42.5 43.5-21q124 0 124 353zm-128-609q0 106-75 181t-181 75-181-75-75-181 75-181 181-75 181 75 75 181z" fill="#989898"/></svg>
                                                 </span>
                                             </div>
                                             <div class="conversation" v-if="conversation.hasUnreadMessages">
@@ -446,7 +446,7 @@ module.exports = {
                     if (response.status === 201) {
                         let location = response.headers.get('location');
                         let chat = JSON.parse(location);
-                        chat.otherMembers = []; //chat.members.filter(v => v != this.username);
+                        chat.otherMembers = chat.members.filter(v => v != this.username);
                         chat.readonly = false;
                         chat.hasFriendsInChat = true;
                         chat.hasUnreadMessages = false;
@@ -1246,17 +1246,16 @@ module.exports = {
             return this.selectedChatId == conversation.chatId;
         },
         initialiseChats: function(chats, latestMessages) {
-            let that = this;
             for(var i = 0; i < chats.length; i++) {
                 let chat = chats[i];
-                that.allMessageThreads.set(chat.chatId, []);
+                this.allMessageThreads.set(chat.chatId, []);
                 let chatItem = {chatId: chat.chatId, members: chat.members
-                    , otherMembers: []
+                    , otherMembers: chat.members.filter(v => v != this.username)
                     , title: chat.title, admins: chat.admins, hasUnreadMessages: false
                     , chatVisibilityWarningDisplayed: false, readonly: false, hasFriendsInChat: true
                     , startIndex: 0, blurb: "", lastModified: "", triedLoadingProfileImage: false
                     , hasProfileImage: false};
-                that.allChats.set(chat.chatId, chatItem);
+                this.allChats.set(chat.chatId, chatItem);
                 let latestMessage = latestMessages[i];
                 if (latestMessage != null) {
                     chatItem.blurb = latestMessage.message;
@@ -1319,14 +1318,14 @@ module.exports = {
                 let chat = this.allChats.get(chatId);
                 chat.hasUnreadMessages = false;
                 var title = this.truncateText(chat.title, 20);
-                var members = this.truncateText(chat.members.join(','), 20);
-                if (members.length > 0) {
-                    if (chat.otherMembers.length == 0) {
+                var members = "";
+                if (chat.members.length > 0) {
+                    if (chat.otherMembers.length == 0 || (chat.otherMembers.length == 1 && chat.otherMembers[0] == chat.title)) {
                         members = " - you";
                     } else if (chat.readonly) {
-                        members = " - " + members;
+                        members = " - " + this.truncateText(chat.members.join(', '), 20);
                     } else {
-                        members = " - you," + chat.otherMembers;
+                        members = " - you, " + this.truncateText(chat.otherMembers.join(', '), 20) ;
                     }
                 }
                 title = title + members;
