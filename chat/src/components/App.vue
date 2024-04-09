@@ -649,7 +649,7 @@ module.exports = {
             this.displayingMessages = true;
             this.resizeHandler();
             this.buildMessageThread(conversation.chatId);
-            this.updateScrollPane(true);
+            this.updateScrollPane();
             this.checkChatState(conversation);
         },
         loadConversationIcons: function(chats) {
@@ -1140,7 +1140,9 @@ module.exports = {
             if (response.chatId == this.selectedChatId) {
                 this.buildMessageThread(response.chatId);
                 this.buildConversations();
-                this.updateScrollPane();
+                if (response.messages.length > 0) {
+                    this.updateScrollPane();
+                }
                 this.checkChatState(chat);
             } else {
                 this.buildConversations();
@@ -1455,7 +1457,7 @@ module.exports = {
             this.draftMessages.push({key: this.msgKey(draftMsg), index:messageThread.length});
             messageThread.push(draftMsg);
             this.buildMessageThread(chatId);
-            this.updateScrollPane(true);
+            this.updateScrollPane();
         },
         createMessage: function(author, serialised, contents, attachments, parentMessage, messageRef, timestamp) {
             let mediaFiles = [];
