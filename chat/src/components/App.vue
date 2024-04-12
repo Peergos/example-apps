@@ -653,7 +653,6 @@ module.exports = {
             this.checkChatState(conversation);
         },
         loadConversationIcons: function(chats) {
-            let usernameMap = new Map();
             for(var index = 0; index < chats.length; index++) {
                 let chat = chats[index];
                 if (chat.otherMembers.length == 0) {
@@ -662,24 +661,20 @@ module.exports = {
                 if (chat.triedLoadingProfileImage == false) {
                     chat.triedLoadingProfileImage = true;
                     let username = chat.otherMembers[0];
-                    let entry = usernameMap.get(username);
-                    if (entry == null) {
-                        usernameMap.set(username, '');
-                        fetch('/peergos-api/v0/profile/' + username + "?thumbnail=true", { method: 'GET' }).then(function(response) {
-                            if (response.status === 200) {
-                                response.arrayBuffer().then(function(buffer) {
-                                    let reply = new TextDecoder().decode(buffer);
-                                    let result = JSON.parse(reply);
-                                    if (result.profileThumbnail.length > 0) {
-                                        chat.profileImage = result.profileThumbnail;
-                                        chat.hasProfileImage = true;
-                                    } else {
-                                        chat.hasProfileImage = false;
-                                    }
-                                });
-                            }
-                        });
-                    }
+                    fetch('/peergos-api/v0/profile/' + username + "?thumbnail=true", { method: 'GET' }).then(function(response) {
+                        if (response.status === 200) {
+                            response.arrayBuffer().then(function(buffer) {
+                                let reply = new TextDecoder().decode(buffer);
+                                let result = JSON.parse(reply);
+                                if (result.profileThumbnail.length > 0) {
+                                    chat.profileImage = result.profileThumbnail;
+                                    chat.hasProfileImage = true;
+                                } else {
+                                    chat.hasProfileImage = false;
+                                }
+                            });
+                        }
+                    });
                 }
             }
         },
