@@ -928,8 +928,8 @@
                         var e = arguments.length > 0 && void 0 !== arguments[0] ? arguments[0] : {};
                         var previewFunc = arguments.length > 1 ? arguments[1] : null;
                         return new Promise((function(resolve, err) {
-                            let extension = "jpg,png,gif,webp,svg,avif";
-							fetch('/peergos-api/v0/file-picker/?currentFolder=true&extension=' + extension, { method: 'GET' }).then(function(response) {
+                            let extensionFilter = "jpg,png,gif,webp,svg,avif";
+							fetch('/peergos-api/v0/file-picker/?currentFolder=true&thumbnail=true&extension=' + extensionFilter, { method: 'GET' }).then(function(response) {
       							if (response.status === 200) {
 									response.arrayBuffer().then(function(buffer) {
 										let text = new TextDecoder().decode(buffer);
