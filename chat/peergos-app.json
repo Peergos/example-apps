@@ -7,6 +7,6 @@
     	"folderAction": false,    			
     	"fileExtensions": [],	
     	"appIcon": "icon.png",    	
-    	"permissions": ["EXCHANGE_MESSAGES_WITH_FRIENDS"]
+    	"permissions": ["EXCHANGE_MESSAGES_WITH_FRIENDS", "ACCESS_PROFILE_PHOTO"]
 }
 

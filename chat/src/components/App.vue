@@ -446,7 +446,7 @@ module.exports = {
                     if (response.status === 201) {
                         let location = response.headers.get('location');
                         let chat = JSON.parse(location);
-                        chat.otherMembers = chat.members.filter(v => v != this.username);
+                        chat.otherMembers = chat.members.filter(v => v != that.username);
                         chat.readonly = false;
                         chat.hasFriendsInChat = true;
                         chat.hasUnreadMessages = false;
@@ -673,6 +673,8 @@ module.exports = {
                                     chat.hasProfileImage = false;
                                 }
                             });
+                        } else {
+                            chat.hasProfileImage = false;
                         }
                     });
                 }
@@ -788,30 +790,6 @@ module.exports = {
             if (totalSize == 0) {
                 return;
             }
-            let that = this;
-            for(var i=0; i < that.attachmentList.length; i++) {
-                totalSize += that.attachmentList[i].size;
-            }
-            fetch('/peergos-api/v0/account/available-space/', { method: 'GET' }).then(function(response) {
-                if (response.status === 200) {
-                    response.arrayBuffer().then(function(buffer) {
-                        let reply = new TextDecoder().decode(buffer);
-                        let availableSpace = JSON.parse(reply).availableSpace;
-                        let spaceAfterOperation = availableSpace - totalSize;
-                        if (spaceAfterOperation < 0) {
-                            document.getElementById('uploadInput').value = "";
-                            that.showToastError("Attachment(s) exceeds available Space");
-                        } else {
-                            that.uploadAllAttachments(files, chatId);
-                        }
-                    });
-                } else {
-                    document.getElementById('uploadInput').value = "";
-                    that.showToastError("Unable to calculate available space");
-                }
-            });
-        },
-        uploadAllAttachments: function(files, chatId) {
             let that = this;
             this.drainCommandQueue(() => {
                 let future = app.shared.util.Futures.incomplete();
