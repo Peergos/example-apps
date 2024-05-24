@@ -1,0 +1,12 @@
+{
+    "displayName": "Image Slideshow",
+    "description": "View Images within a folder https://luna.liriliri.io/?path=/story/gallery--gallery",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": true,
+	"folderAction": true,    
+	"appIcon": "icon.png",			
+    "fileTypes": ["image"],	 
+    "permissions": ["READ_CHOSEN_FOLDER"]	
+}
+

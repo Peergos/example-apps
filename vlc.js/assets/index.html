@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en-us">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <title>VLC.js</title>
+        <style>
+        .flex-stack-container {
+  			display: flex;
+  			flex-direction: row;
+		}
+
+		.flex-stack-container > div {
+  			background-color: #f1f1f1;
+  			margin-right: 3px;
+  			text-align: center;
+		}
+
+        .flex-grow-container {
+  			display: flex;
+  			align-items: stretch;
+		}
+
+		.flex-grow-container > div {
+  			margin: 5px;
+  			text-align: center;
+  			font-size: 20px;
+		}
+		.action-button {
+			padding: 0px;    
+			border-color: lightgrey;
+		}
+		.flex-canvas-container {
+  			display: flex;
+  			justify-content: center;
+  			align-items: center;
+  			height: 90vh;
+  			background-color: Black;
+    		margin: 2px;
+		}
+/*
+		.flex-canvas-container > div {
+  			background-color: #f1f1f1;
+  			width: 100px;
+  			height: 100px;
+		}
+*/		
+		.child {
+  			background: rgb(255, 255, 255);
+  			border: 1px solid #999;
+  			font-weight: bold;
+  			text-align: center;
+  			flex: 1;
+		}
+
+		.vertical_flexbox {
+  			display: flex;
+  			flex-direction: column;
+  			height: 100vh;
+		}
+		
+		.spinner {
+        	height: 50px;
+        	width: 50px;
+        	margin: 0px auto;
+        	-webkit-animation: rotation .8s linear infinite;
+        	-moz-animation: rotation .8s linear infinite;
+        	-o-animation: rotation .8s linear infinite;
+        	animation: rotation 0.8s linear infinite;
+        	border-left: 10px solid rgb(0,150,240);
+        	border-right: 10px solid rgb(0,150,240);
+        	border-bottom: 10px solid rgb(0,150,240);
+        	border-top: 10px solid rgb(100,0,200);
+        	border-radius: 100%;
+      	}
+      	@-webkit-keyframes rotation {
+        	from {-webkit-transform: rotate(0deg);}
+        	to {-webkit-transform: rotate(360deg);}
+      	}
+      	@-moz-keyframes rotation {
+        	from {-moz-transform: rotate(0deg);}
+        	to {-moz-transform: rotate(360deg);}
+      	}
+      	@-o-keyframes rotation {
+        	from {-o-transform: rotate(0deg);}
+        	to {-o-transform: rotate(360deg);}
+      	}
+      	@keyframes rotation {
+        	from {transform: rotate(0deg);}
+        	to {transform: rotate(360deg);}
+      	}
+        </style>
+        <script src="brotli.js"></script>
+    </head>
+    <body>
+    	<div>
+    		<div>
+    			<div class="flex-canvas-container">
+  					<div>
+	  					<canvas id="canvas" style="border: 0px none; background-color: black;">
+	  					</canvas>
+	  					<div>
+  					    	<figure id="spinner">
+  					    		<div class="spinner"></div>
+  					    		<center>
+  					    			<strong id= "message" style="color:white">Initialising...</strong>
+  					    		</center>
+  					    	</figure>
+  						</div>
+  					</div>
+				</div>
+    			<div class="flex-stack-container">
+  					<div><button id="play" class="action-button"><img id="play-btn" src=""></img></button></div>
+  					<div><button id="sound" class="action-button"><img id="volume-btn" src=""></img></button></div>
+  					<div class="flex-grow-container" style="width:100%">
+  						<div style="flex-grow: 1"><meter id="volume" max="100" style="width: 100%" value="80"></meter></div>
+  						<div style="flex-grow: 20"><meter id="seekbar" max="100" style="width: 100%" value="0"></meter></div>
+					</div>
+				</div>
+			</div>
+		</div>
+		
+    <script src="experimental.js"></script>
+    <script type="module">
+        
+        import { MediaPlayer } from "./libvlc.js";
+
+		let state = {
+			ready: false,
+			playing: false,
+			muted: false,
+			previousVolume: 80,
+		}
+
+		let href = window.location.href;
+		let url = new URL(href);
+		let filePath = url.searchParams.get("path");
+		
+		let video = {
+            source: filePath,
+            options:"--codec=webcodec --aout=emworklet_audio -vv --input-repeat=10000",
+            size: { 
+                width: "700px", 
+                height: "" 
+            },
+        };
+            	
+        let play = document.getElementById('play');
+    	play.disabled = true;
+    	let sound = document.getElementById('sound');
+    	sound.disabled = true;
+
+        let playIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAB40lEQVRYhe3WO2tUQRQH8N8aYVFEROx3NaUgfoPAkhSWAUEx+Ri+sPMbaKHpBRNsxK0kheIDBIsFH71uDBaCDzZIqjws9m4yd/Ymd3aTtUn+MHDvnDP/c+6d/8w5HOKgozKg/ziuYAIXcCqb/4PPeIUn+LJP+W2hjgWsY7NkrGMetf0KPouVhMDxWMFMGflYif0mHqAazS/hNRbxHj9wAicDnyqmsYp3ZYkUYRYb8l/VQkOxdsaygK1ozYaEPxGjpv+3P8KxhLVV3I/W/tUVcDIWIoKHge0tPmGqhGMu4phPDT4ur/aWvAZC0qc4uwNPVX471nbxzeFOFKQR2WO1r+IujhdwTUa+t1MSWAwWtPULbqdjt4TLkW8F3wKf5ykJfA8WPCuwl53/Fzgf+DcD23JMdqQgwOnguZ2ScYQGPuBS9v41sJ1JSeC/oiiB38FzfQjOl7hoe79D5f9MIQhFuIyjkX3kIoyP4XRJArsdw6nI91ZKAueM7iKqpyRA/1U8F9je4KMRXsV0i1EnIthLMeoYokGZUVyOJxWX40pmKyrH1wYN3sONgiQ2dZXdxL1sNOXVHga/PmzwHoZtyTr28OUxaroiSmlK1/BY4p4P2pbXcdV2W96rG7/k2/L2gLyHOMD4B4x39qgIZXyeAAAAAElFTkSuQmCC";
+		let pauseIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAABzklEQVRYhe3WMWsUQRQH8N8Z4RAkiFoqd5pWBPEDCOFaCyvF5GOoiJ9CixBrQaNlKkmXNILFoaC1iXYWp1wQqySX4jZmdjLHzt7GKvnDwLs3+/7vP7vv5j1OcdLRqvn8HO7jDm7iQuH/jS9Yxzt8OyZ9/9DFCnYxqli7eIPOcSVfxHZG4nhtY6GKfKZi/wmW0I7837GBNXzET5zHbPBMG/fwFx+qhKSwiD3lU/UxL107M0XCfhSzJ+NNxOg4+tpf4VxGbBsvotg/xgWcjbcRwVKd4ALLEcfr3MA55WrvO6yBQeAfBDEpf1v5c+zgWo6AZ5Hy+WAvrvQqfy/yP80RsBYEbCkXXF0BLfwI/O/jZGcSAm4E9ueIsC5G+DSBe6KAS4G92SB5iuNyjoAmJ67CEe6UgF+BnVW1FQg5BvFmSsDXwL6Nsw2St3BrAvdEARuBfQV3Gwjo4Wrwez0n6Lr/dxF1c5WvKP+vl3MDA7yMOLKvYsbNaBgRNGlGQ1MMKAvS7bgn3Y5bxV6qHT+sm/wAjxMiRsbX6yqeF2tV+coNkz+aNvkBph3JhhqcPEbHeNDMGUp3jAsu65vXHcu7eOBwLL9Y+AfKY/lWTd5TnGDsA8B02fDQJQS6AAAAAElFTkSuQmCC";
+		let volumeIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAABp0lEQVRYhe2WO0sDQRzEf4qFWCipDZpGBYkETONX8NEpaiy1shFRELTV0s5HoVUCFhY2GhEFQfE7WIuVRQQtfOAjsbg5bj1yh0k2CUIGjmVm75i53f3vLjTQgH00Ae31DLABfAEZIFYtkzFgJKBvBngHCsAzkLJtPg/kgbeQd6LAkULkgUXb5gU9fkwBCYOvGu9O2Db3B0jg/fE+0CZ9CW86ojbN/QFagE3gQ33XQCtOVZxLy9g0LzYFAEngQf270rqBT5zqCB2FmwCjoMfFHHAA9IkP4ozENzAg7UTfrIQFKMXcDHAs/gj0StuRti0+LX5ajQAR4EzaobQh8VvxuPh9NQKAM7cFICfeIf7i46/mR81haWoBWwEiOLUPcKm2X+2d2i617ggVRaWLMAf0SHMX4ZZ4SjwbFqDcMpzFKUPXPIlXhnFpWf5QhsVgYyOK4W1EnaUGCAthwr8VX+FtxRfS0uWYh4UwYR5Ge3iH0TIWDqOgEH5M8vs4XjNCjVdq7g9RyoVkwZa5i1FgOKDPvJI94ZwBNcU6zmpP420+NUXdr+UN/C/8AF5F1jgZOO54AAAAAElFTkSuQmCC";
+		let muteIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAAhklEQVRYhe2Wuw2AMAwFj88ojMMYUDARA8EWdCxBxadJhRIRC+IU+CS3750by2AYf6dKkNkCDbAkyH5kAA5gy1HeAztwuslarirgK1cTCJUnEZgCRaGJohAISLeKyi6FoZ9jAiYgEZiTWbygQ/EQSSVU8Umoc5fIgvghqT8WGIHVSRiGEcUF+oU8//ZkDnUAAAAASUVORK5CYII=";
+    
+    	let playBtn = document.getElementById('play-btn');
+    	playBtn.src = playIcon;
+
+    	let volumeBtn = document.getElementById('volume-btn');
+    	volumeBtn.src = muteIcon;
+    	
+    	let spinner = document.getElementById('spinner');
+    
+async function VLCPlayer(video) {
+    let canvas = document.getElementById("canvas");
+    if (canvas === null) {
+        console.error("No canvas with id 'canvas' found.");
+        return;
+    }
+
+    window.Module = await initModule({ 
+        vlc_access_file: {},
+    });
+
+    let media_player;
+
+    let vlc_opts_array = video.options.split(' ');
+
+    let vlc_opts_size = 0;
+    for (let i in vlc_opts_array) {
+        vlc_opts_size += vlc_opts_array[i].length + 1;
+    }
+
+    let buffer = Module._malloc(vlc_opts_size);
+    let wrote_size = 0;
+    for (let i in vlc_opts_array) {
+        Module.writeAsciiToMemory(vlc_opts_array[i], buffer + wrote_size, false);
+        wrote_size += vlc_opts_array[i].length + 1;
+    }
+
+    let vlc_argv = Module._malloc(vlc_opts_array.length * 4 + 4);
+    let view_vlc_argv = new Uint32Array(
+        Module.wasmMemory.buffer,
+        vlc_argv,
+        vlc_opts_array.length
+    );
+
+    wrote_size = 0;
+    for (let i in vlc_opts_array) {
+        view_vlc_argv[i] = buffer + wrote_size;
+        wrote_size += vlc_opts_array[i].length + 1;
+    }
+
+    Module._wasm_libvlc_init(vlc_opts_array.length, vlc_argv);
+    media_player = new MediaPlayer(Module, "emjsfile://1");
+    media_player.set_volume(80);
+
+    Module._set_global_media_player(media_player.media_player_ptr);
+
+    window.media_player = media_player;
+
+    window.update_overlay = function() { 
+        let media_player = window.media_player;
+        let position = media_player.get_position() * 100;
+        let seekbar = document.getElementById('seekbar');
+        seekbar.value = position;
+    };
+
+    initializeVLCControls(video);
+}
+
+function initializeVLCControls(video) { 
+    let vtime = null;
+
+    document.getElementById('play')?.addEventListener("click", async function() {
+    	if (play.disabled) {
+    		return;
+    	}
+    	play.disabled = true;
+        if (!state.ready) {
+			spinner.style.display = "";
+            let r = await fetch(video.source);
+            let blob = await r.arrayBuffer()
+            let file = new File([blob], "Video", { type: "video/mkv" });
+
+            window.Module['vlc_access_file'][1] = file;
+			spinner.style.display = 'none';
+
+            media_player.play();
+            document.getElementById("canvas").style.width = video.size.width;
+            document.getElementById("canvas").style.height = video.size.height;
+			
+			state.ready = true;
+        	state.playing = true;			
+    	    playBtn.src = pauseIcon;
+        } else {
+        	if(!state.playing) {
+    	        playBtn.src = pauseIcon;
+        		state.playing = true;
+	            media_player.set_position(vtime);
+    	        media_player.play();
+    	    } else {
+			    playBtn.src = playIcon;
+    	        state.playing = false;
+    	        vtime = media_player.get_position();
+        		media_player.pause();
+    	    }
+        }
+    	play.disabled = false;        
+    });
+
+    let seekbar = document.getElementById('seekbar');
+    seekbar?.addEventListener("click", function(e) {
+        let position = (e.offsetX / seekbar.clientWidth);
+        vtime = position;
+        seekbar.value = position * 100;
+        media_player.set_position(position);
+    });
+    
+    let volume = document.getElementById('volume');
+    document.getElementById('sound')?.addEventListener("click",function() {
+        if (sound.disabled) {
+    		return;
+    	}
+    	sound.disabled = true;
+        if (state.muted) {
+            volumeBtn.src = muteIcon;
+        	state.muted = false;
+        	let position = state.previousVolume;
+    	    media_player.set_volume(position);
+	        volume.value = position;
+        } else {
+            volumeBtn.src = volumeIcon;
+        	state.muted = true;        
+	        media_player.set_volume(0);
+	        volume.value = 0;	        
+        }
+        sound.disabled = false;
+    });
+
+    volume?.addEventListener("click", function(e) {
+        let position = (e.offsetX / volume.clientWidth) * 100;
+        volume.value = position;
+        state.previousVolume = position;
+        media_player.set_volume(position);
+    });
+    let message = document.getElementById('message');
+    message.innerText = "Loading...";
+	spinner.style.display = "none";
+
+    play.disabled = false;
+    sound.disabled = false;
+}
+        window.onload = async function () {
+        	if (!window.crossOriginIsolated) {
+            	let message = document.getElementById('message');
+        		message.innerText = "Browser missing functionality. Error: crossOriginIsolated not supported";
+        	    let spinner = document.getElementById('spinner');
+				spinner.style.display = "";
+        	} else {
+            	VLCPlayer(video);
+            }
+        };
+        </script>
+    </body>
+</html>

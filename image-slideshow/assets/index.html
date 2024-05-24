@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Slideshow</title>
+		<style>
+		@font-face{font-family:carousel-icon;src:url('data:application/x-font-woff;charset=utf-8;base64,d09GRgABAAAAAAS0AAsAAAAAB6wAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAABHU1VCAAABCAAAAF8AAACMISAl9k9TLzIAAAFoAAAAPQAAAFZLxUkYY21hcAAAAagAAADNAAACZtHhG/9nbHlmAAACeAAAADcAAABAspuuX2hlYWQAAAKwAAAALgAAADZzbL4eaGhlYQAAAuAAAAAYAAAAJAFQANhobXR4AAAC+AAAABAAAAA8AZAAAGxvY2EAAAMIAAAAEAAAACAA0ADgbWF4cAAAAxgAAAAfAAAAIAEaABJuYW1lAAADOAAAASkAAAIWm5e+CnBvc3QAAARkAAAAUAAAAHLSrlg/eJxjYGRgYOBiMGCwY2BycfMJYeDLSSzJY5BiYGGAAJA8MpsxJzM9kYEDxgPKsYBpDiC2AdNMDGwMckCSGyzHCuSxA2keBl4GPqAYI9A2hDgHAyeQDxJlZGAGAHc1BlkAeJxjYGSQZpzAwMrAwFDH0AMkZaB0AgMngzEDAxMDKzMDVhCQ5prCcIBB9yMTwwkgVwhMMjAwgggAWykIawAAAHictZJBCsIwEEVfarW2tsWFS4+gh3JRtSAIIrjxQK5ce62eQP80sxARoQsnvEJ+k5nkZ4AxMBIrkUK4E7C4SQ29PqLo9ZSr5gvmUlLWbGg5cOTEmUuXPJ/6a2rzpoZe/YygLDaWbwMy5c1Vq6KmZKqTpcyYaHWiLZMveX5FNnA97kNeVHWJypszdgCGVv5flP334bMa8ztit904dovGycXW0SuycyqxdyxP61iFgyML9I4R65KToy7R20ZkDxdHPnUhYp3TJRGSF+37H7UAAAB4nGNgZACBdoalDKwMDPaM6ubq7NU8pqY8Dio8JiY8Dgwo8kBJcXbxdkduExPuFAeQAgD0+QhWAHicY2BkYGAA4nVtbJnx/DZfGbgZTgAFojgf72tA0EDQzrAUSHIwMIE4ADH5ClgAAHicY2BkYGA4wcAAJ9sZGBlQAT8ANiwCKXicY2AAghNQTCIAAFMMAZF4nGNgAAIBBgVcEAAW8AGxeJxjYGRgYOBnYGMA0QwMTEDMBYQMDP/BfAYACowBLQB4nGWQPW7CQBSEx2BIAlKCFCkps1UKIpmfkgNAT0GXwpi1MbK91npBossJcoQcIaeIcoIcKGPzaGAtP38zb97uygAG+IWHenm4bWq9WrihOnGb9CDsk5+FO+jjRbhLfyjcwxumwn084p07eP4dnQFK4Rbu8SHcpv8p7JO/hDt4wrdwl/6PcA8r/An38eoN08gUsSncUif7LLRnef6utK1SU6hJMD5bC11oGzq9Ueujqg7J1LlYxdbkas6uzjKjSmt2OnLB1rlyNhrF4geRyZEigkGBuKkOS2gk2CNDCHvVvdQrpi0q+rVWmCDA+Cq1YKpokiGVxobJNY6sFQ48bUrXMa34Ws7kpLnMat4kIyv+77q3oxPRD7BtpkrMMOITX+SD5g75Pz0RXqgAAAB4nF3GOQrAIBQA0T/Zo9ku4qEs3EAIiOD1U4Q0ec2MdPL6+nfS0TMwMjGzsKLQbOwcnFyibCl3M9n5qt8tKcSKpXDTMGQcnkoiEEUery4ODQ==') format('woff')}[class*=' luna-carousel-icon-'],[class^=luna-carousel-icon-]{font-family:carousel-icon!important;font-size:16px;font-style:normal;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}.luna-carousel-icon-arrow-left:before{content:'\f101'}.luna-carousel-icon-arrow-right:before{content:'\f102'}
+		.luna-carousel{background:#000;width:100%;height:100%;font-family:Arial,Helvetica,sans-serif;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;position:relative}.luna-carousel *{box-sizing:border-box}.luna-carousel:hover .luna-carousel-arrow-left,.luna-carousel:hover .luna-carousel-arrow-right{opacity:1}.luna-carousel-arrow-left,.luna-carousel-arrow-right{color:#fff;position:absolute;top:50%;width:36px;height:36px;margin-top:-18px;background:rgba(0,0,0,.2);border-radius:50%;cursor:pointer;transition:background .3s,opacity .3s;opacity:0}.luna-carousel-arrow-left:hover,.luna-carousel-arrow-right:hover{background:rgba(0,0,0,.35)}.luna-carousel-arrow-left .luna-carousel-icon,.luna-carousel-arrow-right .luna-carousel-icon{line-height:36px;font-size:30px}.luna-carousel-arrow-left{left:20px}.luna-carousel-icon-arrow-left{position:relative;left:2px}.luna-carousel-arrow-right{right:20px}.luna-carousel-icon-arrow-right{position:relative;left:5px}.luna-carousel-indicators{position:absolute;width:100%;bottom:20px;text-align:center}.luna-carousel-indicators ul{background:rgba(0,0,0,.2);list-style:none;padding:5px;margin:0;display:inline-block;border-radius:10px;font-size:0}.luna-carousel-indicator{display:inline-block;width:10px;height:10px;background:rgba(255,255,255,.5);margin:0 3px;border-radius:50%;cursor:pointer}.luna-carousel-indicator.luna-carousel-active{background:#fff}.luna-carousel-body{width:100%;height:100%;overflow:hidden}.luna-carousel-item{position:relative;width:100%;height:100%;float:left;margin-right:-100%;display:none;transition:transform .6s ease-in-out}.luna-carousel-item-next,.luna-carousel-item-prev,.luna-carousel-item.luna-carousel-active{display:block}.luna-carousel-active.luna-carousel-item-start,.luna-carousel-item-prev:not(.luna-carousel-item-end){transform:translateX(-100%)}.luna-carousel-active.luna-carousel-item-end,.luna-carousel-item-next:not(.luna-carousel-item-start){transform:translateX(100%)}
+
+		@font-face{font-family:luna-gallery-icon;src:url('data:application/x-font-woff;charset=utf-8;base64,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') format('woff')}[class*=' luna-gallery-icon-'],[class^=luna-gallery-icon-]{font-family:luna-gallery-icon!important;font-size:16px;font-style:normal;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+		
+		/*.luna-gallery-icon-close:before{content:'\f101'}
+		.luna-gallery-icon-download:before{content:'\f102'}
+		.luna-gallery-icon-fullscreen:before{content:'\f103'}*/
+		
+		.luna-gallery-icon-pause:before{content:'\f104'}.luna-gallery-icon-play:before{content:'\f105'}
+		.luna-gallery{position:fixed;font-family:Arial,Helvetica,sans-serif;left:0;top:0;z-index:10;width:100%;height:100%}.luna-gallery .luna-carousel-indicators{display:none}.luna-gallery:hover .luna-gallery-toolbar{opacity:1}.luna-gallery-image{width:100%;height:100%;position:relative}.luna-gallery-image img{position:absolute;left:0;top:0}.luna-gallery-title{color:#eee;background:rgba(0,0,0,.45);width:100%;text-align:center;position:absolute;left:0;bottom:0;padding:10px 40px}.luna-gallery-hidden{display:none}.luna-gallery-toolbar{position:absolute;opacity:0;top:0;left:0;width:100%;color:#999;background:rgba(0,0,0,.45);transition:opacity .3s}.luna-gallery-toolbar .luna-gallery-button{float:right;cursor:pointer;padding:5px 10px 5px 5px}.luna-gallery-toolbar .luna-gallery-button:hover{color:#fff}.luna-gallery-toolbar .luna-gallery-button:hover .luna-gallery-icon-play-circle{border-color:#fff}.luna-gallery-toolbar .luna-gallery-button span{font-size:24px}.luna-gallery-toolbar .luna-gallery-button span.luna-gallery-icon-pause,.luna-gallery-toolbar .luna-gallery-button span.luna-gallery-icon-play{font-size:12px}.luna-gallery-toolbar .luna-gallery-icon-play-circle{border:2px solid #999;border-radius:50%;width:20px;height:20px}.luna-gallery-toolbar .luna-gallery-icon-play{position:relative;left:5px}.luna-gallery-toolbar .luna-gallery-icon-pause{position:relative;left:4px}.luna-gallery-toolbar .luna-gallery-counter{float:left;padding:5px 10px;font-size:20px}
+
+		</style>
+		<script src="luna-carousel.js"></script>
+		<script src="luna-gallery.js"></script>
+	</head>
+	<body>
+		<div id="gallery-component"></div>
+	<script>
+	function load() {
+		let container = document.getElementById("gallery-component");
+		const gallery = new LunaGallery(container);
+
+		let href = window.location.href;
+		let url = new URL(href);
+		let folderPath = url.searchParams.get("path");
+		loadFolder(folderPath, gallery) 
+		gallery.show();
+		displayInitialTitle();
+	}
+	function displayInitialTitle() {
+		try {
+			let titleElement = document.getElementsByClassName("luna-gallery-title")[0];
+			if (titleElement != null) {
+				let existingText = "" + titleElement.innerText;
+				titleElement.innerText = " Loading... " + existingText;
+				whileLoading(titleElement, existingText);
+			} else {
+				setTimeout(() => { displayInitialTitle();}, 100);
+			}
+		} catch (ex) {
+			setTimeout(() => { displayInitialTitle();}, 100);
+		}
+
+	}
+	function whileLoading(titleElement, textToDisplay) {
+		try {
+			let isComplete = document.getElementsByClassName("luna-gallery-image")[1].firstChild.complete;
+			if (!isComplete) {
+				setTimeout(() => { whileLoading(titleElement, textToDisplay);}, 100);
+			} else {
+				titleElement.innerText = textToDisplay;
+			}
+		} catch (ex) {
+			setTimeout(() => { whileLoading(titleElement, textToDisplay);}, 100);
+		}
+	}
+	function loadFolder(folderPath, gallery) {
+		fetch(folderPath, { method: 'GET' }).then(function(response) {				
+      		if (response.status === 200) {
+				response.arrayBuffer().then(function(buffer) {
+					let text = new TextDecoder().decode(buffer);
+					let json = JSON.parse(text); // files:[], subFolders:[]
+					//sort??
+					json.files.forEach((filename, idx) => {
+						gallery.append(folderPath + '/' + filename, filename);
+					});
+					json.subFolders.forEach((folder, idx) => {
+						loadFolder(folderPath + '/' + folder, gallery);
+					});
+    			});
+      		} else {
+      			console.log('error reading folder:' + folderPath);
+      		}
+      	}).catch(err => {
+      		console.log('error reading folder:' + folderPath + " error:" + err);
+		});	
+	}	
+	window.onload = function() {
+		load();
+	};
+	</script>
+	</body>
+</html>

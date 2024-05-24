@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Audio Player</title>
+		<style>
+		@font-face{font-family:music-player-icon;src:url('data:application/x-font-woff;charset=utf-8;base64,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') format('woff')}[class*=' luna-music-player-icon-'],[class^=luna-music-player-icon-]{font-family:music-player-icon!important;font-size:16px;font-style:normal;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}.luna-music-player-icon-file:before{content:'\f101'}.luna-music-player-icon-list:before{content:'\f102'}.luna-music-player-icon-loop-all:before{content:'\f103'}.luna-music-player-icon-loop-off:before{content:'\f104'}.luna-music-player-icon-loop-one:before{content:'\f105'}.luna-music-player-icon-pause:before{content:'\f106'}.luna-music-player-icon-play:before{content:'\f107'}.luna-music-player-icon-shuffle-disabled:before{content:'\f108'}.luna-music-player-icon-shuffle:before{content:'\f109'}.luna-music-player-icon-volume-down:before{content:'\f10a'}.luna-music-player-icon-volume-off:before{content:'\f10b'}.luna-music-player-icon-volume:before{content:'\f10c'}
+		.luna-music-player{min-width:375px;font-family:Arial,Helvetica,sans-serif;box-shadow:0 2px 2px 0 rgba(0,0,0,.07),0 1px 5px 0 rgba(0,0,0,.1);background:#fff;font-size:14px;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;cursor:default}.luna-music-player *{box-sizing:border-box}.luna-music-player-body-left{background:#614d82;width:90px;height:90px;float:left}.luna-music-player-cover{position:relative;background-size:cover;background-position:50%}.luna-music-player-play{position:absolute;width:30px;height:30px;border:2px solid #fff;border-radius:50%;bottom:50%;right:50%;margin:0 -15px -15px 0;background:rgba(0,0,0,.2);opacity:.8}.luna-music-player-play .luna-music-player-icon{cursor:pointer;position:absolute;color:#fff;top:5px}.luna-music-player-play .luna-music-player-icon-play{left:7px}.luna-music-player-play .luna-music-player-icon-pause{left:5px}.luna-music-player-body-right{margin-left:90px;height:90px;padding:10px 7px 0;border-bottom:1px solid #e9e9e9}.luna-music-player-info{height:22px;margin:0 0 35px 5px}.luna-music-player-controller{display:flex}.luna-music-player-controller-left{margin:0 0 0 5px;padding:6px 0;flex:1}.luna-music-player-controller-right{position:relative;right:0;bottom:4px;height:17px;color:#999;padding-left:7px}.luna-music-player-controller-right .luna-music-player-icon{cursor:pointer;position:relative;top:3px;transition:color .3s}.luna-music-player-controller-right .luna-music-player-icon:hover{color:#000}.luna-music-player-bar{position:relative;height:2px;width:100%;background:#cdcdcd}.luna-music-player-controller-left:hover .luna-music-player-bar-thumb{position:absolute;margin-right:-4px;right:0;top:-3px;width:8px;height:8px;display:inline-block;background:#e73c5e;border-radius:50%;opacity:1}.luna-music-player-bar-thumb{opacity:0;transition:opacity .5s}.luna-music-player-bar-loaded,.luna-music-player-bar-played{position:absolute;left:0;top:0;bottom:0;height:2px}.luna-music-player-bar-loaded{background:#aaa;transition:width .3s}.luna-music-player-bar-played{background:#e73c5e}.luna-music-player-volume{position:relative;display:inline-block}.luna-music-player-volume.luna-music-player-active .luna-music-player-volume-controller,.luna-music-player-volume:hover .luna-music-player-volume-controller{height:50px}.luna-music-player-volume.luna-music-player-active .luna-music-player-volume-bar,.luna-music-player-volume:hover .luna-music-player-volume-bar{height:45px}.luna-music-player-volume-controller{height:0;position:absolute;bottom:15px;right:-5px;width:26px;overflow:hidden;transition:height .3s}.luna-music-player-volume-bar{position:relative;width:5px;height:0;background:#aaa;margin:0 auto;border-radius:2.5px;overflow:hidden;transition:height .3s}.luna-music-player-volume-bar-fill{background:#e73c5e;position:absolute;bottom:0;left:0;width:5px}.luna-music-player-list{overflow-y:auto;-webkit-overflow-scrolling:touch;max-height:150px}.luna-music-player-list-item{position:relative;height:32px;line-height:32px;padding:0 15px;font-size:12px;border-top:1px solid #f5f5f5;margin:0;transition:background .3s}.luna-music-player-list-item:first-child{border-top:none}.luna-music-player-list-item.luna-music-player-active,.luna-music-player-list-item:hover{background:#f5f5f5}.luna-music-player-list-item.luna-music-player-active{color:#e73c5e}.luna-music-player-list-idx{margin-right:12px}.luna-music-player-list-artist{float:right}
+		</style>
+		<script src="mutag.min.js"></script>
+		<script src="luna-music-player.js"></script>
+	</head>
+	<body>
+		<div id="audio-component"></div>
+	<script>
+	var loadFolderCount = 0;
+	function load() {
+		let href = window.location.href;
+		let url = new URL(href);
+		let folderPath = url.searchParams.get("path");
+		let files = [];
+		loadFolder(folderPath, files, (allFiles) => {
+			const container = document.getElementById('audio-component')
+			let obj = { audio: allFiles };
+			const musicPlayer = new LunaMusicPlayer(container, obj);
+			musicPlayer.play();
+		}); 
+	}
+	function loadFolder(folderPath, files, callback) {
+		loadFolderCount++;
+		fetch(folderPath, { method: 'GET' }).then(function(response) {				
+      		if (response.status === 200) {
+				response.arrayBuffer().then(function(buffer) {
+					let text = new TextDecoder().decode(buffer);
+					let json = JSON.parse(text); // files:[], subFolders:[]
+					for(var i=0; i < json.subFolders.length; i++) {
+						loadFolder(folderPath + '/' + json.subFolders[i], files, callback);
+					}
+					//sort??
+					var fileLoadedCount=0;
+					if (json.files.length == 0) {
+						loadFolderCount--;
+						if (loadFolderCount == 0) {
+							callback(files)
+						}
+					} else {
+						json.files.forEach((filename, idx) => {
+							let audioFilename = folderPath + '/' + filename;
+							fetch(audioFilename, { method: 'GET' }).then(function(audioFileResponse) {				
+      							if (audioFileResponse.status === 200) {
+									audioFileResponse.arrayBuffer().then(function(audioBuffer) {
+									  	console.log("loaded file - " + audioFilename);
+										let blob = new Blob([audioBuffer]);
+					  					mutag.fetch(blob).then((tags) => {
+    										//console.log(tags);
+    										//console.log("loaded tags for: " + audioFilename);
+    										let trck = tags.TRCK != null ? tags.TRCK + " ": " ";
+    										let tit2 = tags.TIT2 != null ? tags.TIT2 : " ";
+    										let title = trck + tit2;
+
+    										let talb = tags.TALB != null ? tags.TALB + " " : " ";
+    										let tpe1 = tags.TPE1 != null ? " - " + tags.TPE1 : " ";
+    										let tpe2 = tags.TPE2 != null ? " / " + tags.TPE2 : " ";
+    										let tyer = tags.TYER != null ? "(" + tags.TYER + ")" : " ";
+											let artist = talb + tpe1 + tpe2 + tyer;
+    										let audioTags = {
+    											url: audioFilename,
+    											cover: null,
+    											title: title,
+    											artist: artist,
+											};
+											if (tags.APIC != null) {
+												let reader = new FileReader();
+												reader.readAsDataURL(tags.APIC); 
+												reader.onloadend = function() {
+  													audioTags.cover = reader.result;
+	    											files.push(audioTags);
+	    											fileLoadedCount++;
+													if (fileLoadedCount == json.files.length) {
+														loadFolderCount--;
+													}
+													if (loadFolderCount == 0) {
+														callback(files)
+													}
+												}
+											} else {
+    											files.push(audioTags);
+    											fileLoadedCount++;
+												if (fileLoadedCount == json.files.length) {
+													loadFolderCount--;
+												}
+												if (loadFolderCount == 0) {
+													callback(files)
+												}
+    										}
+							      		}).catch(err => {
+							      			console.log('Unexpected error: ' + err);
+							      			let audioTags = {
+    												url: audioFilename,
+    												cover: null,
+    												title: '',
+    												artist: '',
+											};
+											files.push(audioTags);
+							      			fileLoadedCount++;
+											if (fileLoadedCount == json.files.length) {
+												loadFolderCount--;
+											}
+											if (loadFolderCount == 0) {
+												callback(files)
+											}
+  										});
+
+      								});
+      							} else {
+      								console.log('error reading file:' + audioFilename);
+      							}
+							});
+						});
+					}
+    			});
+      		} else {
+      			console.log('error reading folder:' + folderPath);
+      		}
+      	}).catch(err => {
+      		console.log('error reading folder:' + folderPath + " error:" + err);
+		});	
+	}	
+	window.onload = function() {
+		load();
+	};
+	</script>
+	</body>
+</html>

@@ -99,6 +99,11 @@ Can import to some degree xlsx, ods spreadsheet files
 
 ![Winamp](./screenshots/winamp.png)
 
+## Image Slideshow
+#### https://luna.liriliri.io/?path=/story/gallery--gallery
+
+![Image Slideshow](./screenshots/slideshow.png)
+
 ## TiddlyWiki 5 - a non-linear personal web notebook
 #### https://github.com/Jermolene/TiddlyWiki5
 
@@ -107,6 +112,12 @@ Can import to some degree xlsx, ods spreadsheet files
 ## Device Capture
 
 ![DeviceCapture](./screenshots/device-capture.png)
+
+## VLC media player
+#### https://github.com/Krowemoh/vlc.js
+
+![VLC](./screenshots/vlc.png)
+
 
 ## Doom (Shareware) running inside jsdosbox
 #### https://sourceforge.net/projects/jsdosbox
