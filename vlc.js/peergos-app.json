@@ -6,6 +6,7 @@
     	"launchable": true,
     	"folderAction": false,  	
     	"appIcon": "icon.png",	
-	    "fileTypes": ["audio","video"],	    	
+	    "fileExtensions": ["asf","wtv","wmv","vob","ts","swf","rm","mxf","mts","mpg","mpeg","m2v","m2ts","flv","f4v","avi"],	    	
+    	"fileTypes": ["audio","video"],	    
     	"permissions": []
 }
