@@ -99,7 +99,12 @@ Can import to some degree xlsx, ods spreadsheet files
 
 ![Winamp](./screenshots/winamp.png)
 
-## Image Slideshow
+## Audio Player - play all audio files in a folder
+#### https://github.com/Krowemoh/vlc.js
+
+![VLC](./screenshots/audio-player.png)
+
+## Image Slideshow - view all image files in a folder
 #### https://luna.liriliri.io/?path=/story/gallery--gallery
 
 ![Image Slideshow](./screenshots/slideshow.png)

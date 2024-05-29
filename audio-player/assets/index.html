@@ -14,7 +14,6 @@
 	<body>
 		<div id="audio-component"></div>
 	<script>
-	var loadFolderCount = 0;
 	function load() {
 		let href = window.location.href;
 		let url = new URL(href);
@@ -28,29 +27,21 @@
 		}); 
 	}
 	function loadFolder(folderPath, files, callback) {
-		loadFolderCount++;
 		fetch(folderPath, { method: 'GET' }).then(function(response) {				
       		if (response.status === 200) {
 				response.arrayBuffer().then(function(buffer) {
 					let text = new TextDecoder().decode(buffer);
 					let json = JSON.parse(text); // files:[], subFolders:[]
-					for(var i=0; i < json.subFolders.length; i++) {
-						loadFolder(folderPath + '/' + json.subFolders[i], files, callback);
-					}
 					//sort??
-					var fileLoadedCount=0;
 					if (json.files.length == 0) {
-						loadFolderCount--;
-						if (loadFolderCount == 0) {
-							callback(files)
-						}
+						callback(files)
 					} else {
 						json.files.forEach((filename, idx) => {
 							let audioFilename = folderPath + '/' + filename;
 							fetch(audioFilename, { method: 'GET' }).then(function(audioFileResponse) {				
       							if (audioFileResponse.status === 200) {
 									audioFileResponse.arrayBuffer().then(function(audioBuffer) {
-									  	console.log("loaded file - " + audioFilename);
+									  	//console.log("loaded file - " + audioFilename);
 										let blob = new Blob([audioBuffer]);
 					  					mutag.fetch(blob).then((tags) => {
     										//console.log(tags);
@@ -65,49 +56,38 @@
     										let tyer = tags.TYER != null ? "(" + tags.TYER + ")" : " ";
 											let artist = talb + tpe1 + tpe2 + tyer;
     										let audioTags = {
+    											file: blob,
     											url: audioFilename,
     											cover: null,
     											title: title,
     											artist: artist,
 											};
+    										files.push(audioTags);
 											if (tags.APIC != null) {
 												let reader = new FileReader();
 												reader.readAsDataURL(tags.APIC); 
 												reader.onloadend = function() {
   													audioTags.cover = reader.result;
-	    											files.push(audioTags);
-	    											fileLoadedCount++;
-													if (fileLoadedCount == json.files.length) {
-														loadFolderCount--;
-													}
-													if (loadFolderCount == 0) {
+													if (files.length == json.files.length) {
 														callback(files)
 													}
 												}
 											} else {
-    											files.push(audioTags);
-    											fileLoadedCount++;
-												if (fileLoadedCount == json.files.length) {
-													loadFolderCount--;
-												}
-												if (loadFolderCount == 0) {
+												if (files.length == json.files.length) {
 													callback(files)
 												}
     										}
 							      		}).catch(err => {
 							      			console.log('Unexpected error: ' + err);
 							      			let audioTags = {
+	    											file: blob,
     												url: audioFilename,
     												cover: null,
     												title: '',
     												artist: '',
 											};
 											files.push(audioTags);
-							      			fileLoadedCount++;
-											if (fileLoadedCount == json.files.length) {
-												loadFolderCount--;
-											}
-											if (loadFolderCount == 0) {
+											if (files.length == json.files.length) {
 												callback(files)
 											}
   										});
