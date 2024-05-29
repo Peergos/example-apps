@@ -32,8 +32,7 @@
 		let url = new URL(href);
 		let folderPath = url.searchParams.get("path");
 		loadFolder(folderPath, gallery) 
-		gallery.show();
-		displayInitialTitle();
+
 	}
 	function displayInitialTitle() {
 		try {
@@ -71,9 +70,10 @@
 					//sort??
 					json.files.forEach((filename, idx) => {
 						gallery.append(folderPath + '/' + filename, filename);
-					});
-					json.subFolders.forEach((folder, idx) => {
-						loadFolder(folderPath + '/' + folder, gallery);
+						if (idx ==0) {
+							gallery.show();
+							displayInitialTitle();
+						}
 					});
     			});
       		} else {
