@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en-us">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <title>Audio Recorder</title>
+        <style>
+        	.action-button {
+				padding: 0px;    
+				border-color: lightgrey;
+			}
+        </style>
+    </head>
+    <body>
+  <button id="record" class="action-button"><img id="record-icon" src=""></img></button>
+
+
+  <button id="pause" style="display: none;"><img id="pause-icon" src=""></img></button>
+
+  <select id="mic-select" style="font-size: xx-large;">
+    <option value="" hidden>Select mic</option>
+  </select>
+  <p id="progress">00:00</p>
+
+  <div id="mic" style="border: 1px solid #ddd; border-radius: 4px; margin-top: 1rem"></div>
+
+  <div id="recordings" style="margin: 1rem 0"></div>
+
+  <style>
+    button {
+      min-width: 5rem;
+      margin: 1rem 1rem 1rem 0;
+    }
+  </style>
+    <script type="module">
+        
+import WaveSurfer from './wavesurfer.esm.js'
+import RecordPlugin from './record.esm.js'
+
+let wavesurfer, record
+
+let recordImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABmJLR0QA/wD/AP+gvaeTAAAC5UlEQVR4nO2aPWsUQRjHfwa8C4QUgqfYiBgLsY0pxPQHGlN4pFFOLPwAgo3f4PIVRDsRNK29QiTGgIlY5kwuYix8KT0biZ7F7JLz2dF9mZmd2zg/eCBPdvaZ//Pc7rzcHAQCgUB51IE2sARsAf3ItqL/taM2B5IF4D0wSLEdoOVHohvGgEXSE5e2GN1beYokH1vHg16rLFA8+dgq+zrUgG3MC7BDRQfGNubJx3bdlUiXg8y8xVhXLMYqjR72noB3JWu3Qh97Bei7EnnIVWCUcJs40XogFhomhAL4FuCbUADfAnwTCuBbgG9CAXwL8I1JAZrAbmRNO3Iq1T+77K/VP2iu29oHxJa3/0yYrK+lKBnL9V4grf9MhDHAtwDfhAIY3Ptd+BMp1034JvxJ4f8oGtikAF+Ef1z4nwxiSz4L/5jwZYEyY1KAr8I/IfwNg9iS9ZS+PhYNbFIAOfdeFP5Tg9gSGWtW+JsW+8rMHf5cqLwQ1+uoQw3TBVAPdcgyzIpoc9tqZhk5J0TsAadEmxZmyf8CroqYp6O+htudtZlYHt4KIQ81bToUL4DucPSRaPPGWjYFuCXE/ASmRZsxihWhQ3KMmon6GG53025K+aihTm2GBW0DRzVtW2QbE3okH3uAhub+TeCwtWwKMkcyiWX0J7p11EHnE6DL/k9kusBj4BrJAS++b1nTzyWLeRjxAH0RGhZiN9Anf89CbGuMA6/QP87nDeLOoH9tVqM+R4ojKGG6qWwJmMoR6yTqE5YD3gB4jZ0nywmTwHP0g9seagFzF7WSO4PaQE1Ef89G11ZIzvOxPSO5ERo5xtGPCaZ2nxF87P/FHMkpsoh1gcsla7dGDbgBrJE/8bXoXt20aA2XP5CQTKHe82nUzHBBXH+J2vauozZWvTJElVkAyUD4XrSE7wR9C/BNKICDmPGZXdooL0lr7+0MMC9Zki9qhc8A/8Z//wq4oIn6pFx8+pV4BQKBQCAQCFSD38C+8iC5oJhlAAAAAElFTkSuQmCC"
+let pauseImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABmJLR0QA/wD/AP+gvaeTAAACkklEQVR4nO2av04UURTGf+iaGBvXQjAQQi00QkWinYUF8c87GDUx/iEUJlJYW2hh6SP4BL6AQDABfQVipIWYnWgiWSxmiMvA7j1H7jl3XO4v+ULBnXu/7+zszM6dA5lMJpPJZE4rI07rTAHXgTlgFpgALgLt6v+7lbaBzUqrwJaTPxPGgEVgDegC+0p1q2MXgVFn7yfiMvAaKNCH7qdfwHtg3DGHmhawTNzgdRXVGi2nTGJmgM/YBa/rK3DNJZmAu9h+6oPOhjsO+QbyAPiNf/gD7QFPzFP24ZHAoJeeGmc9wgJl9VMH7z0T7pkm7mGGNN/5kDrAtGFuoLz9eF7ttdoAzpmlp7wHpw4Z0rJV+Cs089Sv6yeKX4xnFAV4AVxQjE/FeWAp9qRjyD/9ecF88xGPO04FkR+gloQL7yvmjHVcPz1XzBlkXbGwFOsCrCrmHMgUuud5KdYF6AKTockkF8Eb+O0cxWSEchdqIJICzJ7cSzKC3oe9AHOhAZICTEQwkoqgd0kB2uEhjSXofdgLcCk0QFIAzS2qaQS9SwqwG8FIKnZCA4a9AEHvkgJsRzCSiqB3SQE2IxhJxUZogKQAXyIYSUUU70P9MCRlTbGwFOsCfJJMJt0S+6Aw2BSiev7ftsQ6lK/po/JWuHgT9CZ2eNCdBSml2hY/qyhAUf29qTgmBa+Aj1aTt9BtkHrL/NUYlC8gO4mDHqcOcNUw9yEWSNsYUdceZaeKKw8jGI+lZF0i90nfIvPYPGWAW8AP0nznbzvkEzGN791hHccLnhSvRsmXNLBRsheLVtkCeEfDW2XrjFK+ol7h35ulV4BnGDzYHOD10nOSo+3ybf7u2+9QbmB+53C7/Dcnf5lMJpPJZE4hfwArbtT0IVpG2wAAAABJRU5ErkJggg=="
+let playImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABmJLR0QA/wD/AP+gvaeTAAAC+ElEQVR4nO2au2tUQRSHP0PS2JgUxhfrClrEpDHa6R+gEHxUKgo2ooL4WOySytJCBbHS0tJe8YGVJhIxwcZHq2LEyii7JJCwsZi7sHv3ced15mbd+eBXLTvn/ObO496ZA5FIJBKJRHqVDYHiFIFDwH5gHNgBbAIGk98XEy0A84lmgK+B8hNhC1AC3gJVYM1Q1eS/JWA4cO5ObAZuARXMTbfTMvAA2B7QhzH9wBR+jadVSWL0B/KkzRjwDjnjaX0A9gVxpsFxZJ96p9FwLIC/jlwAVghvvqZV4Iq4yzZc0kgwlK4Ke21iAtX7eRuvHwknRB3XMUY+cz5LZWBU0Degtp+Qq72p5oABMfeoPThvk1makjK/Fbuh/wQoALuA+8jvGhXUa7h37lomtDPVzgjwzIPRTrrt17rqUduFrx0ngW+WbeqMAq8fUDcckunERuAmsOTQfjtdd/TcwKxDIjoUgEcOMVppxt5uI0XsvudNOqDGEeCLQ6x6VVEd68xZx0RMGUAN3z+OcdeA01nB+jQSGjd14MgKcA+1WzxEPUlbvOT+irAjIM1B4L1l7Jce4jvPSR/0AeeAX4axP/kI/tMwqEQH1BgCXhjEXvARdNkgoHQHgHql1o29lNWYziIoYSIUmbnrdMCih0R8MYTaGXTxkvtn8p8CtovgRx/B/+ttUGcKzNtk7YFtqNug18AByzbmfCRyhrAjwOer8CmL+E0U6fGPIVC3tJIdsBt47BCjld7Y222m5JBIJyQPRLxelnTbkVgZdU3vlTuWyRRT7YwAzwVM18v7oSjYH4s/Rb2/76HLj8WhOy5GJqXMg7oaczkglZb41RioC8hyzkZbqQzsFfTdwAT5FkaktYqqVAnKRQ+J+1JuVSLnyb9E5rK4ywwOA3/JZ84fDeBPi1HC7g6zBFzwdAlVKDnJOiyUrEeiVLaCui1a16WyaYZRBxvT2BdLTwPXEPiwqRGqXL5Ac7n8IOqUF+A36gT3B43l8t8D5ReJRCKRSKQH+QcUum7rlCf1FwAAAABJRU5ErkJggg=="
+let saveImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAWlBMVEUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD///+L93hDAAAAHHRSTlMABw8RITI3PD1dc3t9f4CIiYqLxcbm5+jt7/D079IXXwAAAAFiS0dEHesDcZEAAADTSURBVFjD7dbbDoIwEATQVhEEr6BchPn/7/QBTYSw26G+kZ1HmpyWZGHqnMXyE1810NI/i50KVAimyzWgAZGLAoDKTQfmUDYuZQCQnAYAuK4CpmuHTj1DGAgIBKALDKAKFKAJHODSXpoHEvgIeTwwvsVrHw+4dABQ/AG4M4DHmlE+zoAEQE8BS6dZONH0ofBZ1zQg/FjuNODLemH/0tMAEwO2D6gd2VQ+dpS/KYNAqwNtEAi1IwUw7WWAAVsG1iTuqit0JXvZFrvSiZ0o7j/tSovlDbZFgA7hdSDLAAAAAElFTkSuQmCC"
+let stopImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABABAMAAABYR2ztAAAAElBMVEUAAAAAAAAAAAAAAAAAAAD////glT+wAAAABHRSTlMAR+Ljkw3fcwAAAAFiS0dEBfhv6ccAAAA1SURBVEjHY2AYBXAg7IIVGMIVmGBX4ARX4IIDjCoYVTCqYFTBqILBo4BgYS6EXYHiaEWJAAC2nTFT3d2l2wAAAABJRU5ErkJggg=="
+
+const createWaveSurfer = () => {    	
+    	
+  // Create an instance of WaveSurfer
+  if (wavesurfer) {
+    wavesurfer.destroy()
+  }
+  wavesurfer = WaveSurfer.create({
+    container: '#mic',
+    waveColor: 'rgb(200, 0, 200)',
+    progressColor: 'rgb(100, 0, 100)',
+  })
+
+  // Initialize the Record plugin
+  let scrollingWaveform = false
+  record = wavesurfer.registerPlugin(RecordPlugin.create({ scrollingWaveform, renderRecordedAudio: false }))
+  // Render recorded audio
+  record.on('record-end', (blob) => {
+  	let micElement = document.getElementById("mic");
+  	micElement.style.display = 'none';
+
+    const recordedUrl = URL.createObjectURL(blob)
+    const container = document.querySelector('#recordings')
+
+    // Create wavesurfer from the recorded audio
+    const wavesurfer = WaveSurfer.create({
+      container,
+      waveColor: 'rgb(200, 100, 0)',
+      progressColor: 'rgb(100, 50, 0)',
+      url: recordedUrl,
+    })
+
+    // Play button
+    const button = document.createElement('button')
+    button.onclick = () => wavesurfer.playPause()
+    
+    const buttonIcon = document.createElement('img')
+	buttonIcon.src = playImage
+    button.appendChild(buttonIcon)
+    container.appendChild(button)
+    wavesurfer.on('pause', () => (buttonIcon.src = playImage))
+    wavesurfer.on('play', () => (buttonIcon.src = pauseImage))
+
+    // Download link
+    const saveButton = document.createElement('button')
+    
+    const saveButtonIcon = document.createElement('img')
+	saveButtonIcon.src = saveImage
+    saveButton.appendChild(saveButtonIcon)
+    container.appendChild(saveButton)
+    
+    const label = document.createElement("i");//label
+    label.style.margin = '0'
+    label.style.fontSize = 'large'
+    label.innerText = 'Saving...'
+    label.style="display:none;";
+    container.appendChild(label);
+    saveButton.onclick = () => {
+	    label.style="inline"
+    	console.log("saving recording")
+    	blob.arrayBuffer().then(buffer => {
+	    	let headers = {};
+	    	let contents = new Uint8Array(buffer);
+	    	let timestamp = new Date().toISOString().replace(/:/g, ".");
+			let filePath = '/peergos-api/v0/data/' + "recording-" + timestamp + ".webm";
+  			fetch(filePath, { method: 'PUT', headers: headers, body: contents })
+    			.then(function(response) {
+      				console.log('save response status:' + response.status);
+      				if(response.status == 201 || response.status == 200) {
+						statusElement.style.display = "none";
+						label.style="display:none;"
+      				} else {
+						label.innerText = 'Error saving file!';
+	      				console.log('something went wrong!');
+      				}
+    			});      	
+    	})
+    }
+  })
+  pauseButton.style.display = 'none'
+  recIcon.src = recordImage
+
+  record.on('record-progress', (time) => {
+    updateProgress(time)
+  })
+}
+
+const progress = document.querySelector('#progress')
+const updateProgress = (time) => {
+  // time will be in milliseconds, convert it to mm:ss format
+  const formattedTime = [
+    Math.floor((time % 3600000) / 60000), // minutes
+    Math.floor((time % 60000) / 1000), // seconds
+  ]
+    .map((v) => (v < 10 ? '0' + v : v))
+    .join(':')
+  progress.textContent = formattedTime
+}
+
+const pauseButton = document.querySelector('#pause')
+let pauseIcon = document.getElementById('pause-icon')
+pauseIcon.src = pauseImage
+
+pauseButton.onclick = () => {
+  if (record.isPaused()) {
+    record.resumeRecording()
+    return
+  }
+
+  record.pauseRecording()
+}
+
+const micSelect = document.querySelector('#mic-select')
+{
+  // Mic selection
+  RecordPlugin.getAvailableAudioDevices().then((devices) => {
+    devices.forEach((device, idx) => {
+      const option = document.createElement('option')
+      option.value = device.deviceId
+      option.text = device.label || device.deviceId
+      if (idx == 0) {
+      	option.selected = true
+      }
+      micSelect.appendChild(option)
+    })
+  })
+}
+// Record button
+const recButton = document.querySelector('#record')
+let recIcon = document.getElementById('record-icon')
+recIcon.src = recordImage
+
+
+recButton.onclick = () => {
+  if (record.isRecording() || record.isPaused()) {
+    record.stopRecording()
+    recIcon.src = recordImage
+    pauseButton.style.display = 'none'
+    return
+  }
+
+  const deviceId = micSelect.value
+  if (deviceId == "") {
+  	return;
+  }
+  let micElement = document.getElementById("mic");
+  micElement.style.display = 'inline';
+  let containerElement = document.querySelector('#recordings')
+  while (containerElement.hasChildNodes()) {
+  	containerElement.removeChild(containerElement.firstChild);
+  }
+  recButton.disabled = true
+  record.startRecording({ deviceId }).then(() => {
+    recIcon.src = stopImage
+    recButton.disabled = false
+    pauseButton.style.display = 'inline'
+  })
+}
+
+createWaveSurfer()
+</script>
+    </body>
+</html>

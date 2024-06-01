@@ -1,0 +1,12 @@
+{
+    "displayName": "ebook reader",
+    "description": "Read ebooks https://github.com/futurepress/epubjs-reader/",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": true,
+	"folderAction": false,    
+	"appIcon": "icon.png",			
+    "fileExtensions": ["epub"],
+    "permissions": []	
+}
+

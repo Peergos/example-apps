@@ -139,6 +139,16 @@ Example of how to use the chat-api for App communication (eg multi-player games)
 
 ![Chat-api](./screenshots/chat-api.png)  
 
+## audio-recorder
+#### https://wavesurfer.xyz
+audio recording app - incomplete and non-functional
+
+## ebook-reader
+#### https://github.com/futurepress/epubjs-reader/
+Read epub files
+
+![ebook-reader](./screenshots/ebook-reader.png)  
+
 ## text-editor
 very simple text-editor using a html textarea
 

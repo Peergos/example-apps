@@ -1,0 +1,11 @@
+{
+    "displayName": "Audio Recorder",
+    "description": "Record audio notes https://wavesurfer.xyz",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": true,
+	"folderAction": false,    
+	"appIcon": "icon.png",			
+    "permissions": ["STORE_APP_DATA"]	
+}
+
