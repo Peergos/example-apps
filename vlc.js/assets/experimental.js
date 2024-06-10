@@ -668,7 +668,6 @@ var initModule = (() => {
                 5379550: $0 => {
                     const thread_id = $0;
                     let w = Module.PThread.pthreads[thread_id];
-
                     function handleFileRequest(e) {
                         const msg = e.data;
                         if (msg.type === "requestFile") {

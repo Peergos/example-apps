@@ -22,7 +22,7 @@
 		}
 
 		.flex-grow-container > div {
-  			margin: 5px;
+  			margin-right: 5px;
   			text-align: center;
   			font-size: 20px;
 		}
@@ -89,6 +89,57 @@
         	from {transform: rotate(0deg);}
         	to {transform: rotate(360deg);}
       	}
+      	
+.progress {
+  height: 10px;
+  margin-top: 6px;
+  overflow: hidden;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  -webkit-box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+.progress-bar {
+  float: left;
+  width: 0%;
+  height: 100%;
+  font-size: 12px;
+  line-height: 20px;
+  color: #fff;
+  text-align: center;
+  background-color: #337ab7;
+  -webkit-box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+  -webkit-transition: width 0.6s ease;
+  -o-transition: width 0.6s ease;
+  transition: width 0.6s ease;
+}
+.progress-striped .progress-bar,
+
+.progress.active .progress-bar,
+.progress-bar.active {
+  -webkit-animation: progress-bar-stripes 2s linear infinite;
+  -o-animation: progress-bar-stripes 2s linear infinite;
+  animation: progress-bar-stripes 2s linear infinite;
+}
+.progress-bar-done {
+  background-color: black;
+}
+.progress-striped .progress-bar-done {
+  background-image: -webkit-linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+  background-image: -o-linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+  background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+}
+
+.progress-bar-buffered {
+  background-color: darkgrey;
+}
+.progress-striped .progress-bar-buffered {
+  background-image: -webkit-linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+  background-image: -o-linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+  background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+}
+
         </style>
         <script src="brotli.js"></script>
     </head>
@@ -103,18 +154,25 @@
   					    	<figure id="spinner">
   					    		<div class="spinner"></div>
   					    		<center>
-  					    			<strong id= "message" style="color:white">Initialising...</strong>
+  					    		    <strong id= "message" style="color:white">Initialising...</strong>
   					    		</center>
   					    	</figure>
   						</div>
   					</div>
 				</div>
     			<div class="flex-stack-container">
-  					<div><button id="play" class="action-button"><img id="play-btn" src=""></img></button></div>
-  					<div><button id="sound" class="action-button"><img id="volume-btn" src=""></img></button></div>
+  					<div><button id="play" class="action-button" disabled="true"><img id="play-btn" src=""></img></button></div>
+  					<div><button id="sound" class="action-button" disabled="true"><img id="volume-btn" src=""></img></button></div>
   					<div class="flex-grow-container" style="width:100%">
   						<div style="flex-grow: 1"><meter id="volume" max="100" style="width: 100%" value="80"></meter></div>
-  						<div style="flex-grow: 20"><meter id="seekbar" max="100" style="width: 100%" value="0"></meter></div>
+  						<div style="flex-grow: 8">
+  							<div id="progressbar" class="progress">
+    							<div id="progress" class="progress-bar progress-bar-done" role="progressbar" >
+    							</div>
+    							<div id="buffered" class="progress-bar progress-bar-buffered" role="progressbar">
+    							</div>
+  							</div>
+  						</div>
 					</div>
 				</div>
 			</div>
@@ -144,17 +202,15 @@
                 height: "" 
             },
         };
-            	
+            
         let play = document.getElementById('play');
-    	play.disabled = true;
     	let sound = document.getElementById('sound');
-    	sound.disabled = true;
-
+  	
         let playIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAB40lEQVRYhe3WO2tUQRQH8N8aYVFEROx3NaUgfoPAkhSWAUEx+Ri+sPMbaKHpBRNsxK0kheIDBIsFH71uDBaCDzZIqjws9m4yd/Ymd3aTtUn+MHDvnDP/c+6d/8w5HOKgozKg/ziuYAIXcCqb/4PPeIUn+LJP+W2hjgWsY7NkrGMetf0KPouVhMDxWMFMGflYif0mHqAazS/hNRbxHj9wAicDnyqmsYp3ZYkUYRYb8l/VQkOxdsaygK1ozYaEPxGjpv+3P8KxhLVV3I/W/tUVcDIWIoKHge0tPmGqhGMu4phPDT4ur/aWvAZC0qc4uwNPVX471nbxzeFOFKQR2WO1r+IujhdwTUa+t1MSWAwWtPULbqdjt4TLkW8F3wKf5ykJfA8WPCuwl53/Fzgf+DcD23JMdqQgwOnguZ2ScYQGPuBS9v41sJ1JSeC/oiiB38FzfQjOl7hoe79D5f9MIQhFuIyjkX3kIoyP4XRJArsdw6nI91ZKAueM7iKqpyRA/1U8F9je4KMRXsV0i1EnIthLMeoYokGZUVyOJxWX40pmKyrH1wYN3sONgiQ2dZXdxL1sNOXVHga/PmzwHoZtyTr28OUxaroiSmlK1/BY4p4P2pbXcdV2W96rG7/k2/L2gLyHOMD4B4x39qgIZXyeAAAAAElFTkSuQmCC";
 		let pauseIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAABzklEQVRYhe3WMWsUQRQH8N8Z4RAkiFoqd5pWBPEDCOFaCyvF5GOoiJ9CixBrQaNlKkmXNILFoaC1iXYWp1wQqySX4jZmdjLHzt7GKvnDwLs3+/7vP7vv5j1OcdLRqvn8HO7jDm7iQuH/jS9Yxzt8OyZ9/9DFCnYxqli7eIPOcSVfxHZG4nhtY6GKfKZi/wmW0I7837GBNXzET5zHbPBMG/fwFx+qhKSwiD3lU/UxL107M0XCfhSzJ+NNxOg4+tpf4VxGbBsvotg/xgWcjbcRwVKd4ALLEcfr3MA55WrvO6yBQeAfBDEpf1v5c+zgWo6AZ5Hy+WAvrvQqfy/yP80RsBYEbCkXXF0BLfwI/O/jZGcSAm4E9ueIsC5G+DSBe6KAS4G92SB5iuNyjoAmJ67CEe6UgF+BnVW1FQg5BvFmSsDXwL6Nsw2St3BrAvdEARuBfQV3Gwjo4Wrwez0n6Lr/dxF1c5WvKP+vl3MDA7yMOLKvYsbNaBgRNGlGQ1MMKAvS7bgn3Y5bxV6qHT+sm/wAjxMiRsbX6yqeF2tV+coNkz+aNvkBph3JhhqcPEbHeNDMGUp3jAsu65vXHcu7eOBwLL9Y+AfKY/lWTd5TnGDsA8B02fDQJQS6AAAAAElFTkSuQmCC";
 		let volumeIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAABp0lEQVRYhe2WO0sDQRzEf4qFWCipDZpGBYkETONX8NEpaiy1shFRELTV0s5HoVUCFhY2GhEFQfE7WIuVRQQtfOAjsbg5bj1yh0k2CUIGjmVm75i53f3vLjTQgH00Ae31DLABfAEZIFYtkzFgJKBvBngHCsAzkLJtPg/kgbeQd6LAkULkgUXb5gU9fkwBCYOvGu9O2Db3B0jg/fE+0CZ9CW86ojbN/QFagE3gQ33XQCtOVZxLy9g0LzYFAEngQf270rqBT5zqCB2FmwCjoMfFHHAA9IkP4ozENzAg7UTfrIQFKMXcDHAs/gj0StuRti0+LX5ajQAR4EzaobQh8VvxuPh9NQKAM7cFICfeIf7i46/mR81haWoBWwEiOLUPcKm2X+2d2i617ggVRaWLMAf0SHMX4ZZ4SjwbFqDcMpzFKUPXPIlXhnFpWf5QhsVgYyOK4W1EnaUGCAthwr8VX+FtxRfS0uWYh4UwYR5Ge3iH0TIWDqOgEH5M8vs4XjNCjVdq7g9RyoVkwZa5i1FgOKDPvJI94ZwBNcU6zmpP420+NUXdr+UN/C/8AF5F1jgZOO54AAAAAElFTkSuQmCC";
 		let muteIcon = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAAhklEQVRYhe2Wuw2AMAwFj88ojMMYUDARA8EWdCxBxadJhRIRC+IU+CS3750by2AYf6dKkNkCDbAkyH5kAA5gy1HeAztwuslarirgK1cTCJUnEZgCRaGJohAISLeKyi6FoZ9jAiYgEZiTWbygQ/EQSSVU8Umoc5fIgvghqT8WGIHVSRiGEcUF+oU8//ZkDnUAAAAASUVORK5CYII=";
-    
+
     	let playBtn = document.getElementById('play-btn');
     	playBtn.src = playIcon;
 
@@ -162,7 +218,11 @@
     	volumeBtn.src = muteIcon;
     	
     	let spinner = document.getElementById('spinner');
-    
+
+    var media_player;
+	var seekPercentage = 0;
+	var bufferedPercentage = 0;
+
 async function VLCPlayer(video) {
     let canvas = document.getElementById("canvas");
     if (canvas === null) {
@@ -174,7 +234,6 @@ async function VLCPlayer(video) {
         vlc_access_file: {},
     });
 
-    let media_player;
 
     let vlc_opts_array = video.options.split(' ');
 
@@ -214,15 +273,63 @@ async function VLCPlayer(video) {
     window.update_overlay = function() { 
         let media_player = window.media_player;
         let position = media_player.get_position() * 100;
-        let seekbar = document.getElementById('seekbar');
-        seekbar.value = position;
+        seekPercentage = position;
+        updateSeekBar();
     };
 
     initializeVLCControls(video);
 }
+function updateSeekBar() {
+	let seek = seekPercentage;
+	let buffered = bufferedPercentage - seekPercentage;
+	let progressElement = document.getElementById('progress');
+	progressElement.style="width:" + seek + "%";
+	let bufferedElement = document.getElementById('buffered');
+	bufferedElement.style="width:" + buffered + "%";
+}
+function stream(video, vlcFile, videoFileSize, offset) {
+    bufferedPercentage = Math.min(100, (offset / videoFileSize) * 100.0);
+    if (offset < videoFileSize) {
+        let startRange = offset;
+        let endRange = Math.min(videoFileSize, offset + (5 * 1024 * 1024) -1);
+		fetch(video.source, {headers: {'range': 'bytes=' + startRange + '-' + endRange}}).then(response => {
+           	response.arrayBuffer().then(buffer => {
+           		let bytes = new Uint8Array(buffer);
+    			vlcFile.set(bytes, startRange);   
+    			updateSeekBar();
+    			stream(video, vlcFile, videoFileSize, offset + (5 * 1024 * 1024));     		
+			});
+		});       
+    } else {
+    	updateSeekBar();
+    }
+}
 
-function initializeVLCControls(video) { 
-    let vtime = null;
+async function initializeVLCControls(video) { 
+    var vtime = null;
+			
+			//"Range: bytes=0-1023" - first 1024 bytes
+			let headResponse = await fetch(video.source, { method: 'HEAD' });
+			let videoFileSize = Number(headResponse.headers.get('Content-Length'));
+			var endRange = Math.min(videoFileSize, 5 * 1024 * 1024) -1;
+            let startOfFileResponse = await fetch(video.source, {headers: {'range': 'bytes=0-' + endRange}});
+            let startBytes = await startOfFileResponse.arrayBuffer().then(buffer => new Uint8Array(buffer));
+            
+            var startRange = Math.max(0, videoFileSize - (5 * 1024 * 1024));
+            endRange = videoFileSize -1;
+            let endOfFileRequest = await fetch(video.source, {headers: {'range': 'bytes=' + startRange + '-' + endRange}});
+            let endBytes = await endOfFileRequest.arrayBuffer().then(buffer => new Uint8Array(buffer));
+
+			const sharedBuffer = new SharedArrayBuffer(videoFileSize);
+			let vlcFile = new Uint8Array(sharedBuffer);
+			vlcFile.set(startBytes, 0);
+			vlcFile.set(endBytes, startRange);
+
+            window.Module['vlc_access_file'][1] = sharedBuffer;
+			spinner.style.display = 'none';
+
+    	    stream(video, vlcFile, videoFileSize, 5 * 1014 * 1024);
+
 
     document.getElementById('play')?.addEventListener("click", async function() {
     	if (play.disabled) {
@@ -230,14 +337,6 @@ function initializeVLCControls(video) {
     	}
     	play.disabled = true;
         if (!state.ready) {
-			spinner.style.display = "";
-            let r = await fetch(video.source);
-            let blob = await r.arrayBuffer()
-            let file = new File([blob], "Video", { type: "video/mkv" });
-
-            window.Module['vlc_access_file'][1] = file;
-			spinner.style.display = 'none';
-
             media_player.play();
             document.getElementById("canvas").style.width = video.size.width;
             document.getElementById("canvas").style.height = video.size.height;
@@ -261,15 +360,27 @@ function initializeVLCControls(video) {
     	play.disabled = false;        
     });
 
-    let seekbar = document.getElementById('seekbar');
-    seekbar?.addEventListener("click", function(e) {
-        let position = (e.offsetX / seekbar.clientWidth);
+    let seekProgressBar = document.getElementById('progress');
+    seekProgressBar?.addEventListener("click", function(e) {
+        var position = (e.offsetX / seekProgressBar.clientWidth);
+        seekPercentage = position * seekPercentage;
+        position = seekPercentage / 100;
         vtime = position;
-        seekbar.value = position * 100;
         media_player.set_position(position);
+        updateSeekBar();
     });
     
-    let volume = document.getElementById('volume');
+    let seekBufferedBar = document.getElementById('buffered');
+    seekBufferedBar?.addEventListener("click", function(e) {
+        var position = (e.offsetX / seekBufferedBar.clientWidth);
+        seekPercentage = seekPercentage + (position * (bufferedPercentage - seekPercentage) );
+        position = seekPercentage / 100;
+        vtime = position;
+        media_player.set_position(position);
+        updateSeekBar();
+    });
+
+
     document.getElementById('sound')?.addEventListener("click",function() {
         if (sound.disabled) {
     		return;
@@ -296,12 +407,14 @@ function initializeVLCControls(video) {
         state.previousVolume = position;
         media_player.set_volume(position);
     });
+    
     let message = document.getElementById('message');
     message.innerText = "Loading...";
 	spinner.style.display = "none";
 
     play.disabled = false;
     sound.disabled = false;
+
 }
         window.onload = async function () {
         	if (!window.crossOriginIsolated) {

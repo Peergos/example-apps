@@ -720,13 +720,16 @@ var initModule = (() => {
                     const offset = $0;
                     const buffer = $1;
                     const size = $2;
-                    const blob = Module.vlcAccess[$3].worker_js_file.slice(offset, offset + size);
-                    HEAPU8.set(new Uint8Array(Module.vlcAccess[$3].reader.readAsArrayBuffer(blob)), buffer)
+                    //console.log('KEV READING offset=' + offset + " buffer=" + buffer + " size=" + size);
+                    //const blob = Module.vlcAccess[$3].worker_js_file.slice(offset, offset + size);
+                    //HEAPU8.set(new Uint8Array(Module.vlcAccess[$3].reader.readAsArrayBuffer(blob)), buffer)
+                    const uint8Array = Module.vlcAccess[$3].worker_js_file.slice(offset, offset + size);
+                    HEAPU8.set(uint8Array, buffer)
                 },
                 5380660: ($0, $1) => {
                     try {
                         var v = new BigUint64Array(wasmMemory.buffer, $0, 1);
-                        v[0] = BigInt(Module.vlcAccess[$1].worker_js_file.size);
+                        v[0] = BigInt(Module.vlcAccess[$1].worker_js_file.byteLength);
                         return 0
                     } catch (error) {
                         console.error("get_js_file_size error: " + error);
@@ -871,8 +874,8 @@ var initModule = (() => {
                             const msg = e["data"];
                             if (msg.type === "FileResult") {
                                 self.removeEventListener("message", handleFileResult);
-                                if (msg.file !== undefined) {
-                                    Module.vlcAccess[p_access].worker_js_file = msg.file;
+                                if (msg.file !== undefined) { //kev
+                                    Module.vlcAccess[p_access].worker_js_file = new Uint8Array(msg.file);
                                     Module.vlcAccess[p_access].reader = new FileReaderSync;
                                     resolve()
                                 } else {

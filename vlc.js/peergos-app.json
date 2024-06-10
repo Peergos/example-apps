@@ -1,7 +1,7 @@
 {
     	"displayName": "VLC js",
     	"description": "VLC ported to WASM/Javascript: https://github.com/Krowemoh/vlc.js",
-    	"version": "0.5.0",
+    	"version": "0.6.0",
     	"author": "peergos",
     	"launchable": true,
     	"folderAction": false,  	

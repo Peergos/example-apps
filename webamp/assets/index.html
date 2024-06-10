@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+</head>
+
+<body>
+    <div id="app" style="height: 100vh">
+        <!-- Webamp will attempt to center itself within this div -->
+    </div>
+	<script src="webamp.bundle.min.js"></script>
+    <script>
+    	let href = window.frames.frameElement.contentWindow.location.href
+		let url = new URL(href);
+		let folderPath = url.searchParams.get("path");
+        const Webamp = window.Webamp;
+        	const webamp = new Webamp({
+            	initialTracks: [],
+            	windowLayout: {
+          			main: {
+            			position: { top: 0, left: 0 },
+            			shadeMode: true,
+            			closed: false,
+          			},
+          			equalizer: {
+            			position: { top: 230, left: 0 },
+            			shadeMode: true,
+            			closed: false,
+          			},
+          			playlist: {
+            			position: { top: 28, left: 0 },
+            			shadeMode: false,
+            			size: { extraHeight: 3, extraWidth: 11 },
+            			closed: false,
+          			},
+        		},
+        		enableDoubleSizeMode: true,
+        	});
+        	// Returns a promise indicating when it's done loading.
+	        webamp.renderWhenReady(document.getElementById('app'));
+
+		loadFolder(folderPath, webamp);
+        
+    function loadFolder(folderPath, webamp) {
+    	let that = this;
+		fetch(folderPath, { method: 'GET' }).then(function(response) {				
+      		if (response.status === 200) {
+				response.arrayBuffer().then(function(buffer) {
+					let text = new TextDecoder().decode(buffer);
+					let json = JSON.parse(text);
+        			let files = [];
+					if (json.files.length == 0) {
+						webamp.appendTracks([{url: 'llama-2.91.mp3'}]);	
+						webamp.nextTrack();
+					} else {
+						recursiveLoad(folderPath, json.files, () => {
+						    webamp.nextTrack();
+    						that.addMediaHandlers(webamp);
+						}, 0);
+					}
+    			});
+      		} else {
+      			console.log('error reading folder:' + folderPath);
+      		}
+      	}).catch(err => {
+      		console.log('error reading folder:' + folderPath + " error:" + err);
+		});	
+	}	
+	function recursiveLoad(folderPath, files, intialLoadCallback, index) {
+		if (index < files.length) {
+			let audioFilename = folderPath + '/' + files[index];
+			fetch(audioFilename, { method: 'GET' }).then(function(audioFileResponse) {				
+      			if (audioFileResponse.status === 200) {
+					audioFileResponse.blob().then(function(blob) {
+						//console.log("loaded file - " + audioFilename);
+    					webamp.appendTracks([{blob: blob}]);	
+    					if (index == 0) {
+    						intialLoadCallback();
+    					}
+    					recursiveLoad(folderPath, files, webamp, index+1);
+      				});
+      			} else {
+      				console.log('error reading file:' + audioFilename);
+      				recursiveLoad(folderPath, files, webamp, index+1);
+      			}
+			});
+		}
+	}
+	function addMediaHandlers(webamp) {
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.setActionHandler('pause', () => {
+                    webamp.pause();
+                });
+                navigator.mediaSession.setActionHandler('play', () => {
+                    webamp.play();
+                });
+                let defaultSeekOffset = 10;
+                navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+                    webamp.seekBackward(defaultSeekOffset);
+                });
+                navigator.mediaSession.setActionHandler('seekforward', (details) => {
+                    webamp.seekForward(defaultSeekOffset);
+                });
+                navigator.mediaSession.setActionHandler('previoustrack', () => {
+                    webamp.previousTrack();
+                });
+                navigator.mediaSession.setActionHandler('nexttrack', () => {
+                    webamp.nextTrack();
+                });
+            }
+    }
+    </script>
+</body>
+
+</html>

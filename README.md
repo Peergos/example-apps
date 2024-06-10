@@ -84,6 +84,9 @@ Can import to some degree xlsx, ods spreadsheet files
 
 ![Paint](./screenshots/paintz.png)
 
+## jspaint - Classic MS Paint clone
+#### https://github.com/1j01/jspaint
+
 ## TUI Markdown WYSIWYG Markdown Editor
 #### https://github.com/nhn/tui.editor
 
@@ -93,6 +96,9 @@ Can import to some degree xlsx, ods spreadsheet files
 #### https://github.com/1Marc/todomvc-vanillajs-2022
 
 ![Todo list](./screenshots/todo.png)    
+
+## Scientific Calculator
+#### https://github.com/intel/webapps-scientific-calculator
 
 ## Winamp 2 implemented in JavaScript
 #### https://github.com/captbaritone/webamp

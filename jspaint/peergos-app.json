@@ -1,0 +1,12 @@
+{
+    "displayName": "JSPaint",
+    "description": "Classic MS Paint clone - https://github.com/1j01/jspaint",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": true,
+	"folderAction": false,    
+	"appIcon": "icon.png",			
+    "fileExtensions": ["png"],	 
+    "permissions": ["EDIT_CHOSEN_FILE"]	
+}
+

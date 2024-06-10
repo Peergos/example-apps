@@ -1,0 +1,11 @@
+{
+    "displayName": "Scientific Calculator",
+    "description": "Calculator - https://github.com/intel/webapps-scientific-calculator",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": true,
+	"folderAction": false,    
+	"appIcon": "icon.png",			
+    "permissions": ["CSP_UNSAFE_EVAL"]	
+}
+
