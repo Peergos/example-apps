@@ -1,0 +1,13 @@
+{
+    "displayName": "Tasks",
+    "description": "Organise Tasks into lists: https://github.com/example-apps/tasks",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": true,
+	"folderAction": false,  
+	"appIcon": "icon.png",  
+	"fileExtensions": ["todo"],			
+	"mimeTypes": ["application/vnd.peergos-todo"],
+    "permissions": ["EDIT_CHOSEN_FILE"]	
+}
+

@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="todo.css">
+    <style>
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1100; /* Sit on top */
+  padding-top: 100px; /* Location of the box */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+  
+}
+
+.modal-content {
+  background-color: #fefefe;
+  margin: auto;
+  padding: 13px;
+  /*border: 1px solid #888;*/
+  width: 30%;
+  min-width: 400px;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+  transition: 0.3s;
+  border-radius: 5px;
+}
+
+.modal-message-content {
+  background-color: #fefefe;
+  margin: auto;
+  padding: 13px;
+  /*border: 1px solid #888;*/
+  width: 20%;
+  min-width: 200px;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+  transition: 0.3s;
+  border-radius: 5px;
+}
+
+.modal-close {
+  color: #aaaaaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  position: relative;
+  z-index: 10;
+  line-height: 0;
+}
+
+.modal-close:hover,
+.modal-close:focus {
+  color: #000;
+  text-decoration: none;
+  cursor: pointer;
+}
+.modal-header {
+  margin-top: 20px;
+  text-align: center;
+  font-size: x-large;
+}
+.modal-textfield {
+  margin-top: 2px;
+  padding-left: 20px;
+}
+.modal-button {
+  margin-top: 10px;
+  margin-left: 10px;
+  font-size: x-large;
+}
+    </style>
+    <script src="index.min.js"></script>
+  </head>
+
+  <body>
+  <span style="position: absolute; top: 0px; right: 0.2em;">
+  	<div id="toolbar"></div>
+  </span>
+        <div id="renameModal" class="modal">
+            <div class="modal-content">
+                	<span class="modal-close">&times;</span>
+                	<div class="modal-header">
+                    	<p>Rename list</p>
+                	</div>
+                	<div class="modal-textfield">
+                    	<input id="modal-message-textfield" type="text" minlength="1" maxlength="20" placeholder="" style="font-size: x-large;">
+                    	<button id="modal-ok-button" class="modal-button">Confirm</button>
+                	</div>
+            </div>
+        </div>
+        <div id="messageModal" class="modal">
+            <div class="modal-message-content">
+                <div class="modal-header">
+                    <p id="modal-message"></p>
+                </div>
+            </div>
+        </div>        
+  <div class="header">
+    <h2 id="todoBoardTitle" style="text-align: center;">Loading...</h2>
+  </div>
+
+  <div id="board" class="board">
+  </div>
+  <script>
+  
+let href = window.location.href;
+let url = new URL(href);
+let filePath = url.searchParams.get("path");
+let isWritable = url.searchParams.get("isPathWritable") == 'true';
+let todoBoardName = extractTodoBoardName(filePath.substring(filePath.lastIndexOf('/')+1));
+var savingFile = false;   	
+var nextListId = 0;
+let todoListColours= ['#9e5fff','#00a9ff','#ff5583','#03bd9e','#bbdc00','#ffbb3b'];
+
+//mobile drag and drop from https://github.com/timruffles/mobile-drag-drop
+var addEvent = (function () {
+  if (document.addEventListener) {
+    return function (el, type, fn) {
+      if (el && el.nodeName || el === window) {
+        el.addEventListener(type, fn, false);
+      } else if (el && el.length) {
+        for (var i = 0; i < el.length; i++) {
+          addEvent(el[i], type, fn);
+        }
+      }
+    };
+  } else {
+    return function (el, type, fn) {
+      if (el && el.nodeName || el === window) {
+        el.attachEvent('on' + type, function () { return fn.call(el, window.event); });
+      } else if (el && el.length) {
+        for (var i = 0; i < el.length; i++) {
+          addEvent(el[i], type, fn);
+        }
+      }
+    };
+  }
+})();
+
+function getNextListId() {
+	nextListId = nextListId + 1;
+	return nextListId;
+}
+function buildNextList(index) {
+    if (!isWritable) {
+        return;
+    }
+    var parent = document.getElementById("board");
+    var container = document.createElement("div");
+    container.id='nextList';
+    container.style.maxWidth = "50px";
+    var buttonImg = document.createElement("img");
+    buttonImg.src = "./images/plus.png";
+    buttonImg.addEventListener('click', function(){buildNewList(index, 'New List', true);});
+    container.appendChild(buttonImg);
+    parent.appendChild(container);
+}
+
+function removeList(index) {
+	var parent = document.getElementById("board");
+	var listId = "todoListContainer" + index;
+	var listToRemove = document.getElementById(listId);
+	parent.removeChild(listToRemove);
+}
+
+function buildNewList(index, name, buildNext) {
+    var parent = document.getElementById("board");
+    var nextList = document.getElementById("nextList");
+    if (nextList != null) {
+		parent.removeChild(nextList);
+	}
+    
+    var listContainerId = "todoListContainer" + index;
+    var listNameId = "todoListName" + index;
+    var listId = "todoList" + index;
+    var itemId = "todoItem" + index;
+    var list = document.createElement("div");
+    list.classList.add("list");
+    list.id = listContainerId;
+    
+    var listInner = document.createElement("div");
+    listInner.classList.add("list-inner");
+    
+    var listAccent = document.createElement("div");
+    listAccent.classList.add("list-accent");
+    listAccent.id = "todoListAccent" + index;
+    let colour = todoListColours[index % todoListColours.length];
+    listAccent.style.backgroundColor = colour;
+    listInner.appendChild(listAccent);
+    
+    var heading = document.createElement("div");
+    
+    if (isWritable) {
+        var closeButtonImg = document.createElement("img");
+        closeButtonImg.src = "./images/trash.png";
+        closeButtonImg.addEventListener('click', function(){removeList(index);});
+        heading.appendChild(closeButtonImg);
+    }
+    
+    var span = document.createElement("span");
+    var listName = document.createElement("h3");
+    listName.classList.add("list-name");
+	var dragHandle = document.createElement("span");
+	dragHandle.innerHTML = "&#x2e2c";
+	dragHandle.id = "dragHandle" + index;
+	dragHandle.style.cursor = "pointer";
+	dragHandle.style.padding = ".3em";
+	dragHandle.style.fontSize = "1.5em";
+	listName.appendChild(dragHandle);
+
+    var nameSpan = document.createElement("span");
+    nameSpan.id = listNameId;
+    listName.appendChild(nameSpan);
+    nameSpan.innerText = name;
+    
+    if (isWritable) {
+	    nameSpan.style.cursor = "text";
+        nameSpan.addEventListener('click', function(){renameList(index);});
+    }
+
+    span.appendChild(listName);
+    heading.appendChild(span);
+    listInner.appendChild(heading);
+    var orderedList = document.createElement("ol");
+    orderedList.id = listId;
+    if (isWritable) {
+        orderedList.addEventListener('click', function(ev) {
+            if (ev.target.tagName === 'LI' &&  !ev.target.classList.contains('empty-item')) {
+                ev.target.classList.toggle('checked');
+            }
+        }, false);
+    }
+    listInner.appendChild(orderedList);
+    var formDiv = document.createElement("div");
+    formDiv.classList.add("new-entry");
+    if (isWritable) {
+        var form = document.createElement("form");
+        form.addEventListener('submit', function(e){return onFormSubmit(e, itemId, listId);});
+        var inputItem = document.createElement("input");
+        inputItem.classList.add("new-input");
+        inputItem.type="text";
+        inputItem.id = itemId;
+        inputItem.setAttribute("maxlength", "60");
+        inputItem.placeholder = "add new item";
+    	inputItem.focus();
+        form.appendChild(inputItem);
+        formDiv.appendChild(form);
+        listInner.appendChild(formDiv);
+        addDragAndDropListeners(list);
+    }
+    list.appendChild(listInner);
+    parent.appendChild(list);
+    
+    addEmptyTodoItem(listId);
+    
+    if(buildNext) {
+		buildNextList(getNextListId());
+    }
+}
+
+function onFormSubmit(e, todoItem, todoList) {
+  e.preventDefault();
+
+  var inputValue = document.getElementById(todoItem).value.trim();
+  if (inputValue === '') {
+    return;
+  }
+  let newItem = {id: uuidv4(), created: new Date().getTime(), text:inputValue, checked: false};
+  appendTodoItem(newItem, todoList);
+  document.getElementById(todoItem).value = "";
+  return false;
+}
+
+function appendTodoItem(item, todoList) {
+
+ let todoListElement = document.getElementById(todoList);
+  var listElements = todoListElement.childNodes;
+  for(var i=0; i < listElements.length; i++) {
+  		if(listElements[i].classList.contains("empty-item")){
+  			todoListElement.removeChild(listElements[i]);
+  			break;
+  		}
+  }
+  var li = document.createElement("li");
+  var t = document.createTextNode(item.text);
+  li.appendChild(t);
+
+  li.setAttribute("id", item.id);
+  li.setAttribute("created", item.created);
+  if(item.checked) {
+  	li.classList.toggle('checked');
+  }
+  todoListElement.appendChild(li);
+
+  if (isWritable) {
+      var span = document.createElement("SPAN");
+      var txt = document.createTextNode("\u00D7");
+      span.className = "close";
+      span.appendChild(txt);
+      span.addEventListener('click', close);
+      li.appendChild(span);
+      addDragAndDropListeners(li);
+  }
+}
+
+function addEmptyTodoItem(todoList) {
+
+  var li = document.createElement("li");
+  li.classList.add("empty-item");
+  var t = document.createTextNode("");
+  li.appendChild(t);
+  li.setAttribute("draggable", "false");
+  document.getElementById(todoList).appendChild(li);
+  if (isWritable) {
+    addDragAndDropListeners(li);
+  }
+}
+
+ function close(evt){
+    var parent = evt.currentTarget.parentElement;
+    let todoList = parent.parentElement;
+    parent.remove();
+    if(todoList.childElementCount ==0) {
+    	addEmptyTodoItem(todoList.id);
+    }
+  }
+
+function addDragAndDropListeners(element) {
+  element.addEventListener('dragstart', dragStarted);
+  element.addEventListener('drop', dropped);
+  element.setAttribute("draggable", "true");
+
+  addEvent(element, 'dragenter', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  });
+
+  addEvent(element, 'dragover', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+  });
+
+  addEvent(element, 'dragexit', function (e) {
+    e.stopPropagation();
+  });
+
+  addEvent(element, 'dragleave', function (e) {
+    e.stopPropagation();
+  });
+}
+
+
+function dragStarted(evt){
+    var dragElement = document.elementFromPoint(evt.pageX, evt.pageY);
+    // only allow drags starting in the ::before area or on a drag handle
+    var fromListDragHandle = dragElement.id.startsWith("dragHandle")
+    if (evt.offsetX > 0 && ! fromListDragHandle) {
+	evt.preventDefault();
+	return;
+    }
+
+    if (fromListDragHandle)
+	evt.dataTransfer.setData("Text", evt.currentTarget.id);
+    else
+	evt.dataTransfer.setData("Text", evt.target.id);
+    evt.dataTransfer.effectAllowed = "move";
+}
+
+function dropped(evt){
+	let source = document.getElementById(evt.dataTransfer.getData('Text'));
+  	let sourceTodoList = source.parentElement;
+  	if(sourceTodoList.id == "board") {
+  		droppedList(evt);
+  		return;
+  	}
+	evt.preventDefault();
+	evt.stopPropagation();
+	let list = document.getElementById(evt.currentTarget.parentElement.id);
+	var target = evt.target;
+	if(target.classList.contains("new-entry") || target.localName == "div" || target.localName == "img") {
+		return;
+	}
+	if(target.type == "submit" || target.id.includes("todoListName") || target.id.includes("todoItem") || target.id.includes("todoListContainer")) {
+		return;
+	}
+
+	var res = source.compareDocumentPosition(target);
+	//2: The first node (p1) is positioned after the second node (p2).
+	if (res != 2) {
+		target = target.nextElementSibling;
+	} else if(sourceTodoList.id != target.parentElement.id) {
+		target = target.nextElementSibling;
+	}
+	try {
+  		list.insertBefore(source, target);
+  		//get rid of empty if required
+  		if(evt.currentTarget.classList.contains("empty-item")) {
+  			evt.currentTarget.parentElement.removeChild(evt.currentTarget);
+  		}
+  		//add empty to source if required
+    	if(sourceTodoList.childElementCount ==0) {
+    		addEmptyTodoItem(sourceTodoList.id);
+    	}
+    } catch (ex) {
+    	//likely trying to drop onto something unexpected
+    }
+}
+
+function droppedList(evt){
+	let source = document.getElementById(evt.dataTransfer.getData('Text'));
+	evt.preventDefault();
+	evt.stopPropagation();
+	if (!source.id.includes("todoListContainer")) {
+		return;
+    }
+	var target = evt.currentTarget;
+	while(!target.id.includes("todoListContainer")) {
+		target = target.parentElement;
+	}
+	var res = source.compareDocumentPosition(target);
+	//2: The first node (p1) is positioned after the second node (p2).
+	if(res != 2) {
+		target = target.nextElementSibling;
+	}
+	let board = document.getElementById('board');
+  	board.insertBefore(source, target);
+}
+// tmp fix for iOS10 touchmove bug (https://github.com/timruffles/ios-html5-drag-drop-shim/issues/77)
+window.addEventListener('touchmove', function () {})
+
+function load(title, lists) {
+    let polyfillApplied = MobileDragDrop.polyfill();
+    if (polyfillApplied) {
+		console.log("mobile DnD polyfill applied");
+    }
+    var largestIndexNumber = 0;
+    if(lists.length == 0) {
+        buildNewList(getNextListId(), title, true);
+        document.getElementById("todoBoardTitle").innerHTML = title;
+        return;
+    }
+    lists.forEach(function(list, listIdx){
+        let index = new Number(list.id);
+        if(index > largestIndexNumber) {
+            largestIndexNumber = index;
+        }
+        let name = list.name;
+        buildNewList(index, name, false);
+
+        list.items.forEach(function(item){
+	        appendTodoItem(item, "todoList" + index);
+        });
+        if(listIdx == lists.length - 1) {
+            nextListId = largestIndexNumber;
+            buildNextList(getNextListId());
+            document.getElementById("todoBoardTitle").innerHTML = title;
+        }
+    });
+
+}
+//https://stackoverflow.com/questions/105034/how-to-create-guid-uuid
+function uuidv4() {
+  return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+  );
+}
+
+function save() {
+	let contents = [];
+	let boards = document.getElementById("board");
+	let lists = boards.childNodes;
+    for(var j=0; j < lists.length; j++) {
+		let list = lists[j];
+		if(list.id != null && list.id.includes("todoListContainer")) {
+			let index = list.id.substring("todoListContainer".length);
+			let listNameNode = document.getElementById("todoListName" + index);
+			let todoListName = listNameNode.innerText;
+
+			let todoItems = [];
+
+			let listItems = document.getElementById("todoList" + index).childNodes;
+		    for(var i=0; i < listItems.length; i++) {
+				let id = listItems[i].getAttribute("id");
+				if(id != null) { //skip empty list item
+				    let created = listItems[i].getAttribute("created");
+				    let text = listItems[i].textContent;
+				    text = text.substring(0,text.length -1);
+				    let checked = listItems[i].classList.contains("checked");
+				    let item = {id: id, created: created, text: text, checked: checked};
+				    todoItems.push(item);
+				}
+			}
+			let todoList = {id: "" + index, name: todoListName, items: todoItems};
+			contents.push(todoList);
+		}
+    }
+    return contents;
+}
+
+function renameList(index) {
+	var listName = document.getElementById("todoListName" + index);
+	let currentName = listName.innerText;
+    	console.log('rename...');
+    	//showMessagePopup(currentName);
+    	let renameModal = document.getElementById("renameModal");
+    	renameModal.style.display = "block";
+    	let configurationPopupCloseFunc = function() {
+         	renameModal.style.display = "none";
+    	};
+    	var modalClose = document.getElementsByClassName("modal-close")[0];
+    	modalClose.onclick = configurationPopupCloseFunc;
+    	var okButton = document.getElementById("modal-ok-button");
+    	okButton.onclick = function() {
+         	renameModal.style.display = "none";
+    		let text = document.getElementById("modal-message-textfield").value.trim();
+    		if (text.length == 0 || text.length > 20) {
+    		    console.log('name length invalid');
+    			return;
+    		}
+			let listName = document.getElementById("todoListName" + index);
+			listName.innerText = text;
+    	};
+    	let textfield = document.getElementById("modal-message-textfield");
+    	textfield.value = currentName;
+    	textfield.focus();
+    }
+
+	function createSaveButton() {
+ 		var btn = document.createElement("button");
+ 		btn.id = "saveBtn";
+ 		btn.title="Save";
+ 		btn.type="button";
+  		btn.style.width="48px";
+  		btn.style.height="48px";
+   		btn.style.border="0px";
+  		btn.style.backgroundColor='#ffffff';
+  		btn.style.paddingTop="20px";
+  		btn.onclick=function() {
+  		  saveTodoBoard();
+   		};   
+		//disk svg from paintZ - https://github.com/ZMYaro/paintz
+   		const iconSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  		const iconPath = document.createElementNS('http://www.w3.org/2000/svg','path');
+  		iconSvg.setAttribute('id', 'save-svg');
+  		iconSvg.setAttribute('viewBox', '0 0 24 24');
+  		iconPath.setAttribute(
+    		'd',
+        	"M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"
+  		);
+  		iconSvg.appendChild(iconPath);
+    	btn.appendChild(iconSvg);
+		return btn;
+	}  		
+  		fetch('/peergos-api/v0/tasks/', { method: 'GET' }).then(function(response) {
+      		if (response.status === 200) {
+				response.arrayBuffer().then(function(buffer) {								
+					let text = new TextDecoder().decode(buffer).trim();
+					let todoBoard = JSON.parse(text);
+					load(todoBoardName, todoBoard);
+					if (isWritable) {
+						let saveButton = createSaveButton();
+						let toolbarElement = document.getElementById("toolbar");
+						toolbarElement.append(saveButton);
+					}
+				});
+      		} else {
+      			console.log('nothing loaded. error:' + response.status);
+      		}
+		});  
+
+        function extractTodoBoardName(filename) {
+            return filename.endsWith(this.todoExtension) ? filename.substring(0, filename.length - 5) : filename;
+        }
+
+        function saveTodoBoard() {
+            if (! isWritable || savingFile) {
+                return;
+            }
+        	let modalMessage = document.getElementById("modal-message");
+			modalMessage.innerText = "Saving...";
+            let messageModal = document.getElementById("messageModal");
+    		messageModal.style.display = "block";
+            savingFile = true;
+            let encoder = new TextEncoder();
+            let todoBoardJson = save();
+            let bytes = encoder.encode(JSON.stringify(todoBoardJson));
+            fetch('/peergos-api/v0/tasks/', { method: 'POST', body: bytes }).then(function(response) {
+				savingFile = false;
+      			if (response.status === 200) {
+		    		messageModal.style.display = "none";
+      				console.log('file saved');
+      			} else {
+      				console.log('unable to save file. Error:' + response.status);
+      				modalMessage.innerText = "Unable to save file...";
+      			}
+			});
+	    }
+	    
+  </script>
+  </body>
+</html>
+

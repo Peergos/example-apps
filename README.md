@@ -94,6 +94,10 @@ Can import to some degree xlsx, ods spreadsheet files
 
 ![Markdown editor](./screenshots/markdown.png)
 
+## Tasks
+
+![Tasks](./screenshots/tasks.png)    
+
 ## TodoMVC
 #### https://github.com/1Marc/todomvc-vanillajs-2022
 
