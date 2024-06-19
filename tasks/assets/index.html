@@ -76,6 +76,7 @@
 }
     </style>
     <script src="index.min.js"></script>
+    <script src="cbor.min.js"></script>
   </head>
 
   <body>
@@ -113,6 +114,7 @@ let href = window.location.href;
 let url = new URL(href);
 let filePath = url.searchParams.get("path");
 let isWritable = url.searchParams.get("isPathWritable") == 'true';
+let todoExtension = ".todo";
 let todoBoardName = extractTodoBoardName(filePath.substring(filePath.lastIndexOf('/')+1));
 var savingFile = false;   	
 var nextListId = 0;
@@ -271,7 +273,7 @@ function onFormSubmit(e, todoItem, todoList) {
   if (inputValue === '') {
     return;
   }
-  let newItem = {id: uuidv4(), created: new Date().getTime(), text:inputValue, checked: false};
+  let newItem = {i: uuidv4(), z: new Date().getTime(), t:inputValue, c: false};
   appendTodoItem(newItem, todoList);
   document.getElementById(todoItem).value = "";
   return false;
@@ -288,12 +290,12 @@ function appendTodoItem(item, todoList) {
   		}
   }
   var li = document.createElement("li");
-  var t = document.createTextNode(item.text);
+  var t = document.createTextNode(item.t);
   li.appendChild(t);
 
-  li.setAttribute("id", item.id);
-  li.setAttribute("created", item.created);
-  if(item.checked) {
+  li.setAttribute("id", item.i);
+  li.setAttribute("created", item.z);
+  if(item.c) {
   	li.classList.toggle('checked');
   }
   todoListElement.appendChild(li);
@@ -493,7 +495,7 @@ function save() {
 				    let text = listItems[i].textContent;
 				    text = text.substring(0,text.length -1);
 				    let checked = listItems[i].classList.contains("checked");
-				    let item = {id: id, created: created, text: text, checked: checked};
+				    let item = {i: id, z: created, t: text, c: checked};
 				    todoItems.push(item);
 				}
 			}
@@ -558,11 +560,16 @@ function renameList(index) {
     	btn.appendChild(iconSvg);
 		return btn;
 	}  		
-  		fetch('/peergos-api/v0/tasks/', { method: 'GET' }).then(function(response) {
+	
+		var firstFieldValue;
+		var versionFieldValue; 
+  		fetch(filePath, { method: 'GET' }).then(function(response) {
       		if (response.status === 200) {
-				response.arrayBuffer().then(function(buffer) {								
-					let text = new TextDecoder().decode(buffer).trim();
-					let todoBoard = JSON.parse(text);
+				response.arrayBuffer().then(function(buffer) {	
+					let decoded = CBOR.decode(buffer);	
+					firstFieldValue = decoded[0];
+					let todoBoard = decoded[1].lists;
+					versionFieldValue = decoded[1].version;
 					load(todoBoardName, todoBoard);
 					if (isWritable) {
 						let saveButton = createSaveButton();
@@ -576,7 +583,7 @@ function renameList(index) {
 		});  
 
         function extractTodoBoardName(filename) {
-            return filename.endsWith(this.todoExtension) ? filename.substring(0, filename.length - 5) : filename;
+            return filename.endsWith(todoExtension) ? filename.substring(0, filename.length - 5) : filename;
         }
 
         function saveTodoBoard() {
@@ -590,8 +597,15 @@ function renameList(index) {
             savingFile = true;
             let encoder = new TextEncoder();
             let todoBoardJson = save();
-            let bytes = encoder.encode(JSON.stringify(todoBoardJson));
-            fetch('/peergos-api/v0/tasks/', { method: 'POST', body: bytes }).then(function(response) {
+            let file = [];
+            file.push(firstFieldValue);
+            file.push({
+            	lists: todoBoardJson,
+            	name: todoBoardName,
+            	version: versionFieldValue
+            });
+            let bytes = CBOR.encode(file);
+            fetch(filePath, { method: 'POST', body: bytes }).then(function(response) {
 				savingFile = false;
       			if (response.status === 200) {
 		    		messageModal.style.display = "none";
