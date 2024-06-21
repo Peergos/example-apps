@@ -1,10 +1,11 @@
 {
     "displayName": "TUI Markdown Editor",
     "description": "Based on Markdown WYSIWYG Editor - https://github.com/nhn/tui.editor",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "author": "peergos",
     "launchable": true,
-    "folderAction": false,    			
+    "folderAction": false, 
+    "appIcon": "icon.png",   			
     "fileExtensions": ["md"],	    	
     "permissions": ["EDIT_CHOSEN_FILE"]
 }
