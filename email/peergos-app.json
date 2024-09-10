@@ -1,0 +1,13 @@
+{
+    "displayName": "Email",
+    "description": "Email client: https://github.com/example-apps/email",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": true,
+	"folderAction": false,  
+	"appIcon": "icon.png",  
+	"fileExtensions": [],			
+	"mimeTypes": [],
+    "permissions": ["USE_MAILBOX"]	
+}
+

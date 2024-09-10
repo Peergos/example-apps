@@ -163,6 +163,11 @@ Read epub files
 
 ![ebook-reader](./screenshots/ebook-reader.png)  
 
+## email client
+Example of using mailbox api
+
+![email-client](./screenshots/email-client.png)  
+
 ## text-editor
 very simple text-editor using a html textarea
 
