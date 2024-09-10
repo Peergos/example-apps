@@ -213,15 +213,6 @@ addComposeNewEmailButton.onclick=function(e) {
     composeNewEmail();
 };
 
-
-function displaySpinner(schedule) {
-	//kev todo
-}
-
-function removeSpinner(schedule) {
-	//kev todo
-}
-
 function updateValue(id, value) {
     let element = document.getElementById(id);
     if (id == 'unreadEmailsTotal') {
@@ -1099,7 +1090,7 @@ function sendEmail() {
     let attachments = [];
     reduceUploadAttachments(0, currentAttachmentFiles, attachments, () => {
     	if (attachments.length != currentAttachmentFiles.length) {
-    		console.log('attachment upload failed!'); //kev fix
+    		requestShowMessage("Attachment upload failed!");
     	} else {
 	        let data = {   subject: subject
                     , to: to, cc: cc, bcc: bcc
