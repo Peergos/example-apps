@@ -1,12 +1,12 @@
 {
     	"displayName": "VLC js",
     	"description": "VLC ported to WASM/Javascript: https://github.com/Krowemoh/vlc.js",
-    	"version": "0.6.0",
+    	"version": "0.6.1",
     	"author": "peergos",
     	"launchable": true,
     	"folderAction": false,  	
     	"appIcon": "icon.png",	
 	    "fileExtensions": ["asf","wtv","wmv","vob","ts","swf","rm","mxf","mts","mpg","mpeg","m2v","m2ts","flv","f4v","avi"],	    	
     	"fileTypes": ["audio","video"],	    
-    	"permissions": []
+    	"permissions": ["CSP_UNSAFE_EVAL"]	
 }
