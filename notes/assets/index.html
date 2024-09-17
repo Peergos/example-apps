@@ -132,13 +132,25 @@ fetch(filePath, { method: 'GET' }).then(function(response) {
                                         			var reader = new FileReader();
                                         			reader.onloadend = function() {
                                             			//callback(reader.result);
-                                            			let obj = {
-                                                			success: 1,
-                                                			file: {
-                                                    			url: reader.result,
-                                                			}
-                                            			};
-                                            			resolve(obj);
+                                            			let image = new Image();
+      													image.onload = function() {
+        													let canvas = document.createElement('canvas');
+  															let width = image.width;
+  															let height = image.height;
+  															canvas.width = width;
+  															canvas.height = height;
+  															let ctx = canvas.getContext("2d");
+  															ctx.drawImage(image, 0, 0, width, height);
+  															let output = canvas.toDataURL("image/jpeg",0.7);
+        													let obj = {
+                                                				success: 1,
+                                                				file: {
+                                                    				url: output,
+                                                				}
+                                            				};
+                                            				resolve(obj);
+      													};
+                    									image.src = reader.result;
                                         			}
                                         			reader.readAsDataURL(file);
                                     			}
