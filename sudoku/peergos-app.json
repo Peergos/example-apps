@@ -1,0 +1,11 @@
+{
+    "displayName": "Sudoku",
+    "description": "Sudoku game: https://github.com/raravi/sudoku",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": true,
+	"folderAction": false,  
+	"appIcon": "icon.png",  			
+    "permissions": []
+}
+

@@ -1,0 +1,11 @@
+{
+    "displayName": "Feather Wiki",
+    "description": "Create simple and self-contained wikis: https://codeberg.org/Alamantus/FeatherWiki",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": true,
+    "fileExtensions": ["html"],
+    "appIcon": "icon.png",
+    "permissions": ["EDIT_CHOSEN_FILE"]	
+}
+

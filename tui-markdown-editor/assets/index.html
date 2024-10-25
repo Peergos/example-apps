@@ -165,7 +165,9 @@
       						var src = node.destination;
       						if (src.startsWith('./')) {
         						src = baseDirectory + src.substring(2);
-      						} else if (src.startsWith(baseDirectory)) {
+        					} else if (src.startsWith(baseDirectory)) {
+      							src = src;
+      						} else if (src.startsWith('data:image/')) {
       							src = src;
       						} else if (src.startsWith('/')) {
         						src = baseDirectory + src.substring(1);

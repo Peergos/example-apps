@@ -168,6 +168,41 @@ Example of using mailbox api
 
 ![email-client](./screenshots/email-client.png)  
 
+## pretty diff
+#### https://github.com/prettydiff/prettydiff
+Display the difference between two text files
+
+![pretty-diff](./screenshots/pretty-diff.png)  
+
+
+## Image viewer
+#### https://github.com/ThaUnknown/pwa-haven/tree/main/img-viewer
+Display/Rotate/Scale an image file
+
+![img-viewer](./screenshots/img-viewer.png) 
+
+
+## Sudoku
+#### https://github.com/raravi/sudoku
+Play Sudoku
+
+![sudoku](./screenshots/sudoku.png) 
+
+
+## Projectify
+#### https://github.com/thaddeusjiang/projectify
+Project management app for TiddlyWiki: 
+
+![projectify](./screenshots/projectify.png) 
+
+
+## Feather Wiki
+#### https://codeberg.org/Alamantus/FeatherWiki
+A tiny tool for simple, self-contained wikis
+
+![feather-wiki](./screenshots/feather-wiki.png) 
+
+
 ## text-editor
 very simple text-editor using a html textarea
 

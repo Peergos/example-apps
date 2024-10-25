@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Pretty Diff</title>
+	<meta content="text/html;charset=UTF-8" http-equiv="Content-Type"/>
+	<link href="index.css" media="all" rel="stylesheet" type="text/css"/>
+	<link href="reports.css" media="all" rel="stylesheet" type="text/css"/>
+<style>
+.flex-container {
+  display: flex;
+}
+
+.flex-container > div {
+  margin: 10px;
+  padding: 20px;
+  font-size: 20px;
+}
+</style>
+	<script src="browser.js" type="application/javascript"></script>
+  <script src="purify.min.js"></script>
+  </head>
+<body>
+	<div>
+		<span id='status'>Loading...</span>
+		<div class="flex-container">
+  			<div>Left file:&nbsp;<span id="left-filename-id"></span></div>
+  			<div>Right file:&nbsp;<span id="right-filename-id"></span></div>
+		</div>
+
+	</div>
+<div id="prettydiff" class="white">
+    <div class="contentarea" id="report">
+        <div id="sanitized"></div>
+  	</div>
+<script>    
+function load() {
+	console.log("loading...");
+	let href = window.location.href;
+	let url = new URL(href);
+	let filePath = url.searchParams.get("path");
+	let fileExtension = "";//filePath.substring(filePath.lastIndexOf('.') + 1);
+
+ 					document.getElementById("left-filename-id").innerText = filePath.substring(filePath.lastIndexOf('/') + 1);
+    				fetch(filePath, { method: 'GET' }).then(function(response) {				
+      					if (response.status === 200) {
+							response.text().then(function(fileText) {
+								if (fileText.length > 0) {
+									fetch('/peergos-api/v0/file-picker/?extension=' + fileExtension, { method: 'GET' }).then(function(response) {
+      									if (response.status === 200) {
+											response.arrayBuffer().then(function(buffer) {
+												let text = new TextDecoder().decode(buffer);
+												let files = JSON.parse(text);
+												let filePath2 = files[0];
+												console.log('selected right file:' + filePath2);
+												if (filePath2.length > 0) {
+												 	document.getElementById("right-filename-id").innerText = filePath2.substring(filePath2.lastIndexOf('/') + 1);
+													fetch(filePath2, { method: 'GET' }).then(function(response2) {				
+      													if (response2.status === 200) {
+															response2.text().then(function(fileText2) {
+																if (fileText2.length > 0) {						
+																	try {
+																		let statusElement = document.getElementById("status");
+																		statusElement.style.display = "none";  
+    																	diff(fileText, fileText2);				
+    																} catch (ex) {
+		    															console.log('Error comparing files. Exception: ' + ex); 
+    																}
+    															} else {
+		    														console.log('second file empty!'); 
+    															}
+    														});
+      													} else {
+      														console.log('error loading second file:' + response.status);
+      													}
+													});
+												}
+    										});
+      									} else {
+      										console.log('error:' + response.status);
+      									}
+									}); 	
+    							} else {
+									console.log('file empty!'); 
+    							}
+    						});
+     					} else {
+      						console.log('error loading file:' + response.status);
+      					}
+					});
+}
+function diff(inputText, inputText2) {	
+	diffToConsole(inputText, inputText2);
+	diffToDOM(inputText, inputText2);
+}
+function diffToDOM(inputText, inputText2) {								
+		let prettydiff = window.prettydiff;
+		let options = prettydiff.options;
+        var output = "";
+        options.api = "dom";
+        options.mode = "diff";
+        options.source = inputText;
+        options.diff = inputText2;
+        options.diff_format = "html";
+        options.diff_view = "sidebyside";
+        output = prettydiff();
+        let xss = DOMPurify.sanitize(output);
+    	let element = document.getElementById('sanitized');
+        element.innerHTML = xss;
+}
+function diffToConsole(inputText, inputText2) {								
+		let prettydiff = window.prettydiff;
+		let options = prettydiff.options;
+        var output = "";
+        options.api = "";
+        options.mode = "diff";
+        options.source = inputText;
+        options.diff = inputText2;
+        output = prettydiff();
+        console.log(output);
+}
+load();
+    </script>
+  </body>
+</html>

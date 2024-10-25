@@ -1,0 +1,11 @@
+{
+    "displayName": "PrettyDiff",
+    "description": "View Diff output between 2 text files",
+    "version": "1.0.0",
+    "author": "peergos",
+	"appIcon": "icon.png",  
+    "launchable": true,
+    "folderAction": false,    			
+    "fileTypes": ["text"]
+}
+

@@ -34,7 +34,7 @@
                         <div class="chat-border">
                             <div id="chat-left-panel" class="chat-left-panel">
                                 <div class="chat-actions">
-                                    <div class="chat-action-heading">
+                                    <div :class="{ chatactionheadingmobile: isMobile, chatactionheading: !isMobile }">
                                         <h4>
                                             <button :disabled="executingCommands || !completedInit" class="btn btn-success" @click="fullRefresh()" >
                                                 <i v-if="executingCommands" aria-hidden="true">
@@ -49,7 +49,7 @@
                                             </button>
                                         </h4>
                                     </div>
-                                    <div class="chat-message-search">
+                                    <div v-if="!isMobile" class="chat-message-search">
                                         <span class="input-group-addon">
                                             <input id="filter-conversations" type="text" style="line-height: 20px;" v-model="filterText" :maxlength="15"  v-on:keyup.enter="filterConversations()" placeholder="Filter">
                                             <button type="button" @click="filterConversations()">
@@ -402,6 +402,7 @@ module.exports = {
             onDemandRefresh: [],
             completedInit: false,
             initialChatId: null,
+            isMobile: false,
 		};
 	},
 	computed: {
@@ -417,12 +418,16 @@ module.exports = {
         this.username = url.searchParams.get("username");
         this.initialChatId = url.searchParams.get("chatId");
 
+        this.isMobile = /Mobi|Android/i.test(navigator.userAgent); // https://stackoverflow.com/a/24600597;
+
         this.init();
         Vue.nextTick(function() {
             let element = document.getElementById('filter-conversations');
-            element.addEventListener('keyup', function() {
-                that.filterConversations();
-            });
+            if (element != null) {
+                element.addEventListener('keyup', function() {
+                    that.filterConversations();
+                });
+            }
             window.addEventListener("resize", that.resizeHandler);
             that.resizeHandler();
             that.emojiChooserBtn = document.getElementById('emoji-chooser');
@@ -1652,12 +1657,15 @@ module.exports = {
   border-bottom:1px solid #c4c4c4;
 }
 
-.chat-action-heading {
+.chatactionheadingmobile {
+  float: left;
+}
+.chatactionheading {
   float: left;
   width:40%;
 }
 
-.chat-action-heading h4 {
+.chatactionheading h4 {
   color: #05728f;
   font-size: 21px;
   margin: auto;

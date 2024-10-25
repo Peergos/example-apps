@@ -1,0 +1,25 @@
+<html>
+<body>
+<script>
+	let href = window.frames.frameElement.contentWindow.location.href
+	var url = new URL(href);
+	var filePath = url.searchParams.get("path");
+	console.log("filePath=" + filePath);
+		fetch(filePath, { method: 'GET' }).then(function(response) {				
+      		if (response.status === 200) {
+				response.text().then(function(txt) {
+					if (txt.includes('<meta name=application-name content="Feather Wiki">')) {
+						window.location.replace(filePath);    				
+					} else {
+		      			console.log('not a FeatherWiki file...');
+					}
+    			});
+      		} else {
+      			console.log('nothing loaded...');
+      		}
+		});	
+</script>
+</body>
+</html>
+
+
