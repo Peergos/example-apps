@@ -1,6 +1,6 @@
 {
     "displayName": "Tasks",
-    "description": "Organise tasks into lists: https://github.com/example-apps/tasks",
+    "description": "Organise tasks into lists: https://github.com/Peergos/example-apps/tree/main/tasks",
     "version": "1.0.0",
     "author": "peergos",
     "launchable": true,
