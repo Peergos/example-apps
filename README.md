@@ -34,24 +34,27 @@ See doc2html app below to convert other document formats to html
 ![html editor](./screenshots/ck-editor.png)    
 
 ## Doc2Html
-#### https://github.com/mwilliamson/mammoth.js/ github.com/xwiki-labs/office-converter
+#### https://github.com/mwilliamson/mammoth.js/ 
+#### https://github.com/xwiki-labs/office-converter
 
 Convert .docx and .odt files to .html files
 ![Document converter](./screenshots/doc2html.png)
 
-## Html2docx 
+## Html2doc
 #### https://github.com/t3rmian/html-to-docx-js-client-demo
 
 Convert .html to .docx files
 
 ## Document-Viewer
-#### https://github.com/VolodymyrBaydalka/docxjs, https://github.com/xwiki-labs/office-converters
+#### https://github.com/VolodymyrBaydalka/docxjs
+#### https://github.com/xwiki-labs/office-converters
 
 View .docx and .odt files
 ![Document viewer](./screenshots/doc-viewer.png)
 
 ## LuckySheet
-#### https://github.com/dream-num/Luckysheet https://github.com/xwiki-labs/office-converters
+#### https://github.com/dream-num/Luckysheet
+#### https://github.com/xwiki-labs/office-converters
 
 Spreadsheet.  Data is stored in a a json formatted file with extension .sheet 
 
@@ -79,8 +82,8 @@ Diagramming and visualization. Edit .drawio files
 ## Notes
 #### https://github.com/codex-team/editor.js
 
-Block-style editor. Based on editor.js. Edit .note files
-![Diagramming](./screenshots/notes.png)
+Block-style editor. Edit .note files
+![Notes](./screenshots/notes.png)
 
 
 ## TUI-Image-Editor
@@ -228,15 +231,17 @@ A tiny tool for simple, self-contained wikis
 ## text-editor
 very simple text-editor using a html textarea
 
-## Chess (over chat-api)
+## Chess
 #### https://github.com/webxdc/ChessBoard.xdc
 
+Chess over chat-api
 ![Chess](./screenshots/chess.png)  
 
 
-## TicTacToe (over chat-api)
+## TicTacToe
 #### https://github.com/webxdc/tictactoe.xdc
 
+TicTacToe over chat-api
 ![TicTacToe](./screenshots/tictactoe.png)  
 
 
