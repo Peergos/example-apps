@@ -1,6 +1,6 @@
 {
     "displayName": "Email",
-    "description": "Email client: https://github.com/example-apps/email",
+    "description": "Email client: https://github.com/example-apps/tree/main/email",
     "version": "1.0.0",
     "author": "peergos",
     "launchable": true,
