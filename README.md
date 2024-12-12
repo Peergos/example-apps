@@ -5,13 +5,14 @@ If you stumbled here without knowing what Peergos is, try this:
 
 [![Intro to Peergos](https://img.youtube.com/vi/REc8QfKxTik/0.jpg)](https://youtu.be/REc8QfKxTik)
 
-github.com/Peergos/peergos
+
+Peergos repository [https://github.com/Peergos/peergos](https://github.com/Peergos/peergos).
 
 
 ### Installation
 If you are self-hosting or have an account on peergos.net or peergos-demo.net
 1. click the launcher icon (top icon on left hand side menu)
-2. click recommended apps button
+2. click custom apps button
 3. click install next to desired app
 
 Manual instructions for additional/experimental apps
@@ -32,23 +33,28 @@ Rich text editor. Loads/Saves .html files
 See doc2html app below to convert other document formats to html
 ![html editor](./screenshots/ck-editor.png)    
 
-## Doc2Html. Convert .docx and .odt files to .html files
+## Doc2Html
 #### https://github.com/mwilliamson/mammoth.js/ github.com/xwiki-labs/office-converter
 
+Convert .docx and .odt files to .html files
 ![Document converter](./screenshots/doc2html.png)
 
-## Html2docx. Convert .html to .docx files
+## Html2docx 
 #### https://github.com/t3rmian/html-to-docx-js-client-demo
 
-## Document Viewer. View .docx and .odt files
+Convert .html to .docx files
+
+## Document-Viewer
 #### https://github.com/VolodymyrBaydalka/docxjs, https://github.com/xwiki-labs/office-converters
 
+View .docx and .odt files
 ![Document viewer](./screenshots/doc-viewer.png)
 
-
-## LuckySheet Spreadsheet
+## LuckySheet
 #### https://github.com/dream-num/Luckysheet https://github.com/xwiki-labs/office-converters
-data is stored in a a json formatted file with extension .sheet 
+
+Spreadsheet.  Data is stored in a a json formatted file with extension .sheet 
+
 Can import to some degree xlsx, ods spreadsheet files
 ![Spreadsheet](./screenshots/luckysheet.png)
 
@@ -58,40 +64,46 @@ Can import to some degree xlsx, ods spreadsheet files
 
 **Before installing, download SaxonJS2.js from https://www.saxonica.com/saxon-js/index.xml and copy into assets folder**
 
-## Tldraw Drawing & Whiteboard. Edit .tldr files
+## Tldraw
 #### https://github.com/tldraw/tldraw
 
+Drawing & Whiteboard. Edit .tldr files
 ![Drawing](./screenshots/tldraw.png)
 
-## Draw.io Diagramming and visualization. Edit .drawio files
+## Draw.io
 #### https://github.com/jgraph/drawio
 
+Diagramming and visualization. Edit .drawio files
 ![Diagramming](./screenshots/drawio.png)
 
-## Block-style editor. Based on editor.js. Edit .note files
+## Notes
 #### https://github.com/codex-team/editor.js
 
+Block-style editor. Based on editor.js. Edit .note files
 ![Diagramming](./screenshots/notes.png)
 
 
-## TUI Image Editor
+## TUI-Image-Editor
 #### https://github.com/nhn/tui.image-editor
 
 ![Image editor](./screenshots/image-editor.png)
 
-## PaintZ MS Paint clone
+## PaintZ
 #### https://github.com/zmyaro/paintz
 
+MS Paint clone
 ![Paint](./screenshots/paintz.png)
 
-## jspaint - Classic MS Paint clone
+## jspaint
 #### https://github.com/1j01/jspaint
 
+Classic MS Paint clone
 ![jspaint](./screenshots/jspaint.png)  
 
-## TUI Markdown WYSIWYG Markdown Editor
+## TUI-Markdown
 #### https://github.com/nhn/tui.editor
 
+WYSIWYG Markdown Editor
 ![Markdown editor](./screenshots/markdown.png)
 
 ## Tasks
@@ -103,44 +115,50 @@ Can import to some degree xlsx, ods spreadsheet files
 
 ![Todo list](./screenshots/todo.png)    
 
-## Scientific Calculator
+## Calculator
 #### https://github.com/intel/webapps-scientific-calculator
 
 ![calculator](./screenshots/calculator.png) 
 
-## Webamp - Winamp 2 implemented in JavaScript
+## Webamp
 #### https://github.com/captbaritone/webamp
 
+Winamp 2 implemented in JavaScript
 ![Winamp](./screenshots/webamp.png)
 
-## Audio Player - play all audio files in a folder
+## Audio Player
 #### https://luna.liriliri.io/?path=/story/music-player--music-player
 
+Play all audio files in a folder
 ![audio-player](./screenshots/audio-player.png)
 
-## Image Slideshow - view all image files in a folder
+## Image Slideshow
 #### https://luna.liriliri.io/?path=/story/gallery--gallery
 
+View all image files in a folder
 ![Image Slideshow](./screenshots/slideshow.png)
 
-## TiddlyWiki 5 - a non-linear personal web notebook
+## TiddlyWiki
 #### https://github.com/Jermolene/TiddlyWiki5
 
+A non-linear personal web notebook
 ![TiddlyWiki](./screenshots/tiddlyWiki.png)
 
 ## Device Capture
 
 ![DeviceCapture](./screenshots/device-capture.png)
 
-## VLC media player
+## VLC.js
 #### https://github.com/Krowemoh/vlc.js
 
+Media player
 ![VLC](./screenshots/vlc.png)
 
 
-## Doom (Shareware) running inside jsdosbox
+## Doom (Shareware)
 #### https://sourceforge.net/projects/jsdosbox
 
+Doom running inside jsdosbox emulator
 ![Doom](./screenshots/doom.png)    
 
 ## Astronomy sky map
@@ -153,6 +171,10 @@ Example of how to use the chat-api for App communication (eg multi-player games)
 
 ![Chat-api](./screenshots/chat-api.png)  
 
+
+## Chat
+Example of how to use the chat-api (v1)
+
 ## audio-recorder
 #### https://wavesurfer.xyz
 audio recording app - incomplete and non-functional
@@ -163,43 +185,43 @@ Read epub files
 
 ![ebook-reader](./screenshots/ebook-reader.png)  
 
-## email client
-Example of using mailbox api
+## email-client
 
+Example of using mailbox api
 ![email-client](./screenshots/email-client.png)  
 
-## pretty diff
+## pretty-diff
 #### https://github.com/prettydiff/prettydiff
-Display the difference between two text files
 
+Display the difference between two text files
 ![pretty-diff](./screenshots/pretty-diff.png)  
 
 
-## Image viewer
+## image-viewer
 #### https://github.com/ThaUnknown/pwa-haven/tree/main/img-viewer
-Display/Rotate/Scale an image file
 
+Display/Rotate/Scale an image file
 ![img-viewer](./screenshots/img-viewer.png) 
 
 
 ## Sudoku
 #### https://github.com/raravi/sudoku
-Play Sudoku
 
+Play Sudoku
 ![sudoku](./screenshots/sudoku.png) 
 
 
 ## Projectify
 #### https://github.com/thaddeusjiang/projectify
-Project management app for TiddlyWiki: 
 
+Project management app for TiddlyWiki: 
 ![projectify](./screenshots/projectify.png) 
 
 
-## Feather Wiki
+## Feather-Wiki
 #### https://codeberg.org/Alamantus/FeatherWiki
-A tiny tool for simple, self-contained wikis
 
+A tiny tool for simple, self-contained wikis
 ![feather-wiki](./screenshots/feather-wiki.png) 
 
 
