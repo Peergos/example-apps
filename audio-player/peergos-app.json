@@ -4,9 +4,9 @@
     "version": "1.0.0",
     "author": "peergos",
     "launchable": true,
-	"folderAction": true,    
-	"appIcon": "icon.png",			
-    "fileExtensions": ["mp3"],
+    "folderAction": true,
+    "appIcon": "icon.png",
+    "fileExtensions": ["mp3","ogg","flac","wav","opus"],
     "permissions": ["READ_CHOSEN_FOLDER"]	
 }
 
