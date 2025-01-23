@@ -1,11 +1,11 @@
 {
-    	"displayName": "Webamp",
-    	"description": "Play audio files within a folder: https://github.com/captbaritone/webamp",
-    	"version": "1.0.0",
-    	"author": "peergos",
-    	"launchable": true,
-    	"folderAction": true,  		
-    	"fileExtensions": ["mp3","ogg"],	    	
-    	"appIcon": "icon.png",			
-    	"permissions": ["READ_CHOSEN_FOLDER"]
+    "displayName": "Webamp",
+    "description": "Play audio files within a folder: https://github.com/captbaritone/webamp",
+    "version": "1.0.1",
+    "author": "peergos",
+    "launchable": true,
+    "folderAction": true,  		
+    "fileExtensions": ["mp3","ogg","flac","wav","opus"],
+    "appIcon": "icon.png",			
+    "permissions": ["READ_CHOSEN_FOLDER"]
 }

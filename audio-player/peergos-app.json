@@ -1,12 +1,12 @@
 {
     "displayName": "Audio Player",
     "description": "Play audio files within a folder https://luna.liriliri.io/?path=/story/music-player--music-player",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "author": "peergos",
     "launchable": true,
-	"folderAction": true,    
-	"appIcon": "icon.png",			
-    "fileExtensions": ["mp3"],
+    "folderAction": true,
+    "appIcon": "icon.png",
+    "fileExtensions": ["mp3","ogg","flac","wav","opus"],
     "permissions": ["READ_CHOSEN_FOLDER"]	
 }
 
