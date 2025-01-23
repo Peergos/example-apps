@@ -1,7 +1,7 @@
 {
     "displayName": "Webamp",
     "description": "Play audio files within a folder: https://github.com/captbaritone/webamp",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "author": "peergos",
     "launchable": true,
     "folderAction": true,  		
