@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExifTool example</title>
+    <script src="brotli.js"></script>
+    <style>
+        :root {
+            --primary: #000000;
+            --secondary: #f5c542;
+            --bg-color: #ffffff;
+            --text-color: #000000;
+            --border-color: #dddddd;
+            --light-gray: #f5f5f5;
+            --dark-gray: #333333;
+            --border-radius: 0px;
+            --box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1.5;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+        }
+
+        .site-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav {
+            display: flex;
+            margin-top: 1rem;
+        }
+
+        main {
+            padding: 1rem 0;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-bottom: 1.5rem;
+        }
+
+        .two-column-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .box {
+            border: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+        }
+
+        .box-header {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .box-body {
+            padding: 1rem;
+        }
+
+        .file-info {
+            font-size: 0.9rem;
+        }
+
+        .result-container {
+            width: 100%;
+            display: none;
+        }
+
+        .metadata-output {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            background-color: var(--light-gray);
+            padding: 1rem;
+            overflow: auto;
+            height: 400px;
+            border: 1px solid var(--border-color);
+        }
+
+        .status-message {
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            font-size: 0.85rem;
+            background-color: #d1fae5;
+            border-left: 3px solid #059669;
+        }
+
+        .status-error {
+            background-color: #fee2e2;
+            border-left: 3px solid #dc2626;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--dark-gray);
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .two-column-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="site-title">ExifTool</div>
+        </header>
+
+        <main>
+            <h1>Extract file metadata</h1>
+
+            <div class="two-column-layout">
+                <!-- Left Column: Upload Interface -->
+                <div class="box">
+                    <div class="box-header">File</div>
+                    <div class="box-body">
+                        <div id="selectedFile" style="display: none;" class="selected-file">
+                            <div class="file-info">
+                                <div id="fileName"></div>
+                                <div id="fileSize"></div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 2rem;">
+                            <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+                                <div>
+                                    <span id="spinner" class="spinner" style="display: none;"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="resultContainer" class="result-container">
+                    <div class="box">
+                        <div class="box-header">Metadata</div>
+                        <div class="box-body">
+                            <div id="status" class="status-message" style="display: none;">
+                                Metadata extracted successfully!
+                            </div>
+
+                            <pre id="metadataOutput"
+                                class="metadata-output"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+      
+    import { parseMetadata } from './index.esm.js';
+    document.addEventListener('DOMContentLoaded', function () {
+            
+        const selectedFile = document.getElementById('selectedFile');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const spinner = document.getElementById('spinner');
+        const resultContainer = document.getElementById('resultContainer');
+        const status = document.getElementById('status');
+        const metadataOutput = document.getElementById('metadataOutput');
+
+        function showError(message) {
+            spinner.style.display = 'none';
+            resultContainer.style.display = 'block';
+            status.className = 'status-message status-error';
+            status.style.display = 'block';
+            status.textContent = message || 'An error occurred';
+            metadataOutput.textContent = 'Failed to extract metadata.';
+        }
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        let href = window.frames.frameElement.contentWindow.location.href
+		let url = new URL(href);
+		let filePath = url.searchParams.get("path");
+		let filename = filePath.substring(filePath.lastIndexOf('/') + 1);
+		fileName.textContent = filename;
+        selectedFile.style.display = 'flex';
+        spinner.style.display = 'inline-block';                
+		fileSize.textContent = 'Loading file...'
+		fetch(filePath, { method: 'GET' }).then(function(response) {
+      		if (response.status === 200) {
+				response.arrayBuffer().then(function(buffer) {
+			        fileSize.textContent = formatFileSize(buffer.byteLength);
+					let binFile = {
+						name: filename,
+						data: new Uint8Array(buffer)
+					};
+                	try {
+                    	parseMetadata(binFile, {args: [],
+                        	transformer: (data) => {
+                            	return jsonOutput.checked ? JSON.parse(data) : data;
+                        	}
+                    	}).then(result => {
+                    		if (result.success) {
+                    		    spinner.style.display = 'none';
+                        		resultContainer.style.display = 'block';
+                				status.className = 'status-message';
+                				status.style.display = 'block';
+                				status.textContent = 'Metadata extracted successfully!';
+                				metadataOutput.textContent = result.data;
+                    		} else {
+                        		showError(result.error);
+                   			}
+                    	});
+                	} catch (error) {
+                    	showError(error.message || 'Failed to extract metadata');
+                	}
+    			});
+      		}
+		});	
+    });
+    </script>
+</body>
+</html>

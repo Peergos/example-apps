@@ -1,0 +1,12 @@
+{
+    	"displayName": "ExifTool",
+    	"description": "Extract file metadata - github.com/Peergos/example-apps/#Exiftool",
+    	"version": "1.0.0",
+    	"author": "peergos",
+    	"launchable": true,
+    	"folderAction": false,    		
+    	"fileTypes": ["image","audio","video"],	
+    	"appIcon": "icon.png",    	
+    	"permissions": []
+}
+

@@ -111,7 +111,10 @@
 			let divMsg = document.createElement("div");
 	    	divMsg.id = "statusMsg";
 	    	divMsg.innerText = msg;
-	    	parent.appendChild(divMsg);
+	    	if (parent != null) {
+	    		parent.appendChild(divMsg);
+	    	}
+	    	console.log("status:" + msg);
 	    }
     }
 	function onload() {

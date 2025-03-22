@@ -1,7 +1,7 @@
 {
     	"displayName": "Chat",
     	"description": "Chat with friends - https://github.com/Peergos/example-apps/tree/main/chat",
-    	"version": "1.0.1",
+    	"version": "1.0.2",
     	"author": "peergos",
     	"launchable": true,
     	"folderAction": false,    			

@@ -1,0 +1,1075 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>Forum</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/bootstrap-markdown.min.css" />
+    <link rel="stylesheet" href="css/font-awesome.min.css" />
+    <link rel="stylesheet" href="css/bebop.css">
+  </head>
+  <body> 
+  
+    <nav class="navbar navbar-default navbar-fixed-top">
+      <div class="container" style="cursor: pointer;">
+        <div class="navbar-header pull-left">
+          <div  class="navbar-brand">
+            <span class="navbar-title" >
+              <i class="fa fa-comments" id="title-display" style="font-weight: bold;">
+          			<a id="comments-return-to-topics-btn" class="btn btn-info btn-sm" style="margin-left: 20px;display:none;letter-spacing: 0px;font-weight: bold;font-size: small;" onclick="returnToTopics()">Return To Topics</a>
+          			<a id="forum-members-btn" class="btn btn-info btn-sm" style="margin-left: 20px;letter-spacing: 0px;font-weight: bold;font-size: small;" onclick="members()">Members</a>
+              </i>
+            </span>
+            </div>
+        </div>
+      </div>
+    </nav>
+<div id="confirmation-modal" class="custom-modal">
+  <div class="custom-fit-modal-content">
+    <div class="custom-modal-header">
+      <span onclick="closeConfirmationModal()" class="custom-modal-close">&times;</span>
+      <h2>Confirmation</h2>
+    </div>
+    <div class="custom-modal-body">
+      <p id="confirmation-message"></p>
+    </div>
+    <div class="custom-modal-footer">
+      <button class="btn btn-success" style="margin:10%;" id="confirm-no">No</button>
+      <button class="btn btn-success" style="margin:10%" id="confirm-yes">Yes</button>
+    </div>
+  </div>
+</div>
+<div id="member-modal" class="custom-modal">
+  <div class="custom-modal-content">
+    <div class="custom-modal-header">
+      <span onclick="closeMemberModal()" class="custom-modal-close">&times;</span>
+      <h2>Members</h2>
+    </div>
+    <div class="custom-modal-body" id="member-list">
+    </div>
+  </div>
+</div>
+
+<div id="spinner" class="custom-modal">
+  <div style="position: relative;margin: auto;padding: 0;width: fit-content; ">
+      <div  class="loading-info">
+          <i class="fa fa-circle-o-notch fa-spin fa-3x fa-fw"></i>
+          <p>Loading...</p>
+      </div>
+  </div>
+</div>
+    <div id="new-topic" class="container content-container" style="display:none">
+      <h2>New Topic</h2>
+      <div>
+        <div class="form-group">
+          <label class="form-control-label">Title:</label>
+          <input type="text" class="form-control" id="topic-title-input" maxlength="100">
+        </div>
+        <div class="form-group">
+          <label for="user-name" class="form-control-label">Comment:</label>
+          <textarea class="form-control" id="comment-input" rows="6" maxlength="10000"></textarea>
+        </div>
+        <div id="new-topic-form-error" class="alert alert-danger" style="display:none">
+			<span id="topic-error-msg"></span>
+        </div>
+      </div>
+      <div>
+        <button type="button" class="btn btn-primary btn-sm" onclick="addNewTopic()" id="createTopicBtn">
+          <i class="fa fa-plus"></i> Create Topic
+        </button>
+        <button type="button" class="btn btn-info btn-sm" onclick="cancelNewTopic()">
+			Cancel
+        </button>
+      </div>
+    </div> 
+    <div id="new-comment" class="container content-container" style="display:none">
+      <h2>New Comment</h2>
+      <div>
+        <div class="form-group">
+          <label class="form-control-label">Comment:</label>
+          <textarea class="form-control" id="new-comment-input" rows="6" maxlength="10000"></textarea>
+        </div>
+        <div id="new-comment-form-error" class="alert alert-danger" style="display:none">
+			<span id="comment-error-msg"></span>
+        </div>
+      </div>
+      <div>
+        <button type="button" class="btn btn-primary btn-sm" id="replyBtn">
+          <i class="fa fa-reply"></i> Submit
+        </button>
+        <button type="button" class="btn btn-info btn-sm" onclick="cancelNewComment()">
+			Cancel
+        </button>
+      </div>
+    </div> 
+  <div id="topics-display" class="container content-container">
+      <div>
+        <div class="topics-topic-top-buttons">
+          <a class="btn btn-primary btn-sm" style="cursor:pointer;" onclick="launchNewTopicScreen()" >
+            <i class="fa fa-plus"></i> New Topic
+          </a>
+          <a class="btn btn-primary btn-sm" style="cursor:pointer;" onclick="refreshTopics()" id="refreshBtn">
+            <i class="fa fa-refresh"></i> Refresh
+          </a>
+        </div>
+        <div id="topics">
+      </div>
+  	</div>
+  </div>
+  <div class="container content-container" id="comments-display" style="display:none">
+        <h2 id="topic-title"></h2>
+        <div id="comments"></div>
+        <div>
+        	<div class="topics-topic-top-buttons">
+          		<a id="comments-display-return-to-topics-btn" class="btn btn-info btn-sm" style="cursor:pointer;" onclick="returnToTopics()">Return To Topics</a>
+        	</div>
+        <div id="topics">
+      </div>
+  </div>
+  <script>
+		var refreshing = false;
+		var completedInit = false;
+		var Username = "";
+		var ChatId;
+		var Chat;
+		let ChatMetadata;
+		let MessageThread = [];
+		let ThreadHashToIndex = new Map();
+		let ProfileImages = new Map();
+		let Topics = [];
+		let TopicMetadata = new Map();
+		let TopicToComments = new Map();
+
+		
+		function showSpinner() {
+		    let membersBtn = document.getElementById("forum-members-btn");
+			membersBtn.disabled = true;  
+			let spinner = document.getElementById("spinner");
+			spinner.style.display = 'block';
+		}
+		function hideSpinner() {
+			let spinner = document.getElementById("spinner");
+		    spinner.style.display = 'none';
+		    let membersBtn = document.getElementById("forum-members-btn");
+			membersBtn.disabled = false;  
+		}
+		function members() {
+            let membersBtn = document.getElementById("forum-members-btn");
+            if (!completedInit) {
+                return;
+            }
+            if (membersBtn.disabled) {
+                return;
+            }
+			membersBtn.disabled = true;  
+            let isAdmin = ChatMetadata.admins.findIndex(v => v === Username) > -1;
+            if (isAdmin) {
+	            showSpinner();
+            	fetch('/peergos-api/v1/chat/' + ChatId, { method: 'POST' }).then(function(response) {
+            		if (response.status === 200) {
+                    	response.arrayBuffer().then(function(buffer) {
+                        	let reply = new TextDecoder().decode(buffer);
+                        	let result = JSON.parse(reply);
+                        	loadProfileImages(result.members, () => {
+                            	hideSpinner();
+                        	});
+                    	});
+                	}else if (response.status === 400) {
+                    	console.log("members modal closed");
+                    	hideSpinner();
+                	}
+            	}).catch(e => {
+                	console.log("members modal failure. Exception:" + e);
+                	hideSpinner();
+            	});
+            } else {
+	            let memberListElement = document.getElementById("member-list");
+    	        while (memberListElement.hasChildNodes()) {
+  					memberListElement.removeChild(memberListElement.firstChild);
+				}
+            	let memberList = document.createElement("ul");
+            	if (isUserDisabled()) {
+            	        let memberItem = document.createElement("li");
+						memberItem.innerText = "You are no longer a member";
+			    		memberList.appendChild(memberItem);
+            	} else {
+            		for(var i = 0; i < ChatMetadata.members.length; i++) {
+            			let member = ChatMetadata.members[i];
+            			let memberItem = document.createElement("li");
+						memberItem.innerText = member;
+			    		memberList.appendChild(memberItem);
+					}	
+				}	
+				memberListElement.appendChild(memberList);
+            	let memberModal = document.getElementById("member-modal");
+            	memberModal.style.display = "block";
+            }
+        }
+        function closeMemberModal() {
+            let memberModal = document.getElementById("member-modal");
+  			memberModal.style.display = "none";
+  			let membersBtn = document.getElementById("forum-members-btn");
+			membersBtn.disabled = false;  
+		}
+  		function init() {
+  	    	let href = window.location.href;
+        	let url = new URL(href);
+        	Username = url.searchParams.get("username");
+        	ChatId = url.searchParams.get("chatId");
+        	//console.log('username=' + Username + " chatId=" + ChatId);
+        	showSpinner();
+            loadTopics(() => {
+	        	displayTopics();
+	        	hideSpinner();
+        		completedInit = true;
+        	});
+        }
+        function launchNewTopicScreen() {
+        	if (isUserDisabled()) {
+        		console.log('You are no longer a member');
+        		return;
+        	}
+			let topicsEl = document.getElementById("topics-display");
+			topicsEl.style.display = 'none';
+			
+			let membersBtn = document.getElementById("forum-members-btn");
+			membersBtn.style.display = 'none';        
+        	
+			document.getElementById("topic-error-msg").innerText = "";
+			document.getElementById("comment-input").value = "";
+        	document.getElementById("topic-title-input").value = "";
+        	
+        	let newTopicEl = document.getElementById("new-topic");
+			newTopicEl.style.display = '';
+			let titleText = document.getElementById("topic-title-input");
+			titleText.focus();
+			
+        }
+        //https://stackoverflow.com/questions/105034/how-to-create-guid-uuid
+        function generateUUID() {
+          return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+          );
+        }
+        function createNewTopic(message, callback) {
+        	let filename = generateUUID();
+        	let encoder = new TextEncoder();
+            let bytes = encoder.encode(filename); 
+            fetch('/peergos-api/v1/chat/' + ChatId +"/attachment?filename=" + filename, { method: 'POST', body: bytes }).then(function(response) {
+                if (response.status === 201) {
+                    let location = response.headers.get('location');
+                    let json = JSON.parse(location);
+                    let requestJson = {
+                		createMessage : {
+                    		text: message,
+                    		attachments: [json.fileRef]
+                		}
+            		};
+            		let encoder = new TextEncoder();
+            		let bytes = encoder.encode(JSON.stringify(requestJson));
+            		fetch('/peergos-api/v1/chat/' + ChatId, { method: 'PUT', body: bytes }).then(function(response) {
+                		if (response.status === 201) {
+							callback(filename);
+                		} else {
+                			console.log("Unable to create new topic");
+                			callback(null);
+                		}
+            		});
+                } else {
+                	console.log("upload failed");
+                    future.complete(false);
+                }
+            });
+        }
+        function createNewReply(message, appMsg, callback) {
+            requestJson = {
+                replyMessage: {
+                    text: message,
+                    attachments: [],
+                    replyTo: appMsg.serialised
+                }
+            };
+            let encoder = new TextEncoder();
+            let bytes = encoder.encode(JSON.stringify(requestJson));
+            fetch('/peergos-api/v1/chat/' + ChatId, { method: 'PUT', body: bytes }).then(function(response) {
+                if (response.status === 201) {
+					callback(true);
+                } else {
+                	console.log("Unable to create reply");
+                	callback(false);
+                }
+            });
+        }
+		function closeConfirmationModal() {
+		    let confirmationModal = document.getElementById("confirmation-modal");
+  			confirmationModal.style.display = "none";
+		}
+        function deleteTopic(btn, topic) {
+        	if (refreshing || btn.disabled || isUserDisabled()) {
+        		return;
+        	}
+        	let confirmationMessage = document.getElementById("confirmation-message");
+			confirmationMessage.innerText = "Are you sure you want to delete this Topic?"
+        	let confirmationModal = document.getElementById("confirmation-modal");
+  			let okButton = document.getElementById("confirm-yes");
+			okButton.onclick = function() {
+  				confirmationModal.style.display = "none";
+				btn.disabled = true;
+				let requestJson = {
+                	deleteMessage: {
+                    	messageRef: topic.messageRef
+                	}
+            	};
+            	let encoder = new TextEncoder();
+            	let bytes = encoder.encode(JSON.stringify(requestJson));
+            	showSpinner();
+            	fetch('/peergos-api/v1/chat/' + ChatId, { method: 'PUT', body: bytes }).then(function(response) {
+                	btn.disabled = false;			
+                	if (response.status === 201) {
+						refreshTopics(() => {
+							hideSpinner();
+						});	
+                	} else {
+                    	console.log("Unable to delete topic");
+                    	hideSpinner();		
+                	}
+            	});
+            }
+            let noButton = document.getElementById("confirm-no");
+			noButton.onclick = function() {
+			  	confirmationModal.style.display = "none";
+			}
+			confirmationModal.style.display = "block";
+        }
+        function deleteComment(anchor, topic, comment) {
+        	if (refreshing || anchor.disabled || isUserDisabled()) {
+        		return;
+        	}
+        	let confirmationMessage = document.getElementById("confirmation-message");
+			confirmationMessage.innerText = "Are you sure you want to delete this Comment?"
+        	let confirmationModal = document.getElementById("confirmation-modal");
+  			let okButton = document.getElementById("confirm-yes");
+			okButton.onclick = function() {
+  				confirmationModal.style.display = "none";
+				anchor.disabled = true;
+				let requestJson = {
+                	deleteMessage: {
+                    	messageRef: comment.messageRef
+                	}
+            	};
+            	let encoder = new TextEncoder();
+            	let bytes = encoder.encode(JSON.stringify(requestJson));
+            	showSpinner();
+            	fetch('/peergos-api/v1/chat/' + ChatId, { method: 'PUT', body: bytes }).then(function(response) {
+                	if (response.status === 201) {
+                		retrieveChatMessages((reply) => {
+                			readMessages(reply);
+                			loadProfileImages(ChatMetadata.members, () => {
+                				let updatedComments = TopicToComments.get(topic.messageRef);
+                				anchor.disabled = false;			
+                				displayComments(topic, updatedComments);
+                				hideSpinner();
+                			});
+            			});
+                	} else {
+                    	console.log("Unable to delete comment");
+                		anchor.disabled = false;	
+                		hideSpinner();		
+                	}
+            	});
+            };
+            let noButton = document.getElementById("confirm-no");
+			noButton.onclick = function() {
+			  	confirmationModal.style.display = "none";
+			}
+			confirmationModal.style.display = "block";
+        }
+        function addNewTopic() {
+        	let createTopicBtn = document.getElementById("createTopicBtn");
+			createTopicBtn.disabled = true;
+        
+        	var errorMsg = "";
+			let errorDiv = document.getElementById("new-topic-form-error");
+			let errorMsgEl = document.getElementById("topic-error-msg");
+			let commentInput = document.getElementById("comment-input");
+			
+        	let titleText = document.getElementById("topic-title-input");
+			if (titleText != null && titleText.value.trim().length > 0) {
+				let title = titleText.value.trim();
+				if (commentInput != null && commentInput.value.trim().length > 0) {
+					let comment = commentInput.value;
+					showSpinner();
+					createNewTopic(title, (idOfTopicAttachment) => {
+					    retrieveChatMessages((reply) => {
+                			readMessagesAndFindNewTopic(reply, idOfTopicAttachment, (appMsg) => {
+                				createNewReply(comment, appMsg, () => {
+                					returnToTopics( () => {
+                						hideSpinner();
+                						createTopicBtn.disabled = false;
+                					});
+	                			});					
+                			});					
+                		});
+					});
+				} else {
+					errorMsg = "Missing comment!";				
+				}
+			} else {
+				errorMsg = "No title set!";
+			}
+			if (errorMsg.length > 0) {
+				errorDiv.style.display = '';
+				errorMsgEl.innerText = errorMsg;
+				createTopicBtn.disabled = false;
+			}
+        }
+        function cancelNewTopic() {
+            let titleText = document.getElementById("topic-title-input");
+        	titleText.value = "";
+        	let commentInput = document.getElementById("comment-input");
+			commentInput.value = "";
+			let errorDiv = document.getElementById("new-topic-form-error");
+			errorDiv.style.display = 'none';
+			let errorMsgEl = document.getElementById("topic-error-msg");
+			errorMsgEl.innerText = "";
+			let newTopicEl = document.getElementById("new-topic");
+			newTopicEl.style.display = 'none';
+			let topicsEl = document.getElementById("topics-display");
+			topicsEl.style.display = '';
+			let membersBtn = document.getElementById("forum-members-btn");
+			membersBtn.style.display = '';        
+        }
+        function launchReplyToScreen(topic, comment) {
+			let commentsEl = document.getElementById("comments-display");
+			commentsEl.style.display = 'none';
+        	
+        	let replyBtn = document.getElementById("replyBtn");
+        	replyBtn.onclick=function() {
+			    replyBtn.disabled = true;
+            	replyToComment(topic, comment);
+            	replyBtn.disabled = false;
+        	};			
+        	
+        	let errorMsgEl = document.getElementById("comment-error-msg");
+			errorMsgEl.innerText = "";
+			
+			let commentInput = document.getElementById("new-comment-input");
+			commentInput.value = "";
+        	let newCommentEl = document.getElementById("new-comment");
+			newCommentEl.style.display = '';			
+			commentInput.focus();
+        }	
+			
+        function replyToComment(topic, currentComment) {
+        	var inError = false;
+        	var errorMsg = "Error";
+
+			let errorDiv = document.getElementById("new-comment-form-error");
+			let errorMsgEl = document.getElementById("comment-error-msg");
+			let commentInput = document.getElementById("new-comment-input");
+			
+			if (commentInput != null && commentInput.value.trim().length > 0) {
+				let comment = commentInput.value;
+				commentInput.value = "";
+				errorDiv.style.display = 'none';
+				errorMsgEl.innerText = "";
+				let newCommentEl = document.getElementById("new-comment");
+				newCommentEl.style.display = 'none';
+				showSpinner();
+				createNewReply(comment, topic, () => {
+					retrieveChatMessages((reply) => {
+                		readMessages(reply);
+                		loadProfileImages(ChatMetadata.members, () => {
+                			let updatedComments = TopicToComments.get(topic.messageRef);
+                			displayComments(topic, updatedComments);
+                			hideSpinner();
+                		});
+            		});
+            	});
+
+			} else {
+				inError = true;
+				errorMsg = "Missing comment!";				
+				errorDiv.style.display = '';
+				errorMsgEl.innerText = errorMsg;
+			}
+        }
+        function cancelNewComment() {
+        	let commentInput = document.getElementById("new-comment-input");
+        	commentInput.value = "";
+        	let errorDiv = document.getElementById("new-comment-form-error");
+			errorDiv.style.display = 'none';
+			let errorMsgEl = document.getElementById("comment-error-msg");
+			errorMsgEl.innerText = "";
+			let newCommentEl = document.getElementById("new-comment");
+			newCommentEl.style.display = 'none';
+			let commentsEl = document.getElementById("comments-display");
+			commentsEl.style.display = '';
+        }
+        function returnToTopics(callback) {
+        	let returnToTopicsBtn = document.getElementById("comments-return-to-topics-btn");
+			returnToTopicsBtn.style.display = 'none';        
+        
+        	let membersBtn = document.getElementById("forum-members-btn");
+			membersBtn.style.display = '';        
+        
+        	let commentsDisplay = document.getElementById("comments-display");
+			commentsDisplay.style.display = 'none';
+			
+			let newTopicEl = document.getElementById("new-topic");
+			newTopicEl.style.display = 'none';
+			
+			let newCommentEl = document.getElementById("new-comment");
+			newCommentEl.style.display = 'none';
+			
+            let topicsEl = document.getElementById("topics-display");
+			topicsEl.style.display = '';
+			
+			if (callback == null) {
+				showSpinner();
+				refreshTopics(() => {
+					hideSpinner();
+				});
+			} else {
+        		refreshTopics(callback);
+        	}
+        }
+        function refreshTopics(callback) {
+        	if (refreshing) {
+        		return;
+        	}
+        	refreshing = true;
+        	let refreshBtn = document.getElementById("refreshBtn");
+			refreshBtn.disabled = true;
+			
+			retrieveChatMessages((reply) => {
+                readMessages(reply);
+                loadProfileImages(ChatMetadata.members, () => {
+                	displayTopics();
+                	refreshBtn.disabled = false;
+        			refreshing = false;
+        			if (callback != null) {
+						callback();        			
+        			}
+                });
+            });
+        }
+
+        function extractOwnerFromChatId(chatId) {
+            return chatId.substring(chatId.indexOf("$") +1, chatId.lastIndexOf("$"));
+        }
+        function loadProfileImages(members, callback) {
+        	let newProfileImages = new Map();
+            for(var i = 0; i < members.length; i++) {
+                let username = members[i];
+                fetch('/peergos-api/v0/profile/' + username + "?thumbnail=true", { method: 'GET' }).then(function(response) {
+                    if (response.status === 200) {
+                        response.arrayBuffer().then(function(buffer) {
+                            let reply = new TextDecoder().decode(buffer);
+                            let result = JSON.parse(reply);
+                            newProfileImages.set(username, result.profileThumbnail);
+                            if (members.length == newProfileImages.size) {
+                                ProfileImages = newProfileImages;
+                        		callback()
+                        	}
+                        });
+                    } else {
+                        newProfileImages.set(username, "");
+                        if (members.length == newProfileImages.size) {
+                        	ProfileImages = newProfileImages;
+                        	callback()
+                        }
+                    }
+                });
+            }
+        }
+        function retrieveChatMessages(callback) {
+            fetch('/peergos-api/v1/chat/' + ChatId + '/?startIndex=' + ChatMetadata.startIndex, { method: 'GET' }).then(function(response) {
+                if (response.status === 200) {
+                    response.arrayBuffer().then(function(buffer) {
+                        let reply = new TextDecoder().decode(buffer);
+                        let replyObj = JSON.parse(reply);
+                        callback(replyObj);
+                    });
+                }
+            });
+        }
+        function isNoLongerPartOfChat() {
+            return (ChatMetadata.members.findIndex(v => v === Username) == -1 || ChatMetadata.members.length == 0)
+                || (ChatMetadata.members.findIndex(v => v === Username) == 0 || ChatMetadata.members.length == 1)
+                || !ChatMetadata.hasFriendsInChat;
+        }
+        function isAdminOfEmptyChat() {
+            return ChatMetadata.members.findIndex(v => v === Username) == 0
+                && ChatMetadata.members.length == 1 && ChatMetadata.admins.length == 1;
+        }
+        function isConversationReadOnly() {
+            let that = this;
+            let isAdmin = ChatMetadata.admins.findIndex(v => v === Username) > -1;
+            if (isAdmin) {
+                return isAdminOfEmptyChat();
+            } else {
+                return isNoLongerPartOfChat();
+            }
+        }
+        function isUserDisabled() {
+            let isAdmin = ChatMetadata.admins.findIndex(v => v === Username) > -1;
+            if (isAdmin) {
+                return false;
+            } else {
+                return isNoLongerPartOfChat();
+            }
+        }
+        function checkChatState() {
+            ChatMetadata.readonly = isConversationReadOnly();
+            if (!ChatMetadata.hasFriendsInChat) {
+                if (! ChatMetadata.chatVisibilityWarningDisplayed) {
+                    console.log("Forum no longer contains any of your friends. Your messages will not be seen by others");
+                }
+                ChatMetadata.chatVisibilityWarningDisplayed = true;
+            }
+        }
+        function readTextFile(fileRef, callback) {
+            let encoder = new TextEncoder();
+            let bytes = encoder.encode(JSON.stringify(fileRef));
+            fetch('/peergos-api/v1/chat/' + ChatId + '?contents=true', { method: 'POST', body: bytes }).then(function(response) {
+                if (response.status !== 200) {
+                    console.log('Unable to read file:' + fileRef.path);
+                    callback(null);
+                } else {
+                    response.arrayBuffer().then(function(buffer) {
+    					let text = new TextDecoder().decode(buffer);
+    					callback(text);
+    				});
+                }
+            });
+        }
+        function findTopic(topics, id, index, callback) {
+        	if (index == topics.length) {
+        		console.log('message not found!');
+        		callback(null);
+        	} else {
+        		let topic = topics[index];
+        		let fileRef = topic.mediaFiles[0].fileRef;
+        		readTextFile(fileRef, (contents) => {
+        			if (contents === id) {
+        				callback(topic);
+        			} else {
+        				findTopic(topics, id, index + 1, callback);
+        			}
+        		});
+        	}
+        }
+        function readMessagesAndFindNewTopic(response, idOfTopicAttachment, callback) {
+            ChatMetadata.startIndex = response.startIndex;
+            ChatMetadata.hasFriendsInChat = response.hasFriendsInChat;
+            
+            let newTopics = updateMessageThread(response.messages);
+    	    checkChatState();
+            findTopic(newTopics, idOfTopicAttachment, 0, (appMsg) => {
+        		callback(appMsg);    
+            })
+        }
+        function readMessages(response) {
+            ChatMetadata.startIndex = response.startIndex;
+            ChatMetadata.hasFriendsInChat = response.hasFriendsInChat;
+            
+            updateMessageThread(response.messages);
+    	    checkChatState();
+        }
+        function createMessage(author, serialised, contents, attachments, parentMessage, messageRef, timestamp) {
+            let mediaFiles = [];
+            attachments.forEach (function(mediaFile) {
+                let fileType = mediaFile.fileType;
+                let mimeType = mediaFile.mimeType;
+                let thumbnail = mediaFile.thumbnail;
+                mediaFiles.push({loaded: true, fileRef: mediaFile.fileRef, path: mediaFile.fileRef.path, file: mediaFile, mimeType: mimeType, fileType: fileType, thumbnail: thumbnail, hasThumbnail: thumbnail.length > 0});
+            });
+            let jsDate = new Date(timestamp.toString() + "+00:00");
+            let entry = {mediaFiles: mediaFiles,
+                sender: author, sendTime: jsDate, contents: contents
+                , serialised: serialised, parentMessage: parentMessage, edited: false, deleted : false, messageRef: messageRef};
+            return entry;
+        }
+        function updateMessageThread(messages) {
+            let messageThread = MessageThread;
+            let hashToIndex = ThreadHashToIndex;
+            let chat = ChatMetadata;
+            let newTopics = [];
+            for(var j = 0; j < messages.length; j++) {
+                let message = messages[j];
+                if (message.type == 'GroupState') {
+                    if(message.groupState.key == "admins") {
+                        chat.admins = message.groupState.value.split(",");
+                    }
+                } else if(message.type == 'Invite') {
+                    let username = message.inviteUsername;
+                    let memberIndex = chat.members.findIndex(v => v === username);
+                    if (memberIndex == -1) {
+                        chat.members.push(username);
+                    }
+                    if (username != Username) {
+                        memberIndex = chat.otherMembers.findIndex(v => v === username);
+                        if (memberIndex == -1) {
+                            chat.otherMembers.push(username);
+                        }
+                    }
+                    chat.readonly = isConversationReadOnly();
+                } else if(message.type == 'RemoveMember') {
+                    let username = message.removeUsername;
+                    let memberIndex = chat.members.findIndex(v => v === username);
+                    if (memberIndex > -1) {
+                        chat.members.splice(memberIndex, 1);
+                    }
+                    memberIndex = chat.otherMembers.findIndex(v => v === username);
+                    if (memberIndex > -1) {
+                        chat.otherMembers.splice(memberIndex, 1);
+                    }
+                    chat.readonly = isConversationReadOnly();
+                } else if(message.type == 'Join') {
+                    let username = message.joinUsername;
+                    if (username != Username) {
+                        memberIndex = chat.otherMembers.findIndex(v => v === username);
+                        if (memberIndex == -1) {
+                            chat.otherMembers.push(username);
+                        }
+                    }
+                } else if(message.type == 'Application') {
+                    let contents = message.text;
+                    let appMsg = createMessage(message.author, message.envelope, contents, message.attachments, null, message.messageRef, message.timestamp);
+                    hashToIndex.set(message.messageRef, messageThread.length);
+                    messageThread.push(appMsg);
+                    newTopics.push(appMsg);
+            		Topics.push(appMsg);
+            		TopicMetadata.set(appMsg.messageRef, {lastUpdated: appMsg.sendTime});
+                } else if(message.type == 'Edit') {
+                    let contents = message.text;
+                    let messageIndex = hashToIndex.get(message.editPriorVersion);
+                    let existingMessage = messageThread[messageIndex];
+                    if (message.author == existingMessage.sender) {
+                        existingMessage.contents = contents;
+                        existingMessage.edited = true;
+                    }
+                } else if(message.type == 'Delete') {
+                    let messageIndex = hashToIndex.get(message.deleteTarget);
+                    let existingMessage = messageThread[messageIndex];
+                    existingMessage.contents = "[Message Deleted]";
+                    existingMessage.deleted = true;
+                    existingMessage.mediaFiles = [];
+                    existingMessage.file = null;
+                } else if(message.type == 'ReplyTo') {
+                    let messageIndex = hashToIndex.get(message.replyToParent);
+                    let parentMessage = messageThread[messageIndex];
+                    let appMsg = createMessage(message.author, message.envelope, message.text, message.attachments, parentMessage, message.messageRef, message.timestamp);
+                    hashToIndex.set(message.messageRef, messageThread.length);
+                    messageThread.push(appMsg);
+                    
+					var topicComments = TopicToComments.get(parentMessage.messageRef);
+					if (topicComments == null) {
+						topicComments = [];
+					}
+					topicComments.push(appMsg);
+					let sortedComments = topicComments.sort(function(aVal, bVal){
+						let a = aVal.sendTime;
+						let b = bVal.sendTime;
+                		return a - b;
+            		});
+					TopicToComments.set(parentMessage.messageRef, sortedComments);
+					let topicMetadata = TopicMetadata.get(parentMessage.messageRef);
+					if (topicMetadata.lastUpdated < sortedComments[sortedComments.length-1].sendTime) {
+						topicMetadata.lastUpdated = sortedComments[sortedComments.length-1].sendTime;
+					}
+                }
+            }
+            return newTopics;
+        }
+        function loadTopics(callback) {
+            fetch('/peergos-api/v1/chat/', { method: 'GET' }).then(function(response) {
+                if (response.status === 200) {
+                    response.arrayBuffer().then(function(buffer) {
+                        let reply = JSON.parse(new TextDecoder().decode(buffer));
+                        let matches = reply.chats.filter(c => c.chatId = ChatId);
+                        if (matches.length != 1) {
+                        	console.log('Chat not found!');
+                        } else {
+                        	Chat = matches[0];
+                			let owner = extractOwnerFromChatId(ChatId);
+                			let title = "[" + owner+"] " + Chat.title;
+                			document.getElementById("title-display").childNodes[0].textContent= title;
+                			ChatMetadata = {members: Chat.members
+                    			, otherMembers: Chat.members.filter(v => v != Username)
+                    			, admins: Chat.admins
+                    			, chatVisibilityWarningDisplayed: false, readonly: false, hasFriendsInChat: true
+                    			, startIndex: 0};
+                			loadProfileImages(Chat.members, () => {
+                			    retrieveChatMessages((reply) => {
+                					readMessages(reply);
+                					callback();
+                				});
+                			});
+                        }
+                    });
+                } else {
+                	console.log('Unable to retrieve chat');
+                	callback();
+                }
+            });
+        }
+        function fromUTCtoLocal(date) {
+            let formatted = date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate()
+                + ' ' + (date.getHours() < 10 ? '0' : '') + date.getHours()
+                + ':' + (date.getMinutes() < 10 ? '0' : '') + date.getMinutes()
+                + ':' + (date.getSeconds() < 10 ? '0' : '') + date.getSeconds();
+            return formatted;
+        }
+        function displayComments(topic, comments) {
+        	let topicsEl = document.getElementById("topics-display");
+			topicsEl.style.display = 'none';
+			
+			let returnToTopicsBtn = document.getElementById("comments-return-to-topics-btn");
+			returnToTopicsBtn.style.display = '';  
+
+        	let membersBtn = document.getElementById("forum-members-btn");
+			membersBtn.style.display = 'none';   
+			
+        	let commentsDisplay = document.getElementById("comments-display");
+			commentsDisplay.style.display = '';
+			
+			let topicTitle = document.getElementById("topic-title");
+			topicTitle.innerText = topic.contents;	
+			
+			let commentsEl = document.getElementById("comments");
+			while (commentsEl.hasChildNodes()) {
+  				commentsEl.removeChild(commentsEl.firstChild);
+			}
+			let isAdmin = ChatMetadata.admins.includes(Username);
+        	for(var i = 0 ; i < comments.length; i++) {
+        		let comment = comments[i];        		
+        		let profileBase64ImageData = ProfileImages.get(comment.sender);	    
+        		let div1 = document.createElement("div");
+        		div1.classList.add("card");
+        		div1.classList.add("comments-comment");
+        		div1.id = comment.id;
+        			let div2 = document.createElement("div");
+        			div2.classList.add("avatar-block");
+	        			let div3 = document.createElement("div");
+    	    			div3.classList.add("avatar-block-l");
+		        		    let profileImg = document.createElement("img");
+		        		    profileImg.classList.add("img-circle");
+		        		    profileImg.style.width = "35px";
+		        		    profileImg.style.height = "35px";
+		        		    if (profileBase64ImageData != null && profileBase64ImageData.length > 0) {
+		        		    	profileImg.src = profileBase64ImageData;
+		        		    }
+			    			div3.appendChild(profileImg);
+		    			div2.appendChild(div3);
+		    			let div4 = document.createElement("div");
+    	    			div4.classList.add("avatar-block-r");
+    	    				let div5 = document.createElement("div");
+    	    				div5.classList.add("comments-comment-author");
+    	    				    let authorSpan = document.createElement("span");
+    	    					authorSpan.innerText = comment.sender;
+				    			div5.appendChild(authorSpan);
+			    			div4.appendChild(div5);
+			    			
+			    			let div6 = document.createElement("div");
+    	    				div6.classList.add("comments-comment-date");
+    	    				div6.appendChild(document.createTextNode(' commented at: '));
+    	    				    let createdSpan = document.createElement("span");
+    	    					createdSpan.innerText = fromUTCtoLocal(comment.sendTime);
+				    			div6.appendChild(createdSpan);
+			    			div4.appendChild(div6);
+			    			
+		    			div2.appendChild(div4);
+	    			div1.appendChild(div2);
+	    			
+	    			let div7 = document.createElement("div");
+        			div7.classList.add("comments-comment-content");
+        				let textArea = document.createElement("textarea");
+    	    			textArea.classList.add("form-control");
+    	    			textArea.classList.add("comment-textarea");
+    	    			textArea.maxlength = "10000";
+    	    			let lines = comment.contents.split("\n");
+    	    			let minRows = comment.deleted ? 1 : 2;
+    	    			let rows = Math.max(Math.min(lines.length, 15), minRows);
+    	    			textArea.rows = rows;
+    	    			textArea.disabled = true;
+    	    			textArea.value = comment.contents;
+		    		div7.appendChild(textArea);
+        			div1.appendChild(div7);
+        			if ((isAdmin || comment.sender == Username) && !comment.deleted && i > 0 && !isUserDisabled()) {
+        				let div8 = document.createElement("div");
+    	    			div8.classList.add("comments-comment-admin-tools");
+    	    				let anchor = document.createElement("a");
+			        		anchor.classList.add("a-tool");
+			        		anchor.style.cursor = "pointer";
+			        		anchor.onclick=function() {
+            					deleteComment(anchor, topic, comment);
+        					};
+            	    		let deleteCommentIcon = document.createElement("i");
+			        		deleteCommentIcon.classList.add("fa");
+			        		deleteCommentIcon.classList.add("fa-times");			        			
+				    		anchor.appendChild(deleteCommentIcon);
+    	    				let deleteCommentSpan = document.createElement("span");
+    	    				deleteCommentSpan.style.marginLeft = "2px";
+    	    				deleteCommentSpan.innerText = "Delete comment";
+				    		deleteCommentIcon.appendChild(deleteCommentSpan);
+				    	div8.appendChild(anchor);
+					    div1.appendChild(div8);		
+				    }		
+				    if (i == comments.length -1 && !isUserDisabled()) {	    
+			    		let div9 = document.createElement("div");
+    	    			div9.classList.add("comments-comment-new");
+    	    		    	let replyAnchor = document.createElement("a");
+			        		replyAnchor.classList.add("btn");
+			        		replyAnchor.classList.add("btn-primary");
+			        		replyAnchor.classList.add("btn-sm");
+			        		replyAnchor.style.cursor = "pointer";
+			        		replyAnchor.onclick=function() {
+			        			replyAnchor.disabled = true;
+            					launchReplyToScreen(topic, comment);
+            					replyAnchor.disabled = false;
+        					};
+            	    		let replyCommentIcon = document.createElement("i");
+			        		replyCommentIcon.classList.add("fa");
+			        		replyCommentIcon.classList.add("fa-reply");			        			
+				    		replyAnchor.appendChild(replyCommentIcon);
+    	    				let replyCommentSpan = document.createElement("span");
+    	    				replyCommentSpan.style.marginLeft = "2px";
+    	    				replyCommentSpan.innerText = "Add Comment";
+				    		replyCommentIcon.appendChild(replyCommentSpan);
+				    		div9.appendChild(replyAnchor);	
+						div1.appendChild(div9);	
+					}
+    			commentsEl.appendChild(div1);
+        	}
+        	setTimeout(() => {
+        		let btn = document.getElementById("comments-display-return-to-topics-btn");
+            	btn.scrollIntoView({ behavior: "instant", block: "end" });
+            },1);		
+        }
+        function displayTopics() {
+        	let topicsEl = document.getElementById("topics");
+        	while (topicsEl.hasChildNodes()) {
+  				topicsEl.removeChild(topicsEl.firstChild);
+			}
+			let isAdmin = ChatMetadata.admins.includes(Username);
+
+			let sortedTopics = Topics.sort(function(aVal, bVal){
+				let a = TopicMetadata.get(aVal.messageRef).lastUpdated;
+				let b = TopicMetadata.get(bVal.messageRef).lastUpdated;
+                return b - a;
+            });
+        	for(var i = 0 ; i < sortedTopics.length; i++) {
+        		let topic = sortedTopics[i];
+        		let comments = TopicToComments.get(topic.messageRef);
+        		let lastUpdated = TopicMetadata.get(topic.messageRef).lastUpdated;
+        		if (topic.deleted) {
+        			continue;
+        		}
+        		let profileBase64ImageData = ProfileImages.get(topic.sender);
+        		let div1 = document.createElement("div");
+        		div1.classList.add("card");
+        		div1.classList.add("topics-topic");
+        			let div2 = document.createElement("div");
+        			div2.classList.add("avatar-block");
+	        			let div3 = document.createElement("div");
+    	    			div3.classList.add("avatar-block-l");
+		        		    let profileImg = document.createElement("img");
+		        		    profileImg.classList.add("img-circle");
+		        		    profileImg.style.width = "40px";
+		        		    profileImg.style.height = "40px";
+		        		    if (profileBase64ImageData !=null && profileBase64ImageData.length > 0) {
+		        		    	profileImg.src = profileBase64ImageData;
+		        		    } 
+			    			div3.appendChild(profileImg);
+		    			div2.appendChild(div3);
+		    			let div4 = document.createElement("div");
+    	    			div4.classList.add("avatar-block-r");
+    	    				let div5 = document.createElement("div");
+    	    				div5.classList.add("topics-topic-title");
+    	    				    let titleSpan = document.createElement("span");
+    	    					titleSpan.innerText = topic.contents;
+				    			div5.appendChild(titleSpan);
+				    			titleSpan.style.cursor = "pointer";
+				    			titleSpan.onclick=function() {
+					    			titleSpan.disabled = true;
+            						displayComments(topic, comments);
+            						titleSpan.disabled = false;
+        						};
+			    			div4.appendChild(div5);
+			    			let div6 = document.createElement("div");
+    	    				div6.classList.add("topics-topic-info");
+				    			let author = document.createElement("i");
+			        			author.classList.add("fa");
+			        			author.classList.add("fa-user-o");			    			
+				    			div6.appendChild(author);
+
+    	    					let authorSpan = document.createElement("span");
+    	    					authorSpan.style.marginLeft = "2px";
+    	    					authorSpan.innerText = topic.sender;
+				    			div6.appendChild(authorSpan);
+				    			
+				    			let separator = document.createElement("span");
+			        			separator.classList.add("info-separator");
+				    			separator.innerText = " | ";				    			
+				    			div6.appendChild(separator);
+    	    				
+    	    					let commentCount = document.createElement("i");
+			        			commentCount.classList.add("fa");
+			        			commentCount.classList.add("fa-comment-o");
+				    			div6.appendChild(commentCount);
+
+    	    					let commentCountSpan = document.createElement("span");
+    	    					commentCountSpan.style.marginLeft = "2px";
+    	    					commentCountSpan.innerText = comments.length;
+				    			div6.appendChild(commentCountSpan);
+
+				    			let separator2 = document.createElement("span");
+			        			separator2.classList.add("info-separator");
+				    			separator2.innerText = " | ";				    			
+				    			div6.appendChild(separator2);
+
+    	    					let lastComment = document.createElement("i");
+			        			lastComment.classList.add("fa");
+			        			lastComment.classList.add("fa-clock-o");
+				    			div6.appendChild(lastComment);
+
+    	    					let lastCommentSpan = document.createElement("span");
+    	    					lastCommentSpan.style.marginLeft = "2px";
+    	    					lastCommentSpan.innerText = fromUTCtoLocal(lastUpdated);
+				    			div6.appendChild(lastCommentSpan);
+
+			    			div4.appendChild(div6);
+			    			if ((isAdmin || topic.sender == Username) && !isUserDisabled()) {
+			    			let div7 = document.createElement("div");
+    	    				div7.classList.add("topics-topic-admin-tools");
+    	    				    	let anchor = document.createElement("a");
+			        				anchor.classList.add("a-tool");
+			        				anchor.style.cursor = "pointer";
+			        				anchor.onclick=function() {
+            							deleteTopic(anchor, topic);
+        							};
+            	    				let deleteTopicIcon = document.createElement("i");
+			        				deleteTopicIcon.classList.add("fa");
+			        				deleteTopicIcon.classList.add("fa-times");			        			
+				    				anchor.appendChild(deleteTopicIcon);
+    	    						let deleteTopicSpan = document.createElement("span");
+    	    						deleteTopicSpan.style.marginLeft = "2px";
+    	    						deleteTopicSpan.innerText = "Delete topic";
+				    				deleteTopicIcon.appendChild(deleteTopicSpan);
+
+				    				div7.appendChild(anchor);
+			    				div4.appendChild(div7);
+			    			}
+		    			div2.appendChild(div4);
+	    			div1.appendChild(div2);
+    			topicsEl.appendChild(div1);
+    		}	
+        }
+        init();
+  </script>
+  </body>
+</html>

@@ -61,6 +61,12 @@ Spreadsheet.  Data is stored in a a json formatted file with extension .sheet
 Can import to some degree xlsx, ods spreadsheet files
 ![Spreadsheet](./screenshots/luckysheet.png)
 
+## LuckySheet2Excel
+#### https://github.com/dream-num/Luckysheet
+#### https://github.com/yatessss/Luckyexcel
+
+Convert Luckysheet .sheet file to a Microsoft Excel xlsx file. Very experimental and not supported. 
+
 
 ## .docx extractor. Save content as .html (Formatting not preserved)
 #### https://gitlab.coko.foundation/XSweet/XSweet
@@ -109,6 +115,12 @@ Classic MS Paint clone
 WYSIWYG Markdown Editor
 ![Markdown editor](./screenshots/markdown.png)
 
+
+## Todo
+#### https://github.com/DumbWareio/DumbKan
+
+![Tasks](./screenshots/todo.png)   
+
 ## Tasks
 
 ![Tasks](./screenshots/tasks.png)    
@@ -116,7 +128,7 @@ WYSIWYG Markdown Editor
 ## TodoMVC
 #### https://github.com/1Marc/todomvc-vanillajs-2022
 
-![Todo list](./screenshots/todo.png)    
+![Todo list](./screenshots/todomvc.png)    
 
 ## Calculator
 #### https://github.com/intel/webapps-scientific-calculator
@@ -226,6 +238,26 @@ Project management app for TiddlyWiki:
 
 A tiny tool for simple, self-contained wikis
 ![feather-wiki](./screenshots/feather-wiki.png) 
+
+
+## Album
+#### https://github.com/disintegration/quiet
+
+Create shareable albums
+![album](./screenshots/album.png) 
+
+
+## Forum
+#### https://github.com/disintegration/bebop
+
+Create forums
+![forum](./screenshots/forum.png) 
+
+## Exiftool
+#### https://github.com/uswriting/exiftool/
+
+Read media file metadata using Exiftool compiled to webassembly
+![exiftool](./screenshots/exiftool.png) 
 
 
 ## text-editor

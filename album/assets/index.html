@@ -1,0 +1,1072 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Album</title>
+		<meta charset="utf-8">
+   		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    	<meta http-equiv="x-ua-compatible" content="ie=edge">
+		<link href='css/font-awesome.min.css' rel='stylesheet' type='text/css'>
+		<link href='css/bootstrap.min.css' rel='stylesheet' type='text/css'>
+		<link href='css/album.css' rel='stylesheet' type='text/css'>
+	</head>
+	<body>
+<div id="photo-modal" class="custom-modal">
+  <div class="custom-fit-modal-content">
+    <div class="custom-modal-body">
+      	<div id="wrapper">
+			<div id="header">
+				<div id="auth">
+						<div id="auth_user">
+							<div class="username"><span onclick="closePhotoModal()" style="font-size: xx-large;cursor: pointer;">&times;</span></div>
+						</div>						
+				</div>
+			</div>
+			<div class="photoview" id="photo"></div>
+		</div>
+    </div>
+  </div>
+</div>
+<div id="spinner" class="custom-modal">
+  <div style="position: relative;margin: auto;padding: 0;width: fit-content;">
+      <div  class="loading-info">
+          <i class="fa fa-circle-o-notch fa-spin fa-3x fa-fw"></i>
+          <p>Loading...</p>
+      </div>
+  </div>
+</div>
+<div id="confirmation-modal" class="custom-modal">
+  <div class="custom-fit-modal-content">
+    <div class="custom-modal-header">
+      <span onclick="closeConfirmationModal()" class="custom-modal-close">&times;</span>
+      <h2>Confirmation</h2>
+    </div>
+    <div class="custom-modal-body">
+      <p id="confirmation-message"></p>
+    </div>
+    <div class="custom-modal-footer">
+      <button class="btn btn-info" style="margin:10%;" id="confirm-no">No</button>
+      <button class="btn btn-success" style="margin:10%" id="confirm-yes">Yes</button>
+    </div>
+  </div>
+</div>
+		<div id="wrapper">
+			<div id="header">
+				<div id="main_logo">
+					<i class="fa fa-camera-retro"></i>
+					<i id="title-display" style="    font-family: 'Oleo Script Swash Caps', cursive;">
+					</i>
+				</div>
+            </span>            
+				<div id="admin-actions" style="display:none;">
+						<div id="auth_link">
+							<a id="members-link" class="persona_link" style="color: #777; cursor: pointer;" onclick="members();">Share with</a>
+						</div>
+						<div id="auth_user">
+							<div class="username"><a id="upload-link" class="persona_link" style="color: #777; cursor: pointer;" onclick="upload();">Import</a></div>
+						</div>		
+						<div id="auth_user">
+							<!-- div class="username"><a class="persona_link" style="color: #777; cursor: pointer;" onclick="exportAlbum();">Export</a></div -->
+						</div>										
+				</div>
+			</div>
+			<div class="clear"></div>
+			
+			<div class="userheader">
+				<div class="layout_selector"><i>Sort by: </i>
+					<select name="order" id="sort-order" style="font-size: medium;" onchange="sortOrderOnChange()">
+  						<option value="filename">Filename</option>
+  						<option value="upload">Upload Date</option>
+  						<option value="comment">Recent Comments</option>
+					</select>
+				</div>
+			</div>	
+			<div id="photostream">
+
+	
+	
+		</div>
+		
+		
+	<script>
+		var refreshing = false;
+		var completedInit = false;
+		var Username = "";
+		var ChatId;
+		var Chat;
+		var CurrrentPhotoPath = ""
+		var CurrrentPhotoBase64ImageData = "";
+		let ChatMetadata;
+		let MessageThread = [];
+		let ThreadHashToIndex = new Map();
+		let ProfileImages = new Map();
+		let ImageFileExtensionsSupported = ["jpg","png","gif","webp"];
+		
+		let Topics = [];
+		let TopicMetadata = new Map();
+		let TopicToComments = new Map();
+		
+		
+		function closeConfirmationModal() {
+		    let confirmationModal = document.getElementById("confirmation-modal");
+  			confirmationModal.style.display = "none";
+		}
+		function showSpinner() {
+		    let adminActions = document.getElementById("admin-actions");
+			adminActions.disabled = true;  
+			let spinner = document.getElementById("spinner");
+			spinner.style.display = 'block';
+		}
+		function hideSpinner() {
+			let spinner = document.getElementById("spinner");
+		    spinner.style.display = 'none';
+		    let adminActions = document.getElementById("admin-actions");
+			adminActions.disabled = false;  
+		}
+	  	function init() {
+  	    	let href = window.location.href;
+        	let url = new URL(href);
+        	Username = url.searchParams.get("username");
+        	ChatId = url.searchParams.get("chatId");
+        	//console.log('username=' + Username + " chatId=" + ChatId);
+        	showSpinner();
+            loadTopics(() => {
+	        	displayPhotos();
+	        	hideSpinner();
+        		completedInit = true;
+        	});
+        }
+        function exportAlbum() {
+        	console.log("exportAlbum not yet implemented!");
+        }
+        function addNewPhoto(title, bytes, callback) {
+			createNewTopic(title, bytes, (idOfTopicAttachment) => {
+				if (idOfTopicAttachment) {
+			    	retrieveChatMessages((reply) => {
+          				readMessagesAndFindNewTopic(reply, idOfTopicAttachment, (appMsg) => {
+                			callback(true);				
+                		});					
+                	});
+                } else {
+                	callback(false);
+                }
+			});
+        }
+        function refreshTopics(callback) {
+			retrieveChatMessages((reply) => {
+                readMessages(reply);
+                loadProfileImages(ChatMetadata.members, () => {
+                	displayPhotos();
+					callback();        			
+                });
+            });
+        }
+        function createNewReply(message, appMsg, callback) {
+            requestJson = {
+                replyMessage: {
+                    text: message,
+                    attachments: [],
+                    replyTo: appMsg.serialised
+                }
+            };
+            let encoder = new TextEncoder();
+            let bytes = encoder.encode(JSON.stringify(requestJson));
+            fetch('/peergos-api/v1/chat/' + ChatId, { method: 'PUT', body: bytes }).then(function(response) {
+                if (response.status === 201) {
+					callback(true);
+                } else {
+                	console.log("Unable to create reply");
+                	callback(false);
+                }
+            });
+        }
+        //https://stackoverflow.com/questions/105034/how-to-create-guid-uuid
+        function generateUUID() {
+          return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+          );
+        }
+        function deletePhoto(element, topic) {
+        	if (refreshing || element.disabled) {
+        		return;
+        	}
+        	let confirmationMessage = document.getElementById("confirmation-message");
+			confirmationMessage.innerText = "Are you sure you want to delete this Photo?"
+        	let confirmationModal = document.getElementById("confirmation-modal");
+  			let okButton = document.getElementById("confirm-yes");
+			okButton.onclick = function() {
+  				confirmationModal.style.display = "none";
+				element.disabled = true;
+				let requestJson = {
+                	deleteMessage: {
+                    	messageRef: topic.messageRef
+                	}
+            	};
+            	let encoder = new TextEncoder();
+            	let bytes = encoder.encode(JSON.stringify(requestJson));
+            	showSpinner();
+            	fetch('/peergos-api/v1/chat/' + ChatId, { method: 'PUT', body: bytes }).then(function(response) {
+                	element.disabled = false;			
+                	if (response.status === 201) {
+						refreshTopics(() => {
+							hideSpinner();
+						});	
+                	} else {
+                    	console.log("Unable to delete photo");
+                    	hideSpinner();		
+                	}
+            	});
+            }
+            let noButton = document.getElementById("confirm-no");
+			noButton.onclick = function() {
+			  	confirmationModal.style.display = "none";
+			}
+			confirmationModal.style.display = "block";
+        }
+        function createNewTopic(message, imageBytes, callback) {
+        	let guid = generateUUID();
+        	let encoder = new TextEncoder();
+            let bytes = encoder.encode(guid); 
+            let dotIndex = message.lastIndexOf('.');										
+			let extension = dotIndex <= 0 ? '' : message.substring(dotIndex +1);
+            fetch('/peergos-api/v1/chat/' + ChatId +"/attachment?filename=image." + extension, { method: 'POST', body: imageBytes }).then(function(response) {
+                if (response.status === 201) {
+                    let imgLocation = response.headers.get('location');
+                    let imgJson = JSON.parse(imgLocation);
+		            fetch('/peergos-api/v1/chat/' + ChatId +"/attachment?filename=" + guid, { method: 'POST', body: bytes }).then(function(response) {
+                		if (response.status === 201) {
+                    		let location = response.headers.get('location');
+                    		let json = JSON.parse(location);
+                    
+                    		let requestJson = {
+                				createMessage : {
+                    				text: message,
+                    				attachments: [json.fileRef, imgJson.fileRef]
+                				}
+            				};
+            				let encoder = new TextEncoder();
+            				let bytes = encoder.encode(JSON.stringify(requestJson));
+            				fetch('/peergos-api/v1/chat/' + ChatId, { method: 'PUT', body: bytes }).then(function(response) {
+                				if (response.status === 201) {
+									callback(guid);
+                				} else {
+                					console.log("Unable to create new album entry");
+                					callback(null);
+                				}
+            				});
+                		} else {
+                			console.log("upload failed");
+                			callback(null);
+                		}
+            		});
+            		
+            	} else {
+                	console.log("image upload failed");
+                	callback(null);
+                }
+            });
+        }
+        function loadTopics(callback) {
+            fetch('/peergos-api/v1/chat/', { method: 'GET' }).then(function(response) {
+                if (response.status === 200) {
+                    response.arrayBuffer().then(function(buffer) {
+                        let reply = JSON.parse(new TextDecoder().decode(buffer));
+                        let matches = reply.chats.filter(c => c.chatId = ChatId);
+                        if (matches.length != 1) {
+                        	console.log('Chat not found!');
+                        } else {
+                        	Chat = matches[0];
+                			let owner = extractOwnerFromChatId(ChatId);
+                			let title = "[" + owner+"] " + Chat.title;
+                			document.getElementById("title-display").childNodes[0].textContent= title;
+                			ChatMetadata = {members: Chat.members
+                    			, otherMembers: Chat.members.filter(v => v != Username)
+                    			, admins: Chat.admins
+                    			, chatVisibilityWarningDisplayed: false, readonly: false, hasFriendsInChat: true
+                    			, startIndex: 0};
+                    		if (Chat.admins.includes(Username)) {
+                    		    let adminActions = document.getElementById("admin-actions");
+				                adminActions.style.display = "block";
+                    		}
+                			loadProfileImages(Chat.members, () => {
+                			    retrieveChatMessages((reply) => {
+                					readMessages(reply);
+                					callback();
+                				});
+                			});
+                        }
+                    });
+                } else {
+                	console.log('Unable to retrieve chat');
+                	callback();
+                }
+            });
+        }
+        function extractOwnerFromChatId(chatId) {
+            return chatId.substring(chatId.indexOf("$") +1, chatId.lastIndexOf("$"));
+        }
+        function loadProfileImages(members, callback) {
+        	let newProfileImages = new Map();
+            for(var i = 0; i < members.length; i++) {
+                let username = members[i];
+                fetch('/peergos-api/v0/profile/' + username + "?thumbnail=true", { method: 'GET' }).then(function(response) {
+                    if (response.status === 200) {
+                        response.arrayBuffer().then(function(buffer) {
+                            let reply = new TextDecoder().decode(buffer);
+                            let result = JSON.parse(reply);
+                            newProfileImages.set(username, result.profileThumbnail);
+                            if (members.length == newProfileImages.size) {
+                                ProfileImages = newProfileImages;
+                        		callback()
+                        	}
+                        });
+                    } else {
+                        newProfileImages.set(username, "");
+                        if (members.length == newProfileImages.size) {
+                        	ProfileImages = newProfileImages;
+                        	callback()
+                        }
+                    }
+                });
+            }
+        }
+        function retrieveChatMessages(callback) {
+            fetch('/peergos-api/v1/chat/' + ChatId + '/?startIndex=' + ChatMetadata.startIndex, { method: 'GET' }).then(function(response) {
+                if (response.status === 200) {
+                    response.arrayBuffer().then(function(buffer) {
+                        let reply = new TextDecoder().decode(buffer);
+                        let replyObj = JSON.parse(reply);
+                        callback(replyObj);
+                    });
+                }
+            });
+        }
+        function readFile(fileRef, callback) {
+            let encoder = new TextEncoder();
+            let bytes = encoder.encode(JSON.stringify(fileRef));
+            fetch('/peergos-api/v1/chat/' + ChatId + '?contents=true', { method: 'POST', body: bytes }).then(function(response) {
+                if (response.status !== 200) {
+                    console.log('Unable to read file:' + fileRef.path);
+                    callback(null);
+                } else {
+                    response.arrayBuffer().then(function(buffer) {
+    					callback(buffer);
+    				});
+                }
+            });
+        }
+        function findTopic(topics, id, index, callback) {
+        	if (index == topics.length) {
+        		console.log('message not found!');
+        		callback(null);
+        	} else {
+        		let topic = topics[index];
+        		let fileRef = topic.mediaFiles[0].fileRef;
+        		readFile(fileRef, (buffer) => {
+        		    let contents = new TextDecoder().decode(buffer);
+        			if (contents === id) {
+        				callback(topic);
+        			} else {
+        				findTopic(topics, id, index + 1, callback);
+        			}
+        		});
+        	}
+        }
+        function readMessagesAndFindNewTopic(response, idOfTopicAttachment, callback) {
+            ChatMetadata.startIndex = response.startIndex;
+            ChatMetadata.hasFriendsInChat = response.hasFriendsInChat;
+            
+            let newTopics = updateMessageThread(response.messages);
+    	    checkChatState();
+            findTopic(newTopics, idOfTopicAttachment, 0, (appMsg) => {
+        		callback(appMsg);    
+            })
+        }
+        function readMessages(response) {
+            ChatMetadata.startIndex = response.startIndex;
+            ChatMetadata.hasFriendsInChat = response.hasFriendsInChat;
+            
+            updateMessageThread(response.messages);
+    	    checkChatState();
+        }
+        function isNoLongerPartOfChat() {
+            return (ChatMetadata.members.findIndex(v => v === Username) == -1 || ChatMetadata.members.length == 0)
+                || (ChatMetadata.members.findIndex(v => v === Username) == 0 || ChatMetadata.members.length == 1)
+                || !ChatMetadata.hasFriendsInChat;
+        }
+        function isAdminOfEmptyChat() {
+            return ChatMetadata.members.findIndex(v => v === Username) == 0
+                && ChatMetadata.members.length == 1 && ChatMetadata.admins.length == 1;
+        }
+        function isConversationReadOnly() {
+            let that = this;
+            let isAdmin = ChatMetadata.admins.findIndex(v => v === Username) > -1;
+            if (isAdmin) {
+                return isAdminOfEmptyChat();
+            } else {
+                return isNoLongerPartOfChat();
+            }
+        }
+        function isUserDisabled() {
+            let isAdmin = ChatMetadata.admins.findIndex(v => v === Username) > -1;
+            if (isAdmin) {
+                return false;
+            } else {
+                return isNoLongerPartOfChat();
+            }
+        }
+        function checkChatState() {
+            ChatMetadata.readonly = isConversationReadOnly();
+            if (!ChatMetadata.hasFriendsInChat) {
+                if (! ChatMetadata.chatVisibilityWarningDisplayed) {
+                    console.log("Album no longer contains any of your friends");
+                }
+                ChatMetadata.chatVisibilityWarningDisplayed = true;
+            }
+        }
+        function createMessage(author, serialised, contents, attachments, parentMessage, messageRef, timestamp) {
+            let mediaFiles = [];
+            attachments.forEach (function(mediaFile) {
+                let fileType = mediaFile.fileType;
+                let mimeType = mediaFile.mimeType;
+                let thumbnail = mediaFile.thumbnail;
+                mediaFiles.push({loaded: true, fileRef: mediaFile.fileRef, path: mediaFile.fileRef.path, file: mediaFile, mimeType: mimeType, fileType: fileType, thumbnail: thumbnail, hasThumbnail: thumbnail.length > 0});
+            });
+            let jsDate = new Date(timestamp.toString() + "+00:00");
+            let entry = {mediaFiles: mediaFiles,
+                sender: author, sendTime: jsDate, contents: contents
+                , serialised: serialised, parentMessage: parentMessage, edited: false, deleted : false, messageRef: messageRef};
+            return entry;
+        }
+        function updateMessageThread(messages) {
+            let messageThread = MessageThread;
+            let hashToIndex = ThreadHashToIndex;
+            let chat = ChatMetadata;
+            let newTopics = [];
+            for(var j = 0; j < messages.length; j++) {
+                let message = messages[j];
+                if (message.type == 'GroupState') {
+                    if(message.groupState.key == "admins") {
+                        chat.admins = message.groupState.value.split(",");
+                    }
+                } else if(message.type == 'Invite') {
+                    let username = message.inviteUsername;
+                    let memberIndex = chat.members.findIndex(v => v === username);
+                    if (memberIndex == -1) {
+                        chat.members.push(username);
+                    }
+                    if (username != Username) {
+                        memberIndex = chat.otherMembers.findIndex(v => v === username);
+                        if (memberIndex == -1) {
+                            chat.otherMembers.push(username);
+                        }
+                    }
+                    chat.readonly = isConversationReadOnly();
+                } else if(message.type == 'RemoveMember') {
+                    let username = message.removeUsername;
+                    let memberIndex = chat.members.findIndex(v => v === username);
+                    if (memberIndex > -1) {
+                        chat.members.splice(memberIndex, 1);
+                    }
+                    memberIndex = chat.otherMembers.findIndex(v => v === username);
+                    if (memberIndex > -1) {
+                        chat.otherMembers.splice(memberIndex, 1);
+                    }
+                    chat.readonly = isConversationReadOnly();
+                } else if(message.type == 'Join') {
+                    let username = message.joinUsername;
+                    if (username != Username) {
+                        memberIndex = chat.otherMembers.findIndex(v => v === username);
+                        if (memberIndex == -1) {
+                            chat.otherMembers.push(username);
+                        }
+                    }
+                } else if(message.type == 'Application') {
+                    let contents = message.text;
+                    let appMsg = createMessage(message.author, message.envelope, contents, message.attachments, null, message.messageRef, message.timestamp);
+                    hashToIndex.set(message.messageRef, messageThread.length);
+                    messageThread.push(appMsg);
+                    newTopics.push(appMsg);
+            		Topics.push(appMsg);
+            		TopicMetadata.set(appMsg.messageRef, {lastUpdated: appMsg.sendTime, hearts: new Map()});
+                } else if(message.type == 'Edit') {
+                    let contents = message.text;
+                    let messageIndex = hashToIndex.get(message.editPriorVersion);
+                    let existingMessage = messageThread[messageIndex];
+                    if (message.author == existingMessage.sender) {
+                        existingMessage.contents = contents;
+                        existingMessage.edited = true;
+                    }
+                } else if(message.type == 'Delete') {
+                    let messageIndex = hashToIndex.get(message.deleteTarget);
+                    let existingMessage = messageThread[messageIndex];
+                    existingMessage.contents = "[Message Deleted]";
+                    existingMessage.deleted = true;
+                    existingMessage.mediaFiles = [];
+                    existingMessage.file = null;
+                } else if(message.type == 'ReplyTo') {
+                    let messageIndex = hashToIndex.get(message.replyToParent);
+                    let parentMessage = messageThread[messageIndex];
+                    let appMsg = createMessage(message.author, message.envelope, message.text, message.attachments, parentMessage, message.messageRef, message.timestamp);
+                    hashToIndex.set(message.messageRef, messageThread.length);
+                    messageThread.push(appMsg);
+                    
+					var topicComments = TopicToComments.get(parentMessage.messageRef);
+					if (topicComments == null) {
+						topicComments = [];
+					}
+					topicComments.push(appMsg);
+					let sortedComments = topicComments.sort(function(aVal, bVal){
+						let a = aVal.sendTime;
+						let b = bVal.sendTime;
+                		return a - b;
+            		});
+					TopicToComments.set(parentMessage.messageRef, sortedComments);
+					let topicMetadata = TopicMetadata.get(parentMessage.messageRef);
+					if (message.text.length == 0) {
+						let existing = topicMetadata.hearts.get(message.author);
+						if (existing) { 
+						    topicMetadata.hearts.delete(message.author);
+						} else {
+                    		topicMetadata.hearts.set(message.author, "1");
+                    	}
+                    }
+					if (topicMetadata.lastUpdated < sortedComments[sortedComments.length-1].sendTime) {
+						topicMetadata.lastUpdated = sortedComments[sortedComments.length-1].sendTime;
+					}
+                }
+            }
+            return newTopics;
+        }
+
+        function fromUTCtoLocal(date) {
+            let formatted = date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate();
+            return formatted;
+        }
+	function upload() {
+		let isAdmin = ChatMetadata.admins.findIndex(v => v === Username) > -1;
+		if (!isAdmin) {
+			return;
+		}
+		let link = document.getElementById("upload-link");
+		link.disabled = true;  
+		fetch('/peergos-api/v0/folders/', { method: 'GET' }).then(function(response) {
+      		if (response.status === 200) {
+				response.arrayBuffer().then(function(buffer) {
+					showSpinner();
+					let text = new TextDecoder().decode(buffer);
+					let folders = JSON.parse(text);
+					retrieveFolders(folders, 0, (newCount) => {
+						displayPhotos();
+						hideSpinner();
+						console.log('new files loaded:' + newCount);	
+						link.disabled = false;  	
+					}, 0);
+    			});
+      		} else {
+		        console.log('Unable to upload file.  Error:' + response.status);
+      		}
+		});			
+	}
+	function loadFile(folderPath, filename, callback) {
+		let existingTopic = Topics.filter(t => t.contents === filename);
+		if (existingTopic.length > 0) {
+		    console.log('filename already exists: ' + folderPath + "/" + filename);
+      		callback(false);
+		} else {
+			fetch(folderPath + "/" + filename, { method: 'GET' }).then(function(response) {				
+      			if (response.status === 200) {
+					response.arrayBuffer().then(function(buffer) {
+  						//console.log('loaded file: ' + filename); 
+  						addNewPhoto(filename, buffer, (res) => {
+	  						callback(res);
+  						});
+    				});
+      			} else {
+      				console.log('file not loaded:' + folderPath + "/" + filename);
+      				callback(false);
+      			}
+			});	
+		}
+	}	
+	function retrieveFiles(folderPath, files, index, callback, newCount) {
+		if (index == files.length) {
+			callback(newCount);
+		} else {
+			loadFile(folderPath, files[index], (isNew) => {
+				if (isNew) {
+					newCount = newCount + 1;
+				}
+				retrieveFiles(folderPath, files, index + 1, callback, newCount);
+			});
+		}
+	}
+	function loadFolder(folderPath, folders, callback) {
+		fetch(folderPath, { method: 'GET' }).then(function(response) {				
+      		if (response.status === 200) {
+				response.arrayBuffer().then(function(buffer) {
+    				let files = new TextDecoder().decode(buffer);
+    				let response = JSON.parse(files);
+    				if (response.subFolders != null) {
+    					//response.subFolders.forEach(folder => folders.push(folder));
+    					console.log('loading sub folders is not supported!'); //we use a key based on filename, which is unique for the folder it is found in.
+    				}
+    				let availableFiles = response.files;
+    				let imageFiles = [];
+    				for(var i =0; i < availableFiles.length; i++) {
+    					let file = availableFiles[i];
+    					let dotIndex = file.lastIndexOf('.');										
+						let extension = dotIndex <= 0 ? '' : file.substring(dotIndex +1);
+						if (ImageFileExtensionsSupported.includes(extension)) {
+							imageFiles.push(file);
+						}
+    				}
+    				retrieveFiles(folderPath, imageFiles, 0, callback, 0);
+    			});
+      		} else {
+      			console.log('folder not loaded:' + folderPath);
+      			callback();
+      		}
+		});	
+	}	
+	function retrieveFolders(folders, index, callback, totalNewCount) {
+		if (index == folders.length) {
+			callback(totalNewCount);
+		} else {
+			loadFolder(folders[index], folders, (newCount) => {
+				totalNewCount = totalNewCount + newCount;
+				retrieveFolders(folders, index + 1, callback, totalNewCount);
+			});
+		}
+	}
+	function postComment(topic, comment, callback) {
+			showSpinner();
+			createNewReply(comment, topic, () => {
+				retrieveChatMessages((reply) => {
+               		readMessages(reply);
+               		loadProfileImages(ChatMetadata.members, () => {
+               			let updatedComments = TopicToComments.get(topic.messageRef);
+               			hideSpinner();
+               			callback(updatedComments);
+               		});
+           		});
+        	});
+	}
+	    function deleteComment(anchor, topic, comment) {
+        	if (anchor.disabled) {
+        		return;
+        	}
+        	let confirmationMessage = document.getElementById("confirmation-message");
+			confirmationMessage.innerText = "Are you sure you want to delete this Comment?"
+        	let confirmationModal = document.getElementById("confirmation-modal");
+  			let okButton = document.getElementById("confirm-yes");
+			okButton.onclick = function() {
+  				confirmationModal.style.display = "none";
+				anchor.disabled = true;
+				let requestJson = {
+                	deleteMessage: {
+                    	messageRef: comment.messageRef
+                	}
+            	};
+            	let encoder = new TextEncoder();
+            	let bytes = encoder.encode(JSON.stringify(requestJson));
+            	showSpinner();
+            	fetch('/peergos-api/v1/chat/' + ChatId, { method: 'PUT', body: bytes }).then(function(response) {
+                	if (response.status === 201) {
+                		retrieveChatMessages((reply) => {
+                			readMessages(reply);
+                			loadProfileImages(ChatMetadata.members, () => {
+                				let updatedComments = TopicToComments.get(topic.messageRef);
+                				anchor.disabled = false;			
+                				displayPhoto(topic, updatedComments);
+                				hideSpinner();
+                			});
+            			});
+                	} else {
+                    	console.log("Unable to delete comment");
+                		anchor.disabled = false;	
+                		hideSpinner();		
+                	}
+            	});
+            };
+            let noButton = document.getElementById("confirm-no");
+			noButton.onclick = function() {
+			  	confirmationModal.style.display = "none";
+			}
+			confirmationModal.style.display = "block";
+        }
+		function displayPhoto(topic, comments) {
+			let photoEl = document.getElementById("photo");
+        	while (photoEl.hasChildNodes()) {
+  				photoEl.removeChild(photoEl.firstChild);
+			}
+			displayPhotoPage(topic, comments);
+		}
+		function displayPhotoPage(topic, comments) {
+			let totalComments = comments == null ? 0 : comments.length;
+        	let numberOfComments = comments == null ? 0 : comments.filter(c => c.contents.length > 0 && !c.deleted).length;
+        	let photoMetadata = TopicMetadata.get(topic.messageRef);
+        	let numberOfHearts = photoMetadata.hearts.size;
+        	let thumbnail = topic.mediaFiles[1].thumbnail;
+			let img = document.createElement("img");
+			let photoEl = document.getElementById("photo");
+				let div1 = document.createElement("div");
+        		div1.classList.add("photo");
+		        	img.style.width = "100%";
+		        	img.src = thumbnail;				
+				div1.appendChild(img);
+				div1.appendChild(document.createElement("br"));
+    		photoEl.appendChild(div1);	
+				let div100 = document.createElement("div");
+        		div100.classList.add("photo_title");
+        		div100.innerText = topic.contents;
+    		photoEl.appendChild(div100);	
+    			
+			let div2 = document.createElement("div");
+				let div3 = document.createElement("div");
+        		div3.classList.add("photo_stats");
+        			let favSpan = document.createElement("span");
+    	    			let heart = document.createElement("i");
+			        	heart.classList.add("fa");
+			        	heart.classList.add("fa-heart");	
+			        	heart.classList.add("heart");	
+			        	heart.style="cursor: pointer;";
+			        	heart.onclick=function() {
+            				postComment(topic, "", updatedComments => {
+            					displayPhoto(topic, updatedComments);
+            				});
+        				};
+				    	favSpan.appendChild(heart);
+				    	let heartCount = document.createElement("span");
+				    	heartCount.innerText = numberOfHearts;
+				    	heartCount.style.marginLeft = "2px";				    			
+				    	favSpan.appendChild(heartCount);
+				    div3.appendChild(favSpan);
+				    	let separator = document.createElement("span");
+				    	separator.innerText = "/";				    			
+				    	separator.style.marginLeft = "2px";				    			
+				    div3.appendChild(separator);
+        			let commentsSpan = document.createElement("span");
+        			commentsSpan.style.marginLeft = "2px";				    			
+    	    			let commentsCount = document.createElement("i");
+			        	commentsCount.classList.add("fa");
+			        	commentsCount.classList.add("fa-comments");			    			
+				    	commentsSpan.appendChild(commentsCount);
+				    	let commentCount = document.createElement("span");
+				    	commentCount.style.marginLeft = "2px";				    			
+				    	commentCount.innerText = numberOfComments;				    			
+				    	commentsSpan.appendChild(commentCount);
+				    div3.appendChild(commentsSpan);
+					let separatorSpan = document.createElement("span");
+			        separatorSpan.classList.add("separator");
+			        separatorSpan.innerText = "|";
+				    div3.appendChild(separatorSpan);
+					let uploadSpan = document.createElement("span");
+			        uploadSpan.classList.add("photo_uploaded");
+			        uploadSpan.innerText = "Uploaded on " + fromUTCtoLocal(topic.sendTime);
+				    div3.appendChild(uploadSpan);
+        		div2.appendChild(div3);
+					
+					let isAdmin = ChatMetadata.admins.includes(Username);
+					let div4 = document.createElement("div");
+        			div4.classList.add("comments");
+        			let ourProfileBase64ImageData = ProfileImages.get(Username);	
+        			for(var i = 0 ; i < totalComments; i++) {
+        				let comment = comments[i];    
+        				if (comment.deleted || comment.contents.trim().length == 0) {
+        					continue;
+        				}    		
+        				let profileBase64ImageData = ProfileImages.get(comment.sender);	 
+        					let div5 = document.createElement("div");
+        					div5.classList.add("comment");
+        						let div6 = document.createElement("div");
+        						div6.classList.add("avatar");
+        							let profileImg = document.createElement("img");
+		        		    		profileImg.style.width = "35px";
+		        		    		profileImg.style.height = "35px";
+		        		    		if (profileBase64ImageData !=null && profileBase64ImageData.length > 0) {
+		        		    			profileImg.src = profileBase64ImageData;
+		        		    		} else {
+		        		    			profileImg.classList.add("img-circle");
+		        		    		}
+			    					div6.appendChild(profileImg);
+    							div5.appendChild(div6);
+        						let div7 = document.createElement("div");
+        						div7.classList.add("rightbox");
+	        						let div8 = document.createElement("div");
+    	    						div8.classList.add("comment_info");
+        								let usernameSpan = document.createElement("span");
+			        					usernameSpan.classList.add("comment-username");
+			        					usernameSpan.innerText = comment.sender;
+				    					div8.appendChild(usernameSpan);
+				    					let commentOnSpan = document.createElement("span");
+			        					commentOnSpan.classList.add("separator");
+			        					commentOnSpan.innerText = "on " + fromUTCtoLocal(comment.sendTime);
+				    					div8.appendChild(commentOnSpan);
+										if (isAdmin || comment.sender === Username) {
+        		    	    				let anchor = document.createElement("a");
+        		    	    				anchor.classList.add("warning");
+			        						anchor.style.cursor = "pointer";
+			        						anchor.innerText = "[delete]";
+			        						anchor.onclick=function() {
+            									deleteComment(anchor, topic, comment);
+        									};
+				    						div8.appendChild(anchor);
+				    					}
+	        						div7.appendChild(div8);
+	        						let div9 = document.createElement("div");
+    	    						div9.classList.add("comment_text");
+    	    						div9.innerText = comment.contents;    	    						
+	        						div7.appendChild(div9);
+        						div5.appendChild(div7);
+        					div4.appendChild(div5);        					
+        			}
+        		        	let div10 = document.createElement("div");
+        					div10.classList.add("new_comment_block");
+        						let div11 = document.createElement("div");
+        						div11.classList.add("avatar");
+        							let commentImg = document.createElement("img");
+		        		    		commentImg.style.width = "35px";
+		        		    		commentImg.style.height = "35px";
+		        		    		if (ourProfileBase64ImageData.length > 0) {
+		        		    			commentImg.src = ourProfileBase64ImageData;
+		        		    		} else {
+		        		    			commentImg.classList.add("img-circle");
+		        		    		}
+			    					div11.appendChild(commentImg);
+    							div10.appendChild(div11);
+        						let div12 = document.createElement("div");
+        						div12.classList.add("new_comment_text");
+        						    let textArea = document.createElement("textarea");
+        						    textArea.id = "new-comment";
+    	    						textArea.maxlength = "200";
+    	    						textArea.rows = 1;
+	    							div12.appendChild(textArea);
+    							div10.appendChild(div12);
+        						let div13 = document.createElement("div");
+        						div13.classList.add("submit_btn");
+    	    						let submitBtn = document.createElement("input");
+	        						submitBtn.type = "button";
+	        						submitBtn.value = "Post comment";
+	        						submitBtn.id="submit-comment-btn";
+        							submitBtn.onclick=function() {
+        								let text = document.getElementById("new-comment").value.trim();
+        								if (text.length > 0) {
+            								postComment(topic, text, (updatedComments) => {
+            								    displayPhoto(topic, updatedComments);
+            								});
+            							}
+        							};
+    								div13.appendChild(submitBtn);
+        						
+    							div10.appendChild(div13);
+
+        					div4.appendChild(div10);
+
+        			div2.appendChild(div4);
+    		photoEl.appendChild(div2);	
+    		
+    		let fileRef = topic.mediaFiles[1].fileRef;
+    		if (CurrrentPhotoPath == fileRef.path) {
+    		    img.src = CurrrentPhotoBase64ImageData;
+    		} else {
+    			setTimeout(() => {
+        			readFile(fileRef, (buffer) => {
+        				var binary = '';
+    					let bytes = new Uint8Array(buffer);
+    					let len = bytes.byteLength;
+    					for (var i = 0; i < len; i++) {
+        					binary += String.fromCharCode(bytes[i]);
+    					}
+    					CurrrentPhotoBase64ImageData = "data:image/png;base64," + window.btoa(binary);
+    					img.src = CurrrentPhotoBase64ImageData;
+    					CurrrentPhotoPath = fileRef.path;
+        			});
+        		});
+        	}
+		}
+		function sortOrderOnChange() {
+			displayPhotos(); //todo need to take currently position into account
+		}
+		function displayPhotos() {		
+			let photosEl = document.getElementById("photostream");
+        	while (photosEl.hasChildNodes()) {
+  				photosEl.removeChild(photosEl.firstChild);
+			}
+			let isAdmin = ChatMetadata.admins.includes(Username);
+			if (isUserDisabled()) {
+				return;
+			}
+
+			var sortedTopics = null;
+			let order = document.getElementById("sort-order").value;
+  			if (order === "filename") {	
+				sortedTopics = Topics.sort(function(aVal, bVal){
+					let a = aVal.contents;
+					let b = bVal.contents;
+            		return a.localeCompare(b);
+        		});
+			} else if (order === "upload") {
+  				sortedTopics = Topics.sort(function(aVal, bVal){
+					let a = aVal.sendTime;
+					let b = bVal.sendTime;
+            		return b - a;
+        		});
+			} else if (order === "comment") {
+				sortedTopics = Topics.sort(function(aVal, bVal){
+					let a = TopicMetadata.get(aVal.messageRef).lastUpdated;
+					let b = TopicMetadata.get(bVal.messageRef).lastUpdated;
+            		return b - a;
+        		});
+        	}
+			let size = "S"; // window.innerWidth < 1024 ? "S" : "M";
+			var imageWidth = "300px";
+			var imageHeight = "200px";
+			if (size == "M") {
+				imageWidth = "500px";
+				imageHeight = "400px";
+			}
+		    for(var i = 0 ; i < sortedTopics.length; i++) {
+        		let topic = sortedTopics[i];
+        		let comments = TopicToComments.get(topic.messageRef);
+        		let numberOfComments = comments == null ? 0 : comments.filter(c => c.contents.length > 0 && !c.deleted).length;
+        		let photoMetadata = TopicMetadata.get(topic.messageRef);
+        		let numberOfHearts = photoMetadata.hearts.size;
+        		let sendTime = topic.sendTime;
+        		if (topic.deleted) {
+        			continue;
+        		}		
+        		let thumbnail = topic.mediaFiles[1].thumbnail;
+
+				let div1 = document.createElement("div");
+        		div1.classList.add("photostream_" + size);
+					let div2 = document.createElement("div");
+        			div2.classList.add("photocard");
+						let div3 = document.createElement("div");
+        				div3.classList.add("photo");
+        		    	    let anchor = document.createElement("a");
+			        		anchor.style.cursor = "pointer";
+			        		anchor.onclick=function() {
+            					showPhotoModal(topic, comments);
+        					};
+        					let img = document.createElement("img");
+		        		    img.style.width = imageWidth;
+		        		    img.style.height = imageHeight;
+		        		    img.src = thumbnail;
+			    			anchor.appendChild(img);
+			    			anchor.appendChild(document.createElement("br"));
+        					div3.appendChild(anchor);
+    					div2.appendChild(div3);
+    					
+    					let div4 = document.createElement("div");
+        				div4.classList.add("photo_title");
+    					    let titleSpan = document.createElement("span");
+    	    				titleSpan.innerText = topic.contents;
+				    		div4.appendChild(titleSpan);
+				    		if (isAdmin) {
+    					    	let deleteSpan = document.createElement("span");
+    					    	deleteSpan.classList.add("delete-photo");
+    	    					deleteSpan.innerHTML = "&times";
+    	    					deleteSpan.onclick=function() {
+            						deletePhoto(deleteSpan, topic);
+        						};
+				    			div4.appendChild(deleteSpan);
+				    		}
+    					div2.appendChild(div4);
+    					let div5 = document.createElement("div");
+        				div5.classList.add("photo_uploaded");
+        				    let uploadedSpan = document.createElement("span");
+    	    				uploadedSpan.innerText = "Uploaded on " + fromUTCtoLocal(sendTime);
+				    		div5.appendChild(uploadedSpan);
+    					div2.appendChild(div5);
+    					let div6 = document.createElement("div");
+        				div6.classList.add("photo_stats");
+        				    let favSpan = document.createElement("span");
+    	    					let heart = document.createElement("i");
+			        			heart.classList.add("fa");
+			        			heart.classList.add("fa-heart");	
+			        			heart.classList.add("heart");	
+			        			heart.style="cursor: pointer;";
+			        			heart.onclick=function() {
+            						postComment(topic, "", updatedComments => {
+            							displayPhotos(); //todo need to navigate back to where we where
+            						});
+        						};
+				    			favSpan.appendChild(heart);
+				    			let heartCount = document.createElement("span");
+				    			heartCount.innerText = numberOfHearts;				    			
+				    			favSpan.appendChild(heartCount);
+				    		div6.appendChild(favSpan);
+				    			let separator = document.createElement("span");
+				    			separator.innerText = "/";				    			
+				    		div6.appendChild(separator);
+        				    let commentsSpan = document.createElement("span");
+    	    					let commentsElement = document.createElement("i");
+			        			commentsElement.classList.add("fa");
+			        			commentsElement.classList.add("fa-comments");			    			
+				    			commentsSpan.appendChild(commentsElement);
+				    			
+				    			let commentCount = document.createElement("span");
+				    			commentCount.innerText = numberOfComments;				    			
+				    			commentsSpan.appendChild(commentCount);
+				    		div6.appendChild(commentsSpan);
+        				div2.appendChild(div6);
+
+    				div1.appendChild(div2);
+    			photosEl.appendChild(div1);	
+			}
+		}
+			function members() {
+			    let isAdmin = ChatMetadata.admins.findIndex(v => v === Username) > -1;
+				if (!isAdmin) {
+					return;
+				}
+				if (!completedInit) {
+                	return;
+            	}
+            	let membersLink = document.getElementById("members-link");
+	            if (membersLink.disabled) {
+    	            return;
+        	    }
+				membersLink.disabled = true;  
+	            showSpinner();
+            	fetch('/peergos-api/v1/chat/' + ChatId, { method: 'POST' }).then(function(response) {
+            		membersLink.disabled = false;  
+            		if (response.status === 200) {
+                    	response.arrayBuffer().then(function(buffer) {
+                        	let reply = new TextDecoder().decode(buffer);
+                        	let result = JSON.parse(reply);
+                        	loadProfileImages(result.members, () => {
+                            	hideSpinner();
+                        	});
+                    	});
+                	}else if (response.status === 400) {
+                    	console.log("members modal closed");
+                    	hideSpinner();
+                	}
+            	}).catch(e => {
+            	    membersLink.disabled = false;  
+                	console.log("members modal failure. Exception:" + e);
+                	hideSpinner();
+            	});
+            }
+		    function closeMemberModal() {
+  				let membersLink = document.getElementById("members-link");
+				membersLink.disabled = false;  
+			}
+			function showPhotoModal(topic, comments) { 
+				displayPhoto(topic, comments);
+            	let photoModal = document.getElementById("photo-modal");
+            	photoModal.style.display = "block";
+            }
+		    function closePhotoModal() {
+            	let photoModal = document.getElementById("photo-modal");
+  				photoModal.style.display = "none";
+  				showSpinner();
+				refreshTopics(() => {
+					hideSpinner();
+				});
+			}   
+			init();            			
+		</script>
+	</body>
+</html>

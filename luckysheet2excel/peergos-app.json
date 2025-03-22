@@ -1,0 +1,12 @@
+{
+    "displayName": "Luckysheet to Excel",
+    "description": "convert .sheet to .xlsx - github.com/Peergos/example-apps/#LuckySheet2Excel",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": true,
+	"folderAction": false,   
+	"appIcon": "icon.png", 		
+    "fileExtensions": ["sheet"],	 
+    "permissions": ["CSP_UNSAFE_EVAL"]
+}
+

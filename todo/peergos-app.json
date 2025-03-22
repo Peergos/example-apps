@@ -1,0 +1,12 @@
+{
+    "displayName": "Todo",
+    "description": "Plan Todo lists - github.com/Peergos/example-apps/#todo",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": true,
+	"folderAction": false,  
+	"appIcon": "icon.png",  
+	"fileExtensions": ["plan"],			
+    "permissions": ["EDIT_CHOSEN_FILE"]	
+}
+
