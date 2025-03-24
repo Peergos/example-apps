@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasks</title>
+    <link rel="stylesheet" href="todo.css">
+</head>
+<body>
+    <div id="task-modal" class="modal" style="display: none">
+        <div class="modal-content">
+            <h2 id="task-modal-title">Add Task</h2>
+            <form id="task-form" class="task-form">
+                <textarea 
+                    id="task-input" 
+                    placeholder="What needs to be done?" 
+                    rows="3" 
+                    maxlength="500"
+                    required
+                ></textarea>
+                <div class="modal-buttons">
+                    <button type="button" class="cancel-button" onclick="closeTaskModal()">Cancel</button>
+                    <button type="button" id="delete-task-btn" class="delete-button" style="display: none;">Delete Task</button>
+                    <button type="submit" class="submit-button">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="delete-column-modal" class="modal" style="display: none">
+        <div class="modal-content delete-confirmation">
+            <div class="modal-header">
+                <h2>Delete Column</h2>
+                <button class="close-button" onclick="closeDeleteColumnModal()">×</button>
+            </div>
+            <div class="delete-warning">
+                <p>Are you sure you want to remove this column and all its tasks?</p>
+                <p>This action cannot be undone.</p>
+            </div>
+            <div class="modal-buttons">
+                <button class="cancel-button" onclick="closeDeleteColumnModal()">Cancel</button>
+                <button class="delete-button" onclick="confirmDeleteColumn()">Delete Column</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app">
+        <header>
+            <div class="header-left">
+                <h1 id="filename"></h1>
+                <div class="board-selector" id="action-selector">
+                </div>
+            </div>
+            <button id="theme-toggle" aria-label="Toggle dark mode">🌙</button>
+        </header>
+        <main>
+            <div class="board">
+                <button id="add-column" class="add-column">+ Add Column</button>
+            </div>
+        </main>
+        <div id="toast" class="toast" hidden></div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const board = document.querySelector('.board');
+        const columns = document.querySelectorAll('.column');
+        const columnNames = document.querySelectorAll('.column-name');
+        const addButtons = document.querySelectorAll('.add-task');
+        const themeToggle = document.getElementById('theme-toggle');
+        const toast = document.getElementById('toast');
+
+		let href = window.location.href;
+		let url = new URL(href);
+		let filePath = url.searchParams.get("path");
+		let isWritable = url.searchParams.get("isPathWritable") == 'true';
+		let theme = url.searchParams.get("theme");
+		let todoExtension = ".plan";
+		let todoBoardName = extractTodoBoardName(filePath.substring(filePath.lastIndexOf('/')+1));
+		var savingFile = false; 
+
+        // State
+        var boardData = {};
+        /*var boardData = {
+            boards: {
+                work: {
+                    name: 'Work',
+                    columns: {
+                        todo: { name: 'To Do', tasks: [] },
+                        doing: { name: 'Doing', tasks: [] },
+                        done: { name: 'Done', tasks: [] }
+                    }
+                }
+            },
+            version: '1'
+        };*/
+        let currentBoard = 'work';
+		createSaveButton();
+
+		if (theme == "dark-mode") {
+			setTheme(true, false);
+		}
+        // Initial board selector update
+        document.addEventListener('DOMContentLoaded', () => {
+        	const filenameElement = document.getElementById('filename');
+            filenameElement.innerText = todoBoardName;
+            
+        });
+
+        
+	function createSaveButton() {
+	        // Board selector
+        const actionsElement = document.getElementById('action-selector');
+        var btn = document.createElement("button");
+ 		btn.id = "saveBtn";
+ 		btn.title="Save";
+ 		btn.type="button";
+ 		btn.classList.add("board-button");
+ 		
+  		btn.style.width="48px";
+  		btn.style.height="48px";
+  		btn.style.padding="6px";
+  		
+  		btn.onclick=function() {
+  		  saveTasks();
+   		};   
+        if (isWritable) {
+        	btn.style.display = 'block';
+        }
+		//disk svg from paintZ - https://github.com/ZMYaro/paintz
+   		const iconSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  		const iconPath = document.createElementNS('http://www.w3.org/2000/svg','path');
+  		iconSvg.setAttribute('id', 'save-svg');
+  		iconSvg.setAttribute('viewBox', '0 0 24 24');
+  		iconPath.setAttribute(
+    		'd',
+        	"M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"
+  		);
+  		iconSvg.appendChild(iconPath);
+    	btn.appendChild(iconSvg);
+		actionsElement.appendChild(btn);
+	}
+	
+        function extractTodoBoardName(filename) {
+            return filename.endsWith(todoExtension) ? filename.substring(0, filename.length - 5) : filename;
+        }
+        
+        // Load tasks from JSON file
+        async function loadTasks() {
+            try {
+  				fetch(filePath, { method: 'GET' }).then(function(response) {
+      				if (response.status === 200) {
+						response.arrayBuffer().then(function(buffer) {	
+							boardData = JSON.parse(new TextDecoder().decode(buffer));
+			                renderTasks();
+			                showToast('Loaded tasks');
+						});
+      				} else {
+      					console.log('error loading file. error:' + response.status);
+      					showToast('Unable to load file');
+      				}
+				});  
+            } catch (error) {
+                console.error('Error loading tasks:', error);
+                showToast('Error loading tasks');
+            }
+        }
+
+        // Column name editing
+        columnNames.forEach(nameEl => {
+            nameEl.addEventListener('blur', () => {
+                const column = nameEl.closest('.column').dataset.column;
+                boardData.boards[currentBoard].columns[column].name = nameEl.textContent;
+            });
+
+            nameEl.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    nameEl.blur();
+                }
+            });
+        });
+
+        // Task Modal
+        const taskModal = document.getElementById('task-modal');
+        const taskForm = document.getElementById('task-form');
+        const taskInput = document.getElementById('task-input');
+        const taskModalTitle = document.getElementById('task-modal-title');
+        let currentTaskAction = { type: 'add', column: null, task: null };
+
+        // Handle Enter key in task input
+        taskInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                taskForm.requestSubmit();
+            }
+        });
+
+        function openTaskModal(type, column, task = null) {
+            currentTaskAction = { type, column, task };
+            taskModalTitle.textContent = type === 'add' ? 'Add Task' : 'Edit Task';
+            taskInput.value = task ? task.querySelector('.task-text').textContent : '';
+            
+            const deleteBtn = document.getElementById('delete-task-btn');
+            if (type === 'edit') {
+                deleteBtn.style.display = 'block';
+                deleteBtn.onclick = () => {
+                    if (confirm('Are you sure you want to delete this task?')) {
+                        const columnId = task.parentElement.id;
+                        const index = Array.from(task.parentElement.children).indexOf(task);
+                        boardData.boards[currentBoard].columns[columnId].tasks.splice(index, 1);
+                        task.remove();
+                        showToast('Task deleted');
+                        closeTaskModal();
+                    }
+                };
+            } else {
+                deleteBtn.style.display = 'none';
+            }
+            
+            taskModal.style.display = 'flex';
+            taskInput.focus();
+        }
+
+        function closeTaskModal() {
+            taskModal.style.display = 'none';
+            taskInput.value = '';
+        }
+
+        taskForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = taskInput.value.trim();
+            if (!text) return;
+
+            if (currentTaskAction.type === 'add') {
+                // Add task to data structure
+                boardData.boards[currentBoard].columns[currentTaskAction.column].tasks.push(text);
+                
+                // Create and append the task element
+                const task = createTask(currentTaskAction.column, text);
+                if (task) {
+                    document.getElementById(currentTaskAction.column).appendChild(task);
+                }
+            } else {
+                // Update existing task
+                const task = currentTaskAction.task;
+                const columnId = task.closest('.column').dataset.column;
+                const tasksContainer = task.parentElement;
+                const index = Array.from(tasksContainer.children).indexOf(task);
+                
+                // Update data structure
+                boardData.boards[currentBoard].columns[columnId].tasks[index] = text;
+                
+                // Update UI
+                task.querySelector('.task-text').textContent = text;
+            }
+            closeTaskModal();
+        });
+
+        // Task Management
+        function createTask(column, text = '') {
+            if (!boardData.boards[currentBoard].columns[column]) {
+                console.error('Invalid column:', column);
+                return null;
+            }
+
+            const task = document.createElement('div');
+            task.className = 'task';
+            task.draggable = true;
+            
+            // Create move indicator for mobile (first)
+            const moveIndicator = document.createElement('div');
+            moveIndicator.className = 'move-indicator';
+            moveIndicator.innerHTML = '⋮⋮';
+            moveIndicator.title = 'Hold and drag to move';
+            task.appendChild(moveIndicator);
+            
+            // Create task content wrapper
+            const taskContent = document.createElement('div');
+            taskContent.className = 'task-content';
+            
+            // Create task text
+            const taskText = document.createElement('span');
+            taskText.className = 'task-text';
+            taskText.textContent = text;
+            taskContent.appendChild(taskText);
+            task.appendChild(taskContent);
+
+            // Double tap/click detection
+            let lastTap = 0;
+            let tapTimeout;
+
+            task.addEventListener('touchstart', (e) => {
+                const currentTime = new Date().getTime();
+                const tapLength = currentTime - lastTap;
+                
+                clearTimeout(tapTimeout);
+                
+                if (tapLength < 500 && tapLength > 0) {
+                    // Double tap detected
+                    e.preventDefault();
+                    openTaskModal('edit', column, task);
+                } else {
+                    // Wait for potential second tap
+                    tapTimeout = setTimeout(() => {
+                        // Single tap - handle drag start
+                        touchStartY = e.touches[0].clientY;
+                        touchStartX = e.touches[0].clientX;
+                        originalColumn = task.parentElement;
+                        lastTouch = e.touches[0];
+                        
+                        feedbackTimeout = setTimeout(() => {
+                            task.classList.add('dragging');
+                            showToast('Move task to another column');
+                            isDragging = true;
+                        }, 200);
+                    }, 200);
+                }
+                lastTap = currentTime;
+            });
+
+            // Desktop double click
+            task.addEventListener('dblclick', () => openTaskModal('edit', column, task));
+
+            // Touch event handling
+            let touchStartY = 0;
+            let touchStartX = 0;
+            let originalColumn = null;
+            let isDragging = false;
+            let feedbackTimeout;
+            let lastTouch = null;
+
+            task.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Prevent default to work better on Android
+                touchStartY = e.touches[0].clientY;
+                touchStartX = e.touches[0].clientX;
+                originalColumn = task.parentElement;
+                lastTouch = e.touches[0];
+                
+                feedbackTimeout = setTimeout(() => {
+                    task.classList.add('dragging');
+                    showToast('Move task to another column');
+                    isDragging = true;
+                }, 200);
+            });
+
+            task.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                lastTouch = e.touches[0];
+
+                if (!isDragging) {
+                    if (Math.abs(e.touches[0].clientY - touchStartY) > 5 || 
+                        Math.abs(e.touches[0].clientX - touchStartX) > 5) {
+                        clearTimeout(feedbackTimeout);
+                    }
+                    return;
+                }
+
+                const touch = e.touches[0];
+                
+                const elementsUnderTouch = document.elementsFromPoint(touch.clientX, touch.clientY);
+                const columnUnderTouch = elementsUnderTouch.find(el => el.classList.contains('tasks'));
+                
+                if (columnUnderTouch) {
+                    columnUnderTouch.classList.add('drag-over');
+                    const tasks = [...columnUnderTouch.querySelectorAll('.task:not(.dragging)')];
+                    const closestTask = tasks.reduce((closest, child) => {
+                        const box = child.getBoundingClientRect();
+                        const offset = touch.clientY - box.top - box.height / 2;
+                        if (offset < 0 && offset > closest.offset) {
+                            return { offset, element: child };
+                        } else {
+                            return closest;
+                        }
+                    }, { offset: Number.NEGATIVE_INFINITY }).element;
+
+                    if (closestTask) {
+                        columnUnderTouch.insertBefore(task, closestTask);
+                    } else {
+                        columnUnderTouch.appendChild(task);
+                    }
+                    
+                    document.querySelectorAll('.tasks').forEach(col => {
+                        if (col !== columnUnderTouch) col.classList.remove('drag-over');
+                    });
+                }
+            });
+
+            task.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                clearTimeout(feedbackTimeout);
+                if (isDragging) {
+                    task.classList.remove('dragging');
+                    document.querySelectorAll('.tasks').forEach(col => col.classList.remove('drag-over'));
+                    updateTasksArray();
+                    showToast('Task moved');
+                }
+                isDragging = false;
+                lastTouch = null;
+            });
+
+            task.addEventListener('touchcancel', (e) => {
+                e.preventDefault();
+                clearTimeout(feedbackTimeout);
+                task.classList.remove('dragging');
+                document.querySelectorAll('.tasks').forEach(col => col.classList.remove('drag-over'));
+                isDragging = false;
+                lastTouch = null;
+                if (originalColumn) {
+                    originalColumn.appendChild(task);
+                }
+            });
+
+            // Desktop drag events
+            task.addEventListener('dragstart', () => {
+                task.classList.add('dragging');
+                showToast('Drop in another column to move');
+            });
+            
+            task.addEventListener('dragend', () => {
+                task.classList.remove('dragging');
+                document.querySelectorAll('.tasks').forEach(col => col.classList.remove('drag-over'));
+                updateTasksArray();
+                showToast('Task moved');
+            });
+
+            return task;
+        }
+
+        // Close move buttons when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.task')) {
+                const allMoveButtons = document.querySelectorAll('.move-buttons');
+                allMoveButtons.forEach(btns => btns.style.display = 'none');
+            }
+        });
+
+        // Add task buttons
+        addButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const column = button.dataset.column;
+                openTaskModal('add', column);
+            });
+        });
+
+        // Close modal when clicking outside
+        taskModal.addEventListener('click', (e) => {
+            if (e.target === taskModal) {
+                closeTaskModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !taskModal.hidden) {
+                closeTaskModal();
+            }
+        });
+
+        // Drag and Drop
+        columns.forEach(column => {
+            const tasksContainer = column.querySelector('.tasks');
+            
+            tasksContainer.addEventListener('dragover', e => {
+                e.preventDefault();
+                const dragging = document.querySelector('.dragging');
+                if (!dragging) return;
+
+                const notDragging = [...tasksContainer.querySelectorAll('.task:not(.dragging)')];
+                const nextTask = notDragging.find(task => {
+                    const rect = task.getBoundingClientRect();
+                    return e.clientY < rect.top + rect.height / 2;
+                });
+                
+                if (nextTask) {
+                    tasksContainer.insertBefore(dragging, nextTask);
+                } else {
+                    tasksContainer.appendChild(dragging);
+                }
+            });
+        });
+
+        // Utilities
+        function updateTasksArray() {
+            // Get all columns
+            document.querySelectorAll('.column').forEach(column => {
+                const columnId = column.dataset.column;
+                const tasksContainer = column.querySelector('.tasks');
+                if (!tasksContainer) return;
+
+                const tasks = tasksContainer.querySelectorAll('.task');
+                
+                // Update the tasks array for the current board and column
+                if (boardData.boards[currentBoard].columns[columnId]) {
+                    boardData.boards[currentBoard].columns[columnId].tasks = Array.from(tasks)
+                        .map(task => {
+                            const taskText = task.querySelector('.task-text');
+                            return taskText ? taskText.textContent.trim() : '';
+                        })
+                        .filter(text => text); // Remove any empty tasks
+                }
+            });
+        }
+
+        async function saveTasks() {
+            if (! isWritable || savingFile) {
+                return;
+            }
+            savingFile = true;
+            let encoder = new TextEncoder();
+            let bytes = encoder.encode(JSON.stringify(boardData, null, 2));
+            fetch(filePath, { method: 'POST', body: bytes }).then(function(response) {
+				savingFile = false;
+      			if (response.status === 200) {
+      				console.log('file saved');
+      				showToast('Saved');
+      			} else {
+      				console.log('unable to save file. Error:' + response.status);
+      				showToast('Unable to save changes');
+      			}
+			});
+        }
+
+        function showToast(message) {
+            toast.textContent = message;
+            toast.hidden = false;
+            setTimeout(() => toast.hidden = true, 2000);
+        }
+
+        function renderTasks() {
+            const board = document.querySelector('.board');
+            while (board.firstChild && board.firstChild !== addColumnBtn) {
+                board.removeChild(board.firstChild);
+            }
+
+            Object.entries(boardData.boards[currentBoard].columns).forEach(([columnId, column]) => {
+                const columnEl = document.createElement('div');
+                columnEl.className = 'column';
+                columnEl.dataset.column = columnId;
+
+                // Create column header container
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'column-header';
+
+                // Create column name
+                const h2 = document.createElement('h2');
+                h2.className = 'column-name';
+                h2.contentEditable = true;
+                h2.textContent = column.name;
+
+                // Create remove column button
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-column';
+                removeBtn.innerHTML = '×';
+                removeBtn.title = 'Remove column';
+                removeBtn.onclick = () => openDeleteColumnModal(columnId);
+
+                // Append header elements
+                headerDiv.appendChild(h2);
+                headerDiv.appendChild(removeBtn);
+                columnEl.appendChild(headerDiv);
+
+                // Create tasks container
+                const tasksDiv = document.createElement('div');
+                tasksDiv.className = 'tasks';
+                tasksDiv.id = columnId;
+
+                // Create add task button
+                const addButton = document.createElement('button');
+                addButton.className = 'add-task';
+                addButton.dataset.column = columnId;
+                addButton.textContent = '+ Add Task';
+
+                // Add event listeners
+                h2.addEventListener('blur', () => {
+                    boardData.boards[currentBoard].columns[columnId].name = h2.textContent;
+                });
+
+                h2.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        h2.blur();
+                    }
+                });
+
+                addButton.addEventListener('click', () => {
+                    openTaskModal('add', columnId);
+                });
+
+                // Append remaining elements
+                columnEl.appendChild(tasksDiv);
+                columnEl.appendChild(addButton);
+
+                // Render tasks for this column
+                if (column.tasks && Array.isArray(column.tasks)) {
+                    const uniqueTasks = [...new Set(column.tasks)].filter(task => task && task.trim());
+                    uniqueTasks.forEach(taskText => {
+                        const task = createTask(columnId, taskText);
+                        if (task) {
+                            tasksDiv.appendChild(task);
+                        }
+                    });
+                }
+
+                // Insert before add column button
+                board.insertBefore(columnEl, addColumnBtn);
+            });
+
+            // Add drag and drop event listeners
+            addColumnEventListeners();
+        }
+
+        // Initialize app
+        async function initializeApp() {
+            try {
+                await loadTasks();
+            } catch (error) {
+                console.error('Failed to load tasks:', error);
+            }
+        }
+
+        // Wait for DOM content to be loaded before initializing
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
+
+        // Theme handling
+        function setTheme(isDark, showToastMessage = false) {
+            if (isDark) {
+                document.body.classList.add('dark-theme');
+                themeToggle.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+                if (showToastMessage) showToast('Dark mode enabled');
+            } else {
+                document.body.classList.remove('dark-theme');
+                themeToggle.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
+                if (showToastMessage) showToast('Light mode enabled');
+            }
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }
+
+        // Initialize theme
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        const savedTheme = localStorage.getItem('theme');
+        
+        if (savedTheme) {
+            setTheme(savedTheme === 'dark', false); // Don't show toast on initial load
+        } else {
+            setTheme(prefersDark.matches, false); // Don't show toast on initial load
+        }
+
+        // Theme toggle button
+        themeToggle.addEventListener('click', () => {
+            const isDark = !document.body.classList.contains('dark-theme');
+            setTheme(isDark, true); // Show toast when user clicks
+        });
+
+        // Listen for system theme changes
+        prefersDark.addEventListener('change', (e) => {
+            if (!localStorage.getItem('theme')) {
+                setTheme(e.matches, true); // Show toast when system theme changes
+            }
+        });
+
+        // Add Column functionality
+        const addColumnBtn = document.getElementById('add-column');
+
+        addColumnBtn.addEventListener('click', async () => {
+            const columnId = 'column-' + Date.now();
+            const columnName = 'New Column';
+
+            boardData.boards[currentBoard].columns[columnId] = {
+                name: columnName,
+                tasks: []
+            };
+
+            const column = document.createElement('div');
+            column.className = 'column';
+            column.dataset.column = columnId;
+
+            // Create elements individually
+            const h2 = document.createElement('h2');
+            h2.className = 'column-name';
+            h2.contentEditable = true;
+            h2.textContent = columnName;
+
+            const tasksDiv = document.createElement('div');
+            tasksDiv.className = 'tasks';
+            tasksDiv.id = columnId;
+
+            const addButton = document.createElement('button');
+            addButton.className = 'add-task';
+            addButton.dataset.column = columnId;
+            addButton.textContent = '+ Add Task';
+
+            // Append elements
+            column.appendChild(h2);
+            column.appendChild(tasksDiv);
+            column.appendChild(addButton);
+
+            // Add event listeners
+            h2.addEventListener('blur', () => {
+                boardData.boards[currentBoard].columns[columnId].name = h2.textContent;
+            });
+
+            h2.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    h2.blur();
+                }
+            });
+
+            addButton.addEventListener('click', () => {
+                openTaskModal('add', columnId);
+            });
+
+            // Insert before the add column button
+            addColumnBtn.parentNode.insertBefore(column, addColumnBtn);
+
+            showToast('Column added');
+
+            // Add drag and drop event listeners to the new column
+            addColumnEventListeners();
+        });
+
+        // Add drag and drop event listeners to columns
+        function addColumnEventListeners() {
+            document.querySelectorAll('.tasks').forEach(tasksContainer => {
+                tasksContainer.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    const dragging = document.querySelector('.dragging');
+                    if (!dragging) return;
+
+                    const notDragging = [...tasksContainer.querySelectorAll('.task:not(.dragging)')];
+                    const nextTask = notDragging.find(task => {
+                        const rect = task.getBoundingClientRect();
+                        return e.clientY < rect.top + rect.height / 2;
+                    });
+                    
+                    if (nextTask) {
+                        tasksContainer.insertBefore(dragging, nextTask);
+                    } else {
+                        tasksContainer.appendChild(dragging);
+                    }
+                    
+                    tasksContainer.classList.add('drag-over');
+                    document.querySelectorAll('.tasks').forEach(col => {
+                        if (col !== tasksContainer) col.classList.remove('drag-over');
+                    });
+                });
+
+                tasksContainer.addEventListener('dragleave', () => {
+                    tasksContainer.classList.remove('drag-over');
+                });
+            });
+        }
+
+        let columnToDelete = null;
+
+        function openDeleteColumnModal(columnId) {
+            columnToDelete = columnId;
+            document.getElementById('delete-column-modal').style.display = 'flex';
+        }
+
+        function closeDeleteColumnModal() {
+            document.getElementById('delete-column-modal').style.display = 'none';
+            columnToDelete = null;
+        }
+
+        function confirmDeleteColumn() {
+            if (columnToDelete) {
+                delete boardData.boards[currentBoard].columns[columnToDelete];
+                renderTasks();
+                showToast('Column removed');
+                closeDeleteColumnModal();
+            }
+        }
+  </script>
+  </body>
+</html>
+

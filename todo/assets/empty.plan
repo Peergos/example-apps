@@ -1,0 +1,22 @@
+{
+  "boards": {
+    "work": {
+      "name": "Work",
+      "columns": {
+        "todo": {
+          "name": "To Do",
+          "tasks": []
+        },
+        "doing": {
+          "name": "Doing",
+          "tasks": []
+        },
+        "done": {
+          "name": "Done",
+          "tasks": []
+        }
+      }
+    }
+  },
+  "version": "1"
+}

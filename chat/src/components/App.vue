@@ -75,10 +75,10 @@
                                                 <span v-if="!conversation.hasProfileImage && conversation.otherMembers.length < 1" class="picon-chat img-thumbnail-chat">
                                                     <svg class="svg-thumbnail-chat" viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path fill="#989898" d="M1536 1399q0 109-62.5 187t-150.5 78h-854q-88 0-150.5-78t-62.5-187q0-85 8.5-160.5t31.5-152 58.5-131 94-89 134.5-34.5q131 128 313 128t313-128q76 0 134.5 34.5t94 89 58.5 131 31.5 152 8.5 160.5zm-256-887q0 159-112.5 271.5t-271.5 112.5-271.5-112.5-112.5-271.5 112.5-271.5 271.5-112.5 271.5 112.5 112.5 271.5z"/></svg>
                                                 </span>
-                                                <span v-if="!conversation.hasProfileImage && conversation.otherMembers.length == 1" v-on:click="viewProfile(conversation)" class="picon-chat img-thumbnail-chat">
+                                                <span v-if="!conversation.hasProfileImage && conversation.otherMembers != null && conversation.otherMembers.length == 1" v-on:click="viewProfile(conversation)" class="picon-chat img-thumbnail-chat">
                                                     <svg class="svg-thumbnail-chat" viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path fill="#989898" d="M1536 1399q0 109-62.5 187t-150.5 78h-854q-88 0-150.5-78t-62.5-187q0-85 8.5-160.5t31.5-152 58.5-131 94-89 134.5-34.5q131 128 313 128t313-128q76 0 134.5 34.5t94 89 58.5 131 31.5 152 8.5 160.5zm-256-887q0 159-112.5 271.5t-271.5 112.5-271.5-112.5-112.5-271.5 112.5-271.5 271.5-112.5 271.5 112.5 112.5 271.5z"/></svg>
                                                 </span>
-                                                <span v-if="!conversation.hasProfileImage && conversation.otherMembers.length > 1" class="picon-chat img-thumbnail-chat">
+                                                <span v-if="!conversation.hasProfileImage && conversation.otherMembers && conversation.otherMembers.length > 1" v-on:click="changeGroupChatThumbnail(conversation)" class="picon-chat img-thumbnail-chat">
                                                     <svg class="svg-thumbnail-chat" viewBox="0 0 2048 1792" xmlns="http://www.w3.org/2000/svg"><path fill="#a9a9a9" d="M657 896q-162 5-265 128h-134q-82 0-138-40.5t-56-118.5q0-353 124-353 6 0 43.5 21t97.5 42.5 119 21.5q67 0 133-23-5 37-5 66 0 139 81 256zm1071 637q0 120-73 189.5t-194 69.5h-874q-121 0-194-69.5t-73-189.5q0-53 3.5-103.5t14-109 26.5-108.5 43-97.5 62-81 85.5-53.5 111.5-20q10 0 43 21.5t73 48 107 48 135 21.5 135-21.5 107-48 73-48 43-21.5q61 0 111.5 20t85.5 53.5 62 81 43 97.5 26.5 108.5 14 109 3.5 103.5zm-1024-1277q0 106-75 181t-181 75-181-75-75-181 75-181 181-75 181 75 75 181zm704 384q0 159-112.5 271.5t-271.5 112.5-271.5-112.5-112.5-271.5 112.5-271.5 271.5-112.5 271.5 112.5 112.5 271.5zm576 225q0 78-56 118.5t-138 40.5h-134q-103-123-265-128 81-117 81-256 0-29-5-66 66 23 133 23 59 0 119-21.5t97.5-42.5 43.5-21q124 0 124 353zm-128-609q0 106-75 181t-181 75-181-75-75-181 75-181 181-75 181 75 75 181z" fill="#989898"/></svg>
                                                 </span>
                                             </div>
@@ -685,6 +685,32 @@ module.exports = {
                 }
             }
         },
+        loadGroupConversationIcons: function(chats) {
+            for(var index = 0; index < chats.length; index++) {
+                let chat = chats[index];
+                if (chat.otherMembers.length == 0) {
+                    continue;
+                }
+                if (chat.triedLoadingProfileImage == false) {
+                    chat.triedLoadingProfileImage = true;
+                    fetch('/peergos-api/v1/chat/' + chat.chatId + '/icon', { method: 'GET' }).then(function(response) {
+                        if (response.status === 200) {
+                            response.arrayBuffer().then(function(buffer) {
+                                let reply = new TextDecoder().decode(buffer);
+                                if (reply.length > 0) {
+                                    chat.profileImage = reply;
+                                    chat.hasProfileImage = true;
+                                } else {
+                                    chat.hasProfileImage = false;
+                                }
+                            });
+                        } else {
+                            chat.hasProfileImage = false;
+                        }
+                    });
+                }
+            }
+        },
         launchEmojiPicker: function() {
             this.emojiPicker.togglePicker(this.emojiChooserBtn);
             var emojiElement = document.getElementsByClassName("wrapper");
@@ -746,14 +772,32 @@ module.exports = {
             if (chat.otherMembers.length == 0) {
                 return;
             }
+            if (chat.otherMembers.length > 1) {
+            	this.changeGroupChatThumbnail(chat);
+            } else {
+            	let that = this;
+            	that.spinner(true);
+            	fetch('/peergos-api/v0/profile/' + chat.otherMembers[0], { method: 'GET' }).then(function(response) {
+                	that.spinner(false);
+                	if (response.status !== 200) {
+                    	that.showToastError("Profile not found");
+                	}
+            	});
+            }
+        },
+        changeGroupChatThumbnail: function(chat) {
             let that = this;
-            that.spinner(true);
-            fetch('/peergos-api/v0/profile/' + chat.otherMembers[0], { method: 'GET' }).then(function(response) {
-                that.spinner(false);
-                if (response.status !== 200) {
-                    that.showToastError("Profile not found");
-                }
-            });
+            let isAdmin = chat.admins.findIndex(v => v === that.username) > -1;
+            if (isAdmin) {
+                fetch('/peergos-api/v1/chat/' + chat.chatId +"/icon", { method: 'POST'}).then(function(response) {
+                    if (response.status === 201) {
+                        chat.triedLoadingProfileImage = false;
+                        chat.hasProfileImage = false;
+                        chat.profileImage = "";
+                        that.retrieveChatMessages(chat.chatId, false);
+                    }
+                });
+            }
         },
         launchUploadDialog: function() {
             document.getElementById('uploadInput').click();
@@ -934,12 +978,10 @@ module.exports = {
                 } else if(message.type == 'Delete') {
                     let messageIndex = hashToIndex.get(message.deleteTarget);
                     let existingMessage = messageThread[messageIndex];
-                    if (message.author == existingMessage.sender) {
-                        existingMessage.contents = "[Message Deleted]";
-                        existingMessage.deleted = true;
-                        existingMessage.mediaFiles = [];
-                        existingMessage.file = null;
-                    }
+                    existingMessage.contents = "[Message Deleted]";
+                    existingMessage.deleted = true;
+                    existingMessage.mediaFiles = [];
+                    existingMessage.file = null;
                 } else if(message.type == 'ReplyTo') {
                     let messageIndex = hashToIndex.get(message.replyToParent);
                     let parentMessage = messageThread[messageIndex];
@@ -1198,6 +1240,9 @@ module.exports = {
             window.removeEventListener("resize", this.resizeHandler);
         },
         truncateText: function(text, length) {
+        	if (text == null) {
+        		return "";
+        	}
             return  text.length > length ? text.substring(0,length -3) + '...' : text;
         },
         confirmDeleteMessage: function(deleteMessageFunction, cancelFunction) {
@@ -1248,6 +1293,7 @@ module.exports = {
         buildConversations: function() {
             let conversationList = [];
             let conversationIconCandidates = [];
+            let groupConversationIconCandidates = [];
             var newMessageArea = document.getElementById("new-message-id");
             if (this.allChats.size == 0) {
                 newMessageArea.classList.add("chat-hide");
@@ -1281,8 +1327,12 @@ module.exports = {
                         }
                         conversationList.push(val);
                     }
-                    if (val.members.length == 2 && !val.triedLoadingProfileImage) {
-                        conversationIconCandidates.push(val);
+                    if (!val.triedLoadingProfileImage) {
+                    	if (val.members.length == 2) {
+                        	conversationIconCandidates.push(val);
+                        } else if (val.members.length >= 2) {
+	                        groupConversationIconCandidates.push(val);
+                        }
                     }
                 });
             }
@@ -1293,6 +1343,9 @@ module.exports = {
             let that = this;
             if (conversationIconCandidates.length > 0) {
                 that.loadConversationIcons(conversationIconCandidates);
+            }
+            if (groupConversationIconCandidates.length > 0) {
+                that.loadGroupConversationIcons(groupConversationIconCandidates);
             }
         },
         buildMessageThread: function (chatId) {

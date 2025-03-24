@@ -1,12 +1,12 @@
 {
     "displayName": "Luckysheet",
-    "description": ".sheet + import .xlsx .ods github.com/dream-num/Luckysheet github.com/xwiki-labs/office-converters",
-    "version": "1.0.3",
+    "description": ".sheet + import .xlsx .ods - github.com/Peergos/example-apps/#LuckySheet",
+    "version": "1.0.4",
     "author": "peergos",
     "launchable": true,
 	"folderAction": false,    
 	"appIcon": "icon.png",			
     "fileExtensions": ["sheet","xlsx", "ods"],	 
-    "permissions": ["EDIT_CHOSEN_FILE"]	
+    "permissions": ["EDIT_CHOSEN_FILE", "CSP_UNSAFE_EVAL"]	
 }
 
