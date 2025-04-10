@@ -74,9 +74,12 @@ Convert Luckysheet .sheet file to a Microsoft Excel xlsx file. Very experimental
 **Before installing, download SaxonJS2.js from https://www.saxonica.com/saxon-js/index.xml and copy into assets folder**
 
 ## Tldraw
-#### https://github.com/tldraw/tldraw
+#### https://github.com/tldraw/tldraw-v1
 
-Drawing & Whiteboard. Edit .tldr files
+Drawing & Whiteboard. Edit .tldr files.
+
+This is the original 2021-2022 version, released under MIT. 
+
 ![Drawing](./screenshots/tldraw.png)
 
 ## Draw.io
