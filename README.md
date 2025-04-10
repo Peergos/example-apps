@@ -86,6 +86,9 @@ This is the original 2021-2022 version, released under MIT.
 #### https://github.com/jgraph/drawio
 
 Diagramming and visualization. Edit .drawio files
+
+Based on release 21.2.7 - May 3 2023, licensed under Apache v2
+
 ![Diagramming](./screenshots/drawio.png)
 
 ## Notes
