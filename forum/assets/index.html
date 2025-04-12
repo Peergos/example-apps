@@ -110,7 +110,7 @@
           <a class="btn btn-primary btn-sm" style="cursor:pointer;" onclick="launchNewTopicScreen()" >
             <i class="fa fa-plus"></i> New Topic
           </a>
-          <a class="btn btn-primary btn-sm" style="cursor:pointer;" onclick="refreshTopics()" id="refreshBtn">
+          <a class="btn btn-primary btn-sm" style="cursor:pointer;" onclick="refreshTopicsButtonPress()" id="refreshBtn">
             <i class="fa fa-refresh"></i> Refresh
           </a>
         </div>
@@ -535,6 +535,12 @@
 			} else {
         		refreshTopics(callback);
         	}
+        }
+        function refreshTopicsButtonPress() {
+			showSpinner();
+			refreshTopics(() => {
+				hideSpinner();
+			});
         }
         function refreshTopics(callback) {
         	if (refreshing) {
