@@ -1,0 +1,12 @@
+{
+    	"displayName": "heic2jpg",
+    	"description": "Convert HEIC/HEIF images to JPEG - github.com/Peergos/example-apps/#heic2jpg",
+    	"version": "1.0.0",
+    	"author": "peergos",
+    	"launchable": true,
+    	"folderAction": false,    		
+    	"fileExtensions": ["heic"],	
+    	"appIcon": "icon.png",    	
+    	"permissions": ["CSP_UNSAFE_EVAL"]
+}
+

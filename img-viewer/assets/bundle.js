@@ -755,7 +755,44 @@ var app = function() {
 		function E(t) {
 			if (t?.length) {
 				//for (const e of t) e instanceof File && (e.url = URL.createObjectURL(e));
-				n(8, h = h.concat(t)), g || n(29, g = h[0])
+				if (t[0].name.toLowerCase().endsWith(".heic")) {
+					fetch(t[0].url, { method: 'GET' }).then(function(response) {				
+    	  				if (response.status === 200) {  
+    	  					response.arrayBuffer().then(function(bytes) {
+				        		fetch('libheif.wasm').then((res) => res.arrayBuffer()).then((wasmBinary) => {
+            						try {
+                						var lib = libheif({ wasmBinary: wasmBinary });
+					    				const decoder = new lib.HeifDecoder();
+        								const image = decoder.decode(new Uint8Array(bytes).buffer)[0];
+    									var canvas = document.createElement('canvas');
+    									var ctx = canvas.getContext('2d', { willReadFrequently: true });
+							        	var width = image.get_width();
+        								var height = image.get_height();
+            							canvas.width = width;
+            							canvas.height = height;
+            							var image_data = ctx.createImageData(width, height);
+            							var pixels = image_data.data;
+            							for (var i = 0; i< width * height; i++) {
+                							pixels[ i * 4 + 3] = 255;
+            							}
+        								image.display(image_data, function(display_image_data) {
+            								ctx.putImageData(display_image_data, 0, 0);
+            								let dataUrl = canvas.toDataURL("image/jpeg");
+            								t[0].url = dataUrl;
+            								n(8, h = h.concat(t)), g || n(29, g = h[0])
+        								});
+        							} catch (error) {
+      									console.log('unable to convert heic file:' + error);
+        							}
+                				});		
+                			});
+                		} else {
+      						console.log('unable to read heic file:' + response.status);
+					    }
+		    	    });					    	    
+				} else {				
+					n(8, h = h.concat(t)), g || n(29, g = h[0])
+				}
 			}
 		}
 		E(function(t) {
@@ -763,7 +800,8 @@ var app = function() {
 			    let href = window.location.href
 				let url = new URL(href);
 				let filePath = url.searchParams.get("path");
-				let filename = filePath.substring(filePath.lastIndexOf('.') + 1);
+				let extension = filePath.substring(filePath.lastIndexOf('.') + 1);
+				let filename = filePath.substring(filePath.lastIndexOf('/') + 1);
 			n.push({
 				name: filename,
 				url: filePath,

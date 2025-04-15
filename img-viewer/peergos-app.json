@@ -1,11 +1,12 @@
 {
     "displayName": "Image viewer",
     "description": "View Image files https://github.com/ThaUnknown/pwa-haven/tree/main/img-viewer",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "author": "peergos",
     "launchable": true,
 	"folderAction": false,    
 	"appIcon": "icon.png",			
-    "fileTypes": ["image"]	 
+    "fileTypes": ["image"],
+    "permissions": ["CSP_UNSAFE_EVAL"]	 
 }
 

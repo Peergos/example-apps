@@ -263,7 +263,22 @@ Create forums
 #### https://github.com/uswriting/exiftool/
 
 Read media file metadata using Exiftool compiled to webassembly
+
 ![exiftool](./screenshots/exiftool.png) 
+
+
+## Pandoc
+#### https://github.com/tweag/pandoc-wasm
+
+Pandoc compiled to webassembly. Not all conversions currently supported
+
+![exiftool](./screenshots/pandoc.png) 
+
+
+## Heic2jpg
+#### https://github.com/strukturag/libheif
+
+Decode and export HEIC image files to JPG using libheif compiled to webassembly
 
 
 ## text-editor

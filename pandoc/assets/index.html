@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PANDOC WASM</title>
+    <script src="brotli.js"></script>
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        margin: 0;
+        font-size: 20px;
+      }
+      #arguments-container {
+			margin-left: auto;
+    		margin-right: auto;
+    		width: 50%;
+    		border: 3px solid black;
+    		padding: 10px;
+      }
+      #arguments {
+        width: 65%;
+        padding: 0.5rem;
+        font-family: monospace;
+      }
+    </style>
+</head>
+<body onload="loadFile()">
+	<h1 style="text-align:center;">Pandoc WASM</h1>
+	<div>
+  		<p style="text-align:center;">
+  			Pandoc WASM is a universal document converter
+		</p>  	
+  		<p style="text-align:center;">
+  			See <a href="https://pandoc.org/index.html">link</a> for usage instructions
+		</p>  	 		  	
+  		<p style="text-align:center;">
+  			Not all conversions are currently available
+		</p>   		  	 		  			  	
+  	</div>
+  	<div style="margin-left: 20%;">
+  	  	<h3>File:&nbsp;<span id='filename'></span></h3>  	  	
+  	</div>
+    <div id="arguments-container">
+      <span>Command:</span>
+      <input type="text" id="arguments" value="-f markdown -t html5 --standalone --embed-resources">
+      <button id="runBtn" onclick="run();" disabled style="width: 40px;height: 40px;">Run</button>
+    </div>
+    <p id='status' style="text-align:center;"></p>
+  	<div id='messages'></div>
+    <script type="module">
+      	import { pandoc } from "./index.js";
+		window.pandoc = pandoc;
+    </script>
+    <script>
+    var contents = "";
+    var filename = "";
+    function loadFile() {
+    	let href = window.location.href;
+		let url = new URL(href);
+		let filePath = url.searchParams.get("path");
+		filename = filePath.substring(filePath.lastIndexOf('/') + 1);
+		const output = document.getElementById('status');
+        output.innerText = 'Loading file...';
+        document.getElementById('filename').innerText = filePath;
+		fetch(filePath, { method: 'GET' }).then(function(response) {
+      		if (response.status === 200) {
+				response.arrayBuffer().then(function(buffer) {
+    				contents = new TextDecoder().decode(buffer);
+					document.getElementById("runBtn").disabled = false;
+				    output.innerText = 'File contents loaded';    				
+    			});
+      		} else {
+		    	output.innerText = 'Error loading file. See console for details';
+      			console.log('error:' + response.status);
+      		}
+		});
+	
+	}
+    function run() {
+    	document.getElementById("status").innerText = 'Running converter';
+        const argumentsText = document.getElementById("arguments").value;
+        let token = " -t ";
+	    var newExtension = "txt";
+		let idx = argumentsText.indexOf(token);
+		if (idx > -1) {
+			let text = argumentsText.substring(idx + token.length);
+			let params = text.split(" ").filter( l => l.length > 0);
+			if (params.length > 0) {
+				newExtension = params[0];
+			}
+		}      
+        try {
+         	const output = pandoc(argumentsText, contents);
+          	save(output, newExtension);
+        } catch (err) {
+	    	document.getElementById("status").innerText = 'Converter error occurred. See console for details';
+          	console.log(`Error: ${err.message}`);
+        }
+    }
+    function save(outputText, newExtension) {
+			document.getElementById("status").innerText = 'saving file...';    
+    	    let withoutExtension = filename.substring(0, filename.lastIndexOf('.'));
+    		let newFilename = withoutExtension + '.' + newExtension;
+    		let fullPath = '/peergos-api/v0/save/' + newFilename;
+    		let encoder = new TextEncoder();
+            let bytes = encoder.encode(outputText);
+  			fetch(fullPath, { method: 'PUT', headers: {}, body: bytes })
+    			.then(function(response) {
+          			if (response.status != 200) {
+						document.getElementById("status").innerText = 'Unable to save file. See console for details';
+      					console.log('unable to save converted file:' + response.status);
+      				} else {
+						document.getElementById("status").innerText = 'file saved';   	      				
+      				}
+    		}); 	 	
+    }
+    </script>
+</body>
+</html>
