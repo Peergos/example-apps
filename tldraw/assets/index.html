@@ -34,12 +34,12 @@
 							let file = JSON.parse(fileText);
 		        			tldr.loadDocument(file.document);
         					//tldr.zoomToFit();
-    						window.setTimeout(() => setStatus(""), 1000);				
+    						setStatus("");
     					} catch (ex) {
 			    			setStatus('Error reading file...'); 
     					}
     				} else {
-    					window.setTimeout(() => setStatus(""), 1000);				
+    					setStatus("");
     				}
     			});
       		} else {
@@ -111,7 +111,9 @@
       						console.log('unable to save document:' + response.status);
       					} else {
 			      			setStatus('File saved'); 
-			    	    	window.setTimeout(() => setStatus(""), 1000);      					
+			    	    	window.setTimeout(() => {
+			    	    		setStatus("");}
+			    	    	, 1000);      					
       					}
     				}); 
     			});
@@ -154,7 +156,9 @@
       						console.log('unable to export file:' + response.status);
       					} else {
 			      			setStatus('File exported'); 
-			    	    	window.setTimeout(() => setStatus(""), 1000);      					
+			    	    	window.setTimeout(() => {
+			    	    		setStatus("");
+			    	    	}, 1000);      					
       					}
     				}); 
     			});	
@@ -162,7 +166,9 @@
     		menuElement.remove();
     		callback();   	
     	} else {
-    	    window.setTimeout(() => init(callback), 20);
+    	    window.setTimeout(() => {
+    	    	init(callback);
+    	    }, 20);
     	}
     }
     </script>
