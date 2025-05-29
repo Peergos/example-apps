@@ -100,13 +100,12 @@
           	console.log(`Error: ${err.message}`);
         }
     }
-    function save(outputText, newExtension) {
+    function save(bytes, newExtension) {
 			document.getElementById("status").innerText = 'saving file...';    
     	    let withoutExtension = filename.substring(0, filename.lastIndexOf('.'));
     		let newFilename = withoutExtension + '.' + newExtension;
     		let fullPath = '/peergos-api/v0/save/' + newFilename;
     		let encoder = new TextEncoder();
-            let bytes = encoder.encode(outputText);
   			fetch(fullPath, { method: 'PUT', headers: {}, body: bytes })
     			.then(function(response) {
           			if (response.status != 200) {

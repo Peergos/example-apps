@@ -79,5 +79,5 @@ export function pandoc(args_str, in_str) {
   );
   in_file.data = new TextEncoder().encode(in_str);
   instance.exports.wasm_main(args_ptr, args_str.length);
-  return new TextDecoder("utf-8", { fatal: true }).decode(out_file.data);
+  return out_file.data;
 }
