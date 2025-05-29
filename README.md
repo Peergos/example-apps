@@ -268,7 +268,7 @@ Read media file metadata using Exiftool compiled to webassembly
 
 
 ## Pandoc
-#### https://github.com/tweag/pandoc-wasm
+#### https://github.com/tweag/pandoc-wasm + https://github.com/tarleb/pandoc-logo
 
 Pandoc compiled to webassembly. Not all conversions currently supported
 
