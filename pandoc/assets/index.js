@@ -71,13 +71,13 @@ memory_data_view().setUint32(argv_ptr, argv, true);
 
 instance.exports.hs_init_with_rtsopts(argc_ptr, argv_ptr);
 
-export function pandoc(args_str, in_str) {
+export function pandoc(args_str, data) {
   const args_ptr = instance.exports.malloc(args_str.length);
   new TextEncoder().encodeInto(
     args_str,
     new Uint8Array(instance.exports.memory.buffer, args_ptr, args_str.length)
   );
-  in_file.data = new TextEncoder().encode(in_str);
+  in_file.data = data;
   instance.exports.wasm_main(args_ptr, args_str.length);
   return out_file.data;
 }

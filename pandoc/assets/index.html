@@ -37,7 +37,7 @@
   			See <a href="https://pandoc.org/index.html">link</a> for usage instructions
 		</p>  	 		  	
   		<p style="text-align:center;">
-  			Not all conversions are currently available
+  			Not all conversions are currently available. Supported file formats: "docx","doc","md","html","rtf","epub","odt","docbook"
 		</p>   		  	 		  			  	
   	</div>
   	<div style="margin-left: 20%;">
@@ -45,7 +45,7 @@
   	</div>
     <div id="arguments-container">
       <span>Command:</span>
-      <input type="text" id="arguments" value="-f markdown -t html5 --standalone --embed-resources">
+      <input type="text" id="arguments" value="-f markdown -t html --standalone --embed-resources">
       <button id="runBtn" onclick="run();" disabled style="width: 40px;height: 40px;">Run</button>
     </div>
     <p id='status' style="text-align:center;"></p>
@@ -68,7 +68,7 @@
 		fetch(filePath, { method: 'GET' }).then(function(response) {
       		if (response.status === 200) {
 				response.arrayBuffer().then(function(buffer) {
-    				contents = new TextDecoder().decode(buffer);
+    				contents = new Uint8Array(buffer);
 					document.getElementById("runBtn").disabled = false;
 				    output.innerText = 'File contents loaded';    				
     			});
