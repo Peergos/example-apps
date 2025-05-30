@@ -5,7 +5,6 @@
     "author": "peergos",
     "launchable": true,
 	"folderAction": false,
-	"fileTypes": ["text"],
 	"fileExtensions": ["docx","doc","md","html","rtf","epub","odt","docbook"],
 	"appIcon": "icon.png",
 	"permissions": ["CSP_UNSAFE_EVAL"]	
