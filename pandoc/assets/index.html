@@ -41,11 +41,27 @@
 		</p>   		  	 		  			  	
   	</div>
   	<div style="margin-left: 20%;">
-  	  	<h3>File:&nbsp;<span id='filename'></span></h3>  	  	
+  	  	<h3>File:&nbsp;
+  	  	<span><b id='filename'></b>
+  	  		<h3>Destination format: &nbsp;
+  	  				<select name="destination-format" id="destination-file-format" style="font-size: x-large;" onchange="destinationFileFormatOnChange()">
+  						<option id="html-option" value="html">html</option>
+  						<option id="docx-option" value="docx">docx</option>
+  						<option id="odt-option" value="odt">odt</option>
+  						<option id="doc-option" value="doc">doc</option>
+  						<option id="markdown_github-option" value="markdown_github">markdown</option>
+  						<option id="rtf-option" value="rtf">rtf</option>
+  						<option id="epub-option" value="epub">epub</option>
+  						<option id="docbook-option" value="docbook">docbook</option>
+					</select>
+  	  		</h3>
+					
+  	  	</span>
+  	  	</h3>  	  	
   	</div>
     <div id="arguments-container">
       <span>Command:</span>
-      <input type="text" id="arguments" value="-f markdown -t html --standalone --embed-resources">
+      <input type="text" id="arguments" value="" readonly>
       <button id="runBtn" onclick="run();" disabled style="width: 40px;height: 40px;">Run</button>
     </div>
     <p id='status' style="text-align:center;"></p>
@@ -56,15 +72,33 @@
     </script>
     <script>
     var contents = "";
-    var filename = "";
+    let href = window.location.href;
+	let url = new URL(href);
+	let filePath = url.searchParams.get("path");
+	var filename = "";
+    var fileExtension = "";
     function loadFile() {
     	let href = window.location.href;
 		let url = new URL(href);
 		let filePath = url.searchParams.get("path");
 		filename = filePath.substring(filePath.lastIndexOf('/') + 1);
+		let extension = filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
+    	fileExtension = extension == "md" ? "markdown_github" : extension;
+    
 		const output = document.getElementById('status');
         output.innerText = 'Loading file...';
         document.getElementById('filename').innerText = filePath;
+        //remove current file extension from destination file format
+        let optionId = fileExtension + "-option";
+        let optionToRemove = document.getElementById(optionId);
+        optionToRemove.parentElement.removeChild(optionToRemove);
+    	var destFormat = "html";
+    	if (fileExtension == "html") {
+	    	destFormat = "docx";
+    	}
+    	let args = "-f " + fileExtension + " -t " + destFormat + " --standalone --embed-resources";
+    	
+    	document.getElementById("arguments").value = args;
 		fetch(filePath, { method: 'GET' }).then(function(response) {
       		if (response.status === 200) {
 				response.arrayBuffer().then(function(buffer) {
@@ -90,6 +124,7 @@
 			let params = text.split(" ").filter( l => l.length > 0);
 			if (params.length > 0) {
 				newExtension = params[0];
+				newExtension = newExtension == "markdown_github" ? "md" : newExtension;
 			}
 		}      
         try {
@@ -116,6 +151,12 @@
       				}
     		}); 	 	
     }
+    function destinationFileFormatOnChange() {
+		let destinationFileFormat = document.getElementById("destination-file-format").value;
+		console.log('destinationFileFormat = ' + destinationFileFormat);
+		let args = "-f " + fileExtension + " -t " + destinationFileFormat + " --standalone --embed-resources";
+		document.getElementById("arguments").value = args;
+	}
     </script>
 </body>
 </html>
