@@ -1,0 +1,12 @@
+{
+    	"displayName": "Metadata scrubber",
+    	"description": "remove media file metadata github.com/Peergos/example-apps/#media-metadata-scrubber",
+    	"version": "1.0.0",
+    	"author": "peergos",
+    	"launchable": true,
+    	"folderAction": false,    		
+    	"fileExtensions": ["jpg", "png"],	
+    	"appIcon": "icon.png",    	
+    	"permissions": ["EDIT_CHOSEN_FILE"]
+}
+

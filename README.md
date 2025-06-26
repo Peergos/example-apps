@@ -88,6 +88,9 @@ Based on release 21.2.7 - May 3 2023, licensed under Apache v2
 
 Block-style editor. Edit .note files
 
+## Mini-photo-editor
+#### https://github.com/xdadda/mini-photo-editor
+
 ## TUI-Image-Editor
 #### https://github.com/nhn/tui.image-editor
 
@@ -209,6 +212,11 @@ Create forums
 #### https://github.com/uswriting/exiftool/
 
 Read media file metadata using Exiftool compiled to webassembly
+
+## Media-metadata-scrubber
+#### https://github.com/xdadda/mini-exif
+
+Supported metadata only: TIFF, EXIF, GPS
 
 ## Pandoc
 #### https://github.com/tweag/pandoc-wasm + https://github.com/tarleb/pandoc-logo
