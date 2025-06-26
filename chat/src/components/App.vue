@@ -497,7 +497,7 @@ module.exports = {
                             chat.profileImage = "";
                             that.retrieveChatMessages(that.selectedChatId, true);
                         }else if (response.status === 400) {
-                            console.log("editCurrentConversation - group model closed. chatId:" + this.selectedChatId);
+                            console.log("editCurrentConversation - group model closed. chatId:" + that.selectedChatId);
                         }
                     }).catch(e => {
                         console.log("editCurrentConversation. unexpected ex:" + e);
