@@ -1,0 +1,13 @@
+{
+    	"displayName": "Photo Roll",
+    	"description": "Share photos - github.com/Peergos/example-apps/#photo-roll",
+    	"version": "1.0.0",
+    	"author": "peergos",
+    	"launchable": true,
+    	"folderAction": false,    	
+    	"template": "messaging-instance",		
+    	"fileExtensions": [],	
+    	"appIcon": "icon.png",    	
+    	"permissions": ["EXCHANGE_MESSAGES_WITH_FRIENDS", "ACCESS_PROFILE_PHOTO", "READ_CHOSEN_FOLDER"]
+}
+

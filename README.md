@@ -203,6 +203,11 @@ A tiny tool for simple, self-contained wikis
 
 Create shareable albums
 
+## Photo-roll
+#### https://github.com/disintegration/quiet
+
+Same as Album app above, but only one instance of this app can be installed
+
 ## Forum
 #### https://github.com/disintegration/bebop
 
