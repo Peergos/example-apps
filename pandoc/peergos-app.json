@@ -1,9 +1,9 @@
 {
     "displayName": "Pandoc",
     "description": "Universal document converter - github.com/Peergos/example-apps/#pandoc",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "author": "peergos",
-    "launchable": true,
+    "launchable": false,
 	"folderAction": false,
 	"fileExtensions": ["docx","doc","md","html","rtf","epub","odt","docbook"],
 	"appIcon": "icon.png",

@@ -1,9 +1,9 @@
 {
     "displayName": "Luckysheet to Excel",
     "description": "convert .sheet to .xlsx - github.com/Peergos/example-apps/#LuckySheet2Excel",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "author": "peergos",
-    "launchable": true,
+    "launchable": false,
 	"folderAction": false,   
 	"appIcon": "icon.png", 		
     "fileExtensions": ["sheet"],	 
