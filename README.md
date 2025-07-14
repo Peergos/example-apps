@@ -234,12 +234,12 @@ Pandoc compiled to webassembly. Not all conversions currently supported
 Decode and export HEIC image files to JPG using libheif compiled to webassembly
 
 ## WebOffice
-#### https://github.com/allotropia/zetajs/examples/web-office
+#### https://github.com/allotropia/zetajs/tree/main/examples/web-office
 
 Office suite based on ZetaJS / LibreOffice
 
 ## File2PDF
-#### https://github.com/allotropia/zetajs/examples/convertpdf
+#### https://github.com/allotropia/zetajs/tree/main/examples/convertpdf
 
 Convert file to PDF
 
