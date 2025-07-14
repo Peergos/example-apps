@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: MIT -->
+<html>
+  <head>
+    <meta charset="utf-8">
+	<script src="brotli.js"></script>
+    <script type="text/javascript">
+      // Relative URLs break if the main URL's last directory has no slash.
+      // Some web servers don't add that / as "Apache DirectorySlash" does.
+      if (!location.pathname.endsWith('/') && !location.pathname.endsWith('.html')) {
+        location.replace(location.pathname + '/' + location.search + location.hash);
+      }
+    </script>
+  </head>
+  <body>
+  	<h1 style="text-align:center;">File 2 PDF</h1>
+	<div>
+  		<p style="text-align:center;">
+  			Convert document files to PDF format
+		</p>  		 		  	
+  		<p style="text-align:center;">
+  			This can take some time, please be patient.
+		</p>   		  	 		  			  	
+  	</div>
+  	<div style="margin-left: 20%;">
+  	  	<h3>File:&nbsp;<span id='filename'></span></h3>  	  	
+  	</div>
+  	<p id='status' style="text-align:center;"></p>
+    <canvas id="qtcanvas" style="display: none"></canvas>
+    <script type="module">
+      import { ZetaHelperMain } from './assets/vendor/zetajs/zetaHelper.js';
+
+      // Enable usage of LOWA builds with UI.
+      const canvas = document.getElementById('qtcanvas');
+
+		let href = window.location.href
+		let url = new URL(href);
+		let filePath = url.searchParams.get("path");
+		let filename = filePath.substring(filePath.lastIndexOf('/') + 1);
+		
+		setTimeout(() => {
+		    const output = document.getElementById('status');
+        	output.innerText = 'Initialising...';
+        	document.getElementById('filename').innerText = filePath;
+		}, 1000);
+      // Set base URL to the soffice.* files.
+      // Use an empty string if those files are in the same directory.
+      let wasmPkg = null;
+      wasmPkg = wasmPkg !== null ? 'url:' + wasmPkg : null;
+      const zHM = new ZetaHelperMain('office_thread.js', {threadJsType: 'module', wasmPkg});
+
+      async function loadFile() {
+        	const output = document.getElementById('status');
+            let name = filename;
+        	// Use a canonical /tmp/input pathname so that it cannot clash with whatever relevant
+        	// files might already be present there (which should not be named "input"), but
+        	// append the original file name extension so that LO's type detection can use it to
+        	// determine the input file type:
+        	let from = '/tmp/input';
+        	const n = name.lastIndexOf('.');
+        	if (n > 0) {
+          		from += name.substring(n);
+          		name = name.substring(0, n);
+        	}
+			let response = await fetch(filePath, { method: 'GET' });
+      		if (response.status === 200) {
+	      		output.innerText = 'Converting File'; 
+				let data = await response.arrayBuffer();
+				await FS.writeFile(from, new Uint8Array(data));
+          		await zHM.thrPort.postMessage({cmd: 'convert', name, from, to: '/tmp/output'});
+      		} else {
+      			output.innerText = 'Error loading file. See console for details';
+      			console.log('error:' + response.status);
+      		} 
+		
+		}
+      function saveFile(bytes) {
+    		document.getElementById("status").innerText = 'saving file...';    
+    	    let withoutExtension = filename.substring(0, filename.lastIndexOf('.'));
+    		let newFilename = withoutExtension + '.pdf';
+    		let fullPath = '/peergos-api/v0/save/' + newFilename;
+  			fetch(fullPath, { method: 'PUT', headers: {}, body: bytes })
+    			.then(function(response) {
+          			if (response.status != 200) {
+						document.getElementById("status").innerText = 'Unable to save file. See console for details';
+      					console.log('unable to save converted file:' + response.status);
+      				} else {
+						document.getElementById("status").innerText = 'File saved';   
+      				}
+    		}); 	
+      }
+      zHM.start(() => {
+        zHM.thrPort.onmessage = (e) => {
+          switch (e.data.cmd) {
+          case 'converted':
+            try { FS.unlink(e.data.from); } catch {}  // for easier debugging
+            const data = FS.readFile(e.data.to);
+            setTimeout(() => saveFile(data), 10);
+            try { FS.unlink(e.data.to); } catch {}  // for easier debugging
+            break;
+          case 'start':
+            setTimeout(() => loadFile(), 10);
+            break;
+          default:
+            throw Error('Unknown message command: ' + e.data.cmd);
+          }
+        };
+      });
+    </script>
+  </body>
+</html>

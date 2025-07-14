@@ -1,0 +1,20 @@
+{
+    "displayName": "Web Office",
+    "description": "Office suite - github.com/Peergos/example-apps/#WebOffice",
+    "version": "0.7.0",
+    "author": "peergos",
+    "launchable": true,
+	"folderAction": false,
+	"appIcon": "icon.png",
+	"fileExtensions": ["docx","odt","xlsx", "ods", "odp","pptx","odg"],
+	"newFileExtensions": [
+		{"extension": "docx", "name": "Microsoft Word"}, 
+		{"extension": "odt", "name": "ODF Text Document"},
+		{"extension": "xlsx", "name": "Microsoft Excel"},
+		{"extension": "ods", "name": "ODF Spreadsheet"},
+		{"extension": "pptx", "name": "Microsoft PowerPoint"},
+		{"extension": "odp", "name": "ODF Presentation"},
+		{"extension": "odg", "name": "ODF Drawing"}
+	],
+    "permissions": ["EDIT_CHOSEN_FILE", "CSP_UNSAFE_EVAL"]
+}

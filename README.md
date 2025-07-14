@@ -206,7 +206,7 @@ Create shareable albums
 ## Photo-roll
 #### https://github.com/disintegration/quiet
 
-Same as Album app above, but only one instance of this app can be installed
+Like Album app above, but only one instance of this app can be installed. Supports HEIC files
 
 ## Forum
 #### https://github.com/disintegration/bebop
@@ -232,6 +232,16 @@ Pandoc compiled to webassembly. Not all conversions currently supported
 #### https://github.com/strukturag/libheif
 
 Decode and export HEIC image files to JPG using libheif compiled to webassembly
+
+## WebOffice
+#### https://github.com/allotropia/zetajs/examples/web-office
+
+Office suite based on ZetaJS / LibreOffice
+
+## File2PDF
+#### https://github.com/allotropia/zetajs/examples/convertpdf
+
+Convert file to PDF
 
 
 ## text-editor

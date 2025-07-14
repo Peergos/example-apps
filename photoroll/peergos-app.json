@@ -8,6 +8,6 @@
     	"template": "messaging-instance",		
     	"fileExtensions": [],	
     	"appIcon": "icon.png",    	
-    	"permissions": ["EXCHANGE_MESSAGES_WITH_FRIENDS", "ACCESS_PROFILE_PHOTO", "READ_CHOSEN_FOLDER"]
+    	"permissions": ["EXCHANGE_MESSAGES_WITH_FRIENDS", "ACCESS_PROFILE_PHOTO", "READ_CHOSEN_FOLDER","CSP_UNSAFE_EVAL"]
 }
 

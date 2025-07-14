@@ -1,13 +1,14 @@
 <!doctype html>
 <html>
 	<head>
-		<title>Album</title>
+		<title>Photo Roll</title>
 		<meta charset="utf-8">
    		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     	<meta http-equiv="x-ua-compatible" content="ie=edge">
 		<link href='css/font-awesome.min.css' rel='stylesheet' type='text/css'>
 		<link href='css/bootstrap.min.css' rel='stylesheet' type='text/css'>
 		<link href='css/album.css' rel='stylesheet' type='text/css'>
+		<script src="libheif.js"></script>
 	</head>
 	<body>
 <div id="photo-modal" class="custom-modal">
@@ -63,10 +64,7 @@
 						</div>
 						<div id="auth_user">
 							<div class="username"><a id="upload-link" class="persona_link" style="color: #777; cursor: pointer;" onclick="upload();">Import</a></div>
-						</div>		
-						<div id="auth_user">
-							<!-- div class="username"><a class="persona_link" style="color: #777; cursor: pointer;" onclick="exportAlbum();">Export</a></div -->
-						</div>										
+						</div>												
 				</div>
 			</div>
 			<div class="clear"></div>
@@ -99,12 +97,13 @@
 		let MessageThread = [];
 		let ThreadHashToIndex = new Map();
 		let ProfileImages = new Map();
-		let ImageFileExtensionsSupported = ["jpg","png","gif","webp"];
+		let ImageFileExtensionsSupported = ["jpg","png","gif","webp","heic"];
 		
 		let Topics = [];
 		let TopicMetadata = new Map();
 		let TopicToComments = new Map();
 		
+		var heifDecoder = null;
 		
 		function closeConfirmationModal() {
 		    let confirmationModal = document.getElementById("confirmation-modal");
@@ -129,28 +128,80 @@
         	ChatId = url.searchParams.get("chatId");
         	//console.log('username=' + Username + " chatId=" + ChatId);
         	showSpinner();
-            loadTopics(() => {
-	        	displayPhotos();
-	        	hideSpinner();
-        		completedInit = true;
-        	});
-        }
-        function exportAlbum() {
-        	console.log("exportAlbum not yet implemented!");
+        	
+        	fetch('libheif.wasm').then((res) => res.arrayBuffer()).then((wasmBinary) => {
+            	try {
+                	let lib = libheif({ wasmBinary: wasmBinary });
+					heifDecoder = new lib.HeifDecoder();
+            		loadTopics(() => {
+	        			displayPhotos();
+	        			hideSpinner();
+        				completedInit = true;
+        			});
+        		} catch (error) {
+      				console.log('unable to initialise app:' + error);
+        		}
+            });
         }
         function addNewPhoto(title, bytes, callback) {
-			createNewTopic(title, bytes, (idOfTopicAttachment) => {
-				if (idOfTopicAttachment) {
-			    	retrieveChatMessages((reply) => {
-          				readMessagesAndFindNewTopic(reply, idOfTopicAttachment, (appMsg) => {
-                			callback(true);				
-                		});					
-                	});
-                } else {
-                	callback(false);
-                }
+	        prepareImage(title, bytes, (data) => {
+				createNewTopic(title, data, (idOfTopicAttachment) => {
+					if (idOfTopicAttachment) {
+			    		retrieveChatMessages((reply) => {
+          					readMessagesAndFindNewTopic(reply, idOfTopicAttachment, (appMsg) => {
+                				callback(true);				
+                			});					
+                		});
+                	} else {
+                		callback(false);
+                	}
+				});
 			});
         }
+        function prepareImage(title, bytes, callback) {
+        	if (title.toLowerCase().endsWith(".heic")) {
+        		heicToJpg(bytes, (convertedBytes) => callback(convertedBytes));
+        	} else {
+        		callback(bytes);
+        	}
+        }
+        function heicToJpg(bytes, callback) {
+        	try {
+        		const image = heifDecoder.decode(new Uint8Array(bytes).buffer)[0];
+    			var canvas = document.createElement('canvas');
+    			var ctx = canvas.getContext('2d', { willReadFrequently: true });
+				var w = image.get_width();
+        		var h = image.get_height();
+            	canvas.width = w;
+            	canvas.height = h;
+            	var image_data = ctx.createImageData(w, h);
+            	var pixels = image_data.data;
+            	for (var i = 0; i< w * h; i++) {
+                	pixels[ i * 4 + 3] = 255;
+            	}
+        		image.display(image_data, function(display_image_data) {
+            		ctx.putImageData(display_image_data, 0, 0);
+            		let dataUrl = canvas.toDataURL("image/jpeg",0.8);
+            		let binaryData = window.atob(dataUrl.substring("data:image/jpeg;base64,".length));
+            		var ta = new Int8Array(binaryData.length);
+            		for (var i = 0; i < binaryData.length; i++) {
+                		ta[i] = binaryData.charCodeAt(i);
+            		}
+            		callback(ta);
+        		});
+        	} catch (error) {
+      			console.log('unable to convert file:' + error);
+      			callback(bytes);
+        	}
+        }
+        function save(originalFilename, dataUrl) {   
+			let binaryData = window.atob(dataUrl.substring("data:image/jpeg;base64,".length));
+            var ta = new Int8Array(binaryData.length);
+            for (var i = 0; i < binaryData.length; i++) {
+                ta[i] = binaryData.charCodeAt(i);
+            }
+    	    return ta;
+    	}
         function refreshTopics(callback) {
 			retrieveChatMessages((reply) => {
                 readMessages(reply);
@@ -249,7 +300,7 @@
                 				if (response.status === 201) {
 									callback(guid);
                 				} else {
-                					console.log("Unable to create new album entry");
+                					console.log("Unable to create new entry");
                 					callback(null);
                 				}
             				});
@@ -418,7 +469,7 @@
             ChatMetadata.readonly = isConversationReadOnly();
             if (!ChatMetadata.hasFriendsInChat) {
                 if (! ChatMetadata.chatVisibilityWarningDisplayed) {
-                    console.log("Album no longer contains any of your friends");
+                    console.log("Photo Roll no longer contains any of your friends");
                 }
                 ChatMetadata.chatVisibilityWarningDisplayed = true;
             }
@@ -615,7 +666,7 @@
     				for(var i =0; i < availableFiles.length; i++) {
     					let file = availableFiles[i];
     					let dotIndex = file.lastIndexOf('.');										
-						let extension = dotIndex <= 0 ? '' : file.substring(dotIndex +1);
+						let extension = dotIndex <= 0 ? '' : file.substring(dotIndex +1).toLowerCase();
 						if (ImageFileExtensionsSupported.includes(extension)) {
 							imageFiles.push(file);
 						}

@@ -1,0 +1,12 @@
+{
+    "displayName": "File 2 PDF",
+    "description": "convert file to PDF format - github.com/Peergos/example-apps/#file2pdf",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": false,
+	"folderAction": false,
+	"appIcon": "icon.png",
+	"fileExtensions": ["docx","odt","xlsx", "ods", "odp","pptx","odg"],
+    "permissions": ["EDIT_CHOSEN_FILE", "CSP_UNSAFE_EVAL"]
+}
+

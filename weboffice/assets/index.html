@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: MIT -->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script type="text/javascript">
+      // Relative URLs break if the main URL's last directory has no slash.
+      // Some web servers don't add that / as "Apache DirectorySlash" does.
+      if (!location.pathname.endsWith('/') && !location.pathname.endsWith('.html')) {
+        location.replace(location.pathname + '/' + location.search + location.hash);
+      }
+    </script>
+    <title>Web Office</title>
+    <script src="brotli.js"></script>
+    <link href="assets/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+    <style>
+      .spinner {
+        border: 16px solid #3b73ab;
+        border-top: 16px solid #26b99a;
+        border-radius: 50%;
+        width: 120px;
+        height: 120px;
+        position: relative;
+        left: 100px;  /* adjust to center */
+        animation: spin 2s linear 30; /* 60 seconds */
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      .controls {
+        display: flex;
+        gap: 16px;
+      }
+
+      .canvas-wrapper {
+        position: relative;
+      }
+
+      /* position: Makes the loading animation overlay the canvas.
+      /    Needs a surrounding table with fixed width to work properly.
+      /  onselectstart: Prevents accidently selecting / highlighting the canvas.
+      /    Must be set on the surrounding HTML element. (tested in Firefox-128) */
+      .loading-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+      
+      .saveIcon {
+      	width:40px;
+      }
+    </style>
+  </head>
+  <body>
+
+    <div class="container-fluid">
+      <div class="row" style="width: 100%;">
+        <div class="col">
+          <div class="controls">
+            <button class="btn btn-light" id="btnSaveFile" onclick="btnSaveFileFunc()" disabled style="display: none">
+            	<svg role="img" class="saveIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" ><title>Save</title>
+            		<path id="icon" d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+            	</svg>
+            </button>
+            <p id='status' style="margin-top: 15px;"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="row" style="width: 100%;">
+        <div class="col">
+          <div class="canvas-wrapper" onselectstart="event.preventDefault()">
+            <div id="loadingInfo" class="loading-overlay">
+              <div class="spinner"></div><br>
+            </div>
+            <canvas
+              id="qtcanvas" contenteditable="true" class="qt-canvas"
+              oncontextmenu="event.preventDefault()" onkeydown="event.preventDefault()"
+              style="border: 0px none; padding: 0; outline: 1px solid #cccccc; width:100%; height:calc(100vh - 220px); visibility:hidden;">
+              <!-- Qt requires the canvas to have the ID "qtcanvas". -->
+              <!-- The canvas *must not* have any border or padding, or mouse coords will be wrong. -->
+              <!-- An outline is fine though. -->
+            </canvas>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <script type="text/javascript">
+      'use strict';
+
+      	// Set base URL to the soffice.* files.
+      	// Use an empty string if those files are in the same directory.
+      	let soffice_base_url = '';
+
+      	const canvas = document.getElementById('qtcanvas');
+      	const loadingInfo = document.getElementById('loadingInfo');
+      	const btnSaveFile = document.getElementById('btnSaveFile');
+
+
+      	var Module = {
+        	canvas,
+        	uno_scripts: ['./assets/vendor/zetajs/zeta.js', './office_thread.js'],
+        	locateFile: function(path, prefix) { return (prefix || soffice_base_url) + path; },
+      	};
+      	if (soffice_base_url !== '') {
+        	// Must not be set when soffice.js is in the same directory.
+        	Module.mainScriptUrlOrBlob = new Blob(
+          	["importScripts('"+soffice_base_url+"soffice.js');"], {type: 'text/javascript'});
+      	}
+
+      	let thrPort;     // zetajs thread communication
+      	let lastDevicePixelRatio = window.devicePixelRatio;
+
+		let href = window.location.href
+		let url = new URL(href);
+		let filePath = url.searchParams.get("path");
+		let filename = filePath.substring(filePath.lastIndexOf('/') + 1);
+		let isPathWritable = url.searchParams.get("isPathWritable") == 'true';
+		
+		setStatus("Initialising Web Office...", false);
+		
+      	async function loadFile() {
+      		btnSaveFile.style.display = '';
+      		setStatus("Loading file: " + filename, false);
+			let response = await fetch(filePath, { method: 'GET' });
+      		if (response.status === 200) {
+				let arrayBuffer = await response.arrayBuffer();
+				try { FS.mkdir('/tmp/office/'); } catch {}
+            	await FS.writeFile('/tmp/office/' + filename, new Uint8Array(arrayBuffer));
+           		await thrPort.postMessage({ cmd: 'upload', filename });
+	      		setStatus("File loaded", true);
+      		} else {
+      			console.log('error loading file:' + response.status);
+      			setStatus("Unable to load file", false);
+      		} 
+        	loadingInfo.style.display = null;
+      	}
+      
+      	function setStatus(msg, isTemporary) {
+			const output = document.getElementById('status');
+        	output.innerText = msg;
+        	if (isTemporary) {
+				setTimeout(() => {
+    	    		output.innerText = '';
+				}, 3000);
+			}
+      	}
+
+      	function btnSaveFileFunc() {
+			btnSaveFile.disabled = true;
+        	thrPort.postMessage({ cmd: 'download' });
+      	}
+
+      	function saveFile(bytes) {
+      		setStatus("Saving file...", false);
+        	fetch(filePath, { method: 'PUT', headers: {}, body: bytes }).then(function(response) {
+    			if (response.status === 200) {
+                	setStatus("File saved", true);
+				} else {
+			    	console.log('error saving file:' + response.status);
+			    	setStatus("Unable to save file...", false);
+				}
+				btnSaveFile.disabled = isPathWritable ? false : true;
+    		});    	
+      	}
+
+      // Scroll only the canvas while the mouse cursor is above it.
+      canvas.addEventListener('wheel', (event) => {
+        event.preventDefault();
+      }, {passive: false});
+
+      window.onresize = function() {
+        // Workaround to inform Qt5 about changed browser zoom.
+        setTimeout(function() {
+          if (lastDevicePixelRatio) {
+            if (lastDevicePixelRatio != window.devicePixelRatio) {
+              lastDevicePixelRatio = false;
+              window.dispatchEvent(new Event('resize'));
+            }
+          } else {
+            lastDevicePixelRatio = window.devicePixelRatio
+            window.dispatchEvent(new Event('resize'));
+          }
+        }, 100);
+      };
+
+
+      const soffice_js = document.createElement("script");
+      soffice_js.src = soffice_base_url + "soffice.js";
+      // "onload" runs after the loaded script has run.
+      soffice_js.onload = function() {
+        console.log('PLUS: Configuring Module');
+        Module.uno_main.then(function(pThrPort) {
+          thrPort = pThrPort;
+          thrPort.onmessage = function(e) {
+            switch (e.data.cmd) {
+            case 'thr_running':
+              loadingInfo.style.display = 'none';
+              setTimeout(() => loadFile(), 10);
+              break;
+            case 'ui_ready':  // user uploaded a file
+              // Trigger resize of the embedded window to match the canvas size.
+              // May somewhen be obsoleted by:
+              //   https://gerrit.libreoffice.org/c/core/+/174040
+              window.dispatchEvent(new Event('resize'));
+              setTimeout(function() {  // display Office UI properly
+                loadingInfo.style.display = 'none';
+                canvas.style.visibility = null;
+                btnSaveFile.disabled = isPathWritable ? false : true;
+              }, 1000);
+              break;
+            case 'download':
+              const bytes = FS.readFile('/tmp/office/' + filename);
+              saveFile(bytes);
+              break;
+            default:
+              throw Error('Unknown message command: ' + e.data.cmd);
+            }
+          };
+        });
+      };
+      console.log('Loading WASM binaries for ZetaJS from: ' + soffice_base_url);
+      // Hint: The global objects "canvas" and "Module" must exist before the next line.
+      document.body.appendChild(soffice_js);
+    </script>
+  </body>
+</html>
