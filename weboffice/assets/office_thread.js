@@ -130,6 +130,45 @@ function makeSaveDispatch(isAs) {
   }));
 }
 
+// Return the LO PDF export filter name for a given filename extension.
+function pdfFilterForFilename(filename) {
+  const ext = (filename.match(/\.([^.]+)$/) || [])[1];
+  switch ((ext || '').toLowerCase()) {
+    case 'ods': case 'xlsx': case 'xls': case 'csv': return 'calc_pdf_Export';
+    case 'odp': case 'pptx': case 'ppt': return 'impress_pdf_Export';
+    case 'odg':                                       return 'draw_pdf_Export';
+    default:                                          return 'writer_pdf_Export';
+  }
+}
+
+// XDispatch implementation that exports the document to PDF via storeToURL,
+// then sends the result to the main thread via saveFileAs (Peergos file picker).
+function makePdfExportDispatch() {
+  const obj = {
+    dispatch(url, args) {
+      const pdfFilename = docFilename.replace(/\.[^.]+$/, '') + '.pdf';
+      // Write to a fixed temp path (no spaces) to avoid path issues with storeToURL.
+      const tmpPath = 'file:///tmp/export.pdf';
+      const filterName = pdfFilterForFilename(docFilename);
+      console.log('office_thread: PDF export, filter:', filterName);
+      try {
+        const beanFilter = new css.beans.PropertyValue({Name: 'FilterName', Value: filterName});
+        const beanOverwrite = new css.beans.PropertyValue({Name: 'Overwrite', Value: true});
+        xModel.storeToURL(tmpPath, [beanOverwrite, beanFilter]);
+        zetajs.mainPort.postMessage({ cmd: 'saved', isAs: true, filename: pdfFilename, tmpFile: 'export.pdf' });
+      } catch(e) {
+        console.warn('office_thread: PDF export failed:', e);
+        zetajs.mainPort.postMessage({ cmd: 'error', message: 'PDF export failed: ' + e });
+      }
+    },
+    addStatusListener(listener, url) {},
+    removeStatusListener(listener, url) {},
+  };
+  return zetajs.unoObject(['com.sun.star.frame.XDispatch'], new Proxy(obj, {
+    get(t, p) { return p in t ? t[p] : function() {}; }
+  }));
+}
+
 // XDispatchProviderInterceptor: intercepts .uno:Save and .uno:SaveAs dispatches.
 // queryDispatches(sequence<DispatchDescriptor>) is not called for menu dispatches —
 // only queryDispatch is called. We return empty array for queryDispatches as a safety net;
@@ -139,6 +178,8 @@ function setupSaveInterceptor() {
   let masterProvider = null;
   let saveDispatch = null;
   let saveAsDispatch = null;
+
+  let pdfExportDispatch = null;
 
   const interceptorObj = {
     // XDispatchProvider
@@ -152,6 +193,10 @@ function setupSaveInterceptor() {
       if (cmd === '.uno:SaveAs' || cmd === '.uno:SaveACopy' || cmd === 'slot:5002' || cmd === 'slot:5523') {
         if (!saveAsDispatch) saveAsDispatch = makeSaveDispatch(true);
         return saveAsDispatch;
+      }
+      if (cmd === '.uno:ExportToPDF' || cmd === '.uno:ExportDirectToPDF') {
+        if (!pdfExportDispatch) pdfExportDispatch = makePdfExportDispatch();
+        return pdfExportDispatch;
       }
       if (slaveProvider) {
         try { return slaveProvider.queryDispatch(url, targetFrameName, searchFlags); } catch(e) {}

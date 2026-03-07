@@ -181,14 +181,29 @@
     		});
       	}
 
-      	function saveFileAs(bytes) {
+      	function saveFileAs(bytes, saveFilename) {
       		setStatus("Saving file...", false);
-        	fetch('/peergos-api/v0/save/' + filename, { method: 'PUT', body: bytes }).then(function(response) {
+        	fetch('/peergos-api/v0/save/' + (saveFilename || filename), { method: 'PUT', body: bytes }).then(function(response) {
     			if (response.status === 200 || response.status === 201) {
                 	setStatus("File saved", true);
 				} else {
 			    	console.log('error saving file as:' + response.status);
 			    	setStatus("Unable to save file...", false);
+				}
+    		});
+      	}
+
+      	// Save a new file (e.g. PDF export) directly alongside the source file in Peergos.
+      	function saveNewFile(bytes, saveFilename) {
+      		const dir = filePath.substring(0, filePath.lastIndexOf('/') + 1);
+      		const targetPath = dir + saveFilename;
+      		setStatus("Saving " + saveFilename + "...", false);
+        	fetch(targetPath, { method: 'PUT', body: bytes }).then(function(response) {
+    			if (response.status === 200 || response.status === 201) {
+                	setStatus(saveFilename + " saved", true);
+				} else {
+			    	console.log('error saving new file:' + response.status);
+			    	setStatus("Unable to save " + saveFilename, false);
 				}
     		});
       	}
@@ -242,9 +257,11 @@
               }, 1000);
               break;
             case 'saved':
-              const bytes = FS.readFile('/tmp/office/' + filename);
+              const saveFilename = e.data.filename || filename;
+              const readPath = e.data.tmpFile ? '/tmp/' + e.data.tmpFile : '/tmp/office/' + saveFilename;
+              const bytes = FS.readFile(readPath);
               if (e.data.isAs || !isPathWritable) {
-                saveFileAs(bytes);
+                saveFileAs(bytes, saveFilename);
               } else {
                 saveFile(bytes);
               }
