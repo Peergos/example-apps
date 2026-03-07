@@ -71,53 +71,12 @@ let zetajs, css;
 
 // = global variables (some are global for easier debugging) =
 // common variables:
-let context, desktop, xModel, ctrl, config;
+let context, desktop, xModel, ctrl;
+let docFilename = '';
 
-    /**
-     * Turn off toolbars.
-     * @param officeModules - ["Base", "Calc", "Draw", "Impress", "Math", "Writer"];
-     */
-function configDisableToolbars(officeModules) {
-        for (const mod of officeModules) {
-            const modName = "/org.openoffice.Office.UI." + mod + "WindowState/UIElements/States";
-            const uielems = config.getByHierarchicalName(modName);
-            for (const i of uielems.getElementNames()) {
-                if (i.startsWith("private:resource/toolbar/standardbar")) {
-                    const uielem = uielems.getByName(i); // SLOW OPERATION
-                    if (uielem.getByName('Visible')) {
-                        uielem.setPropertyValue('Visible', false);
-                    }
-                }
-            }
-        }
-        config.commitChanges();
-}
-    /**
-     * @param unoUrl - string following ".uno:" (e.g. "Bold")
-     */
-    function transformUrl(unoUrl) {
-        const ioparam = { val: new css.util.URL({ Complete: '.uno:' + unoUrl }) };
-        css.util.URLTransformer.create(context).parseStrict(ioparam);
-        return ioparam.val;
-    }
-    function queryDispatch(ctrl, urlObj) {
-        return ctrl.queryDispatch(urlObj, '_self', 0);
-    }
-    function dispatch(ctrl, unoUrl, params = []) {
-        const urlObj = transformUrl(unoUrl);
-        queryDispatch(ctrl, urlObj).dispatch(urlObj, params);
-    }
 
 function demo() {
   context = zetajs.getUnoComponentContext();
-  const bean_overwrite = new css.beans.PropertyValue({
-    Name: 'Overwrite',
-    Value: true
-  });
-  const bean_odt_export = new css.beans.PropertyValue({
-    Name: 'FilterName',
-    Value: 'writer8'
-  });
   desktop = css.frame.Desktop.create(context);
 
   zetajs.mainPort.onmessage = function(e) {
@@ -125,12 +84,19 @@ function demo() {
       case 'upload':
         loadFile(e.data.filename);
         break;
-      case 'download':
+      case 'triggerSave':
+        // Called from the message handler (not a LO UNO callback), so store() is safe here.
+        ownSaveInProgress = true;
         xModel.store();
-        zetajs.mainPort.postMessage({
-          cmd: 'download',
-          id: e.data.id
-        });
+        ownSaveInProgress = false;
+        zetajs.mainPort.postMessage({ cmd: 'saved', isAs: false });
+        break;
+      case 'triggerSaveAs':
+        // Called from the message handler (not a LO UNO callback), so store() is safe here.
+        ownSaveInProgress = true;
+        xModel.store();
+        ownSaveInProgress = false;
+        zetajs.mainPort.postMessage({ cmd: 'saved', isAs: true });
         break;
       default:
         throw Error('Unknown message command: ' + e.data.cmd);
@@ -141,7 +107,122 @@ function demo() {
   });
 }
 
+// ownSaveInProgress suppresses OnSaveDone events fired by our own store() calls.
+let ownSaveInProgress = false;
+let docEventListener = null;  // keep alive; GC of this would invalidate the emval handle
+let saveInterceptor = null;   // keep alive
+
+// XDispatch implementation that calls xModel.store() and notifies the main thread.
+function makeSaveDispatch(isAs) {
+  const obj = {
+    dispatch(url, args) {
+      console.log('office_thread: save intercepted via XDispatch, isAs=' + isAs);
+      ownSaveInProgress = true;
+      try { xModel.store(); } catch(e) { console.warn('store() failed:', e); }
+      ownSaveInProgress = false;
+      zetajs.mainPort.postMessage({ cmd: 'saved', isAs });
+    },
+    addStatusListener(listener, url) {},
+    removeStatusListener(listener, url) {},
+  };
+  return zetajs.unoObject(['com.sun.star.frame.XDispatch'], new Proxy(obj, {
+    get(t, p) { return p in t ? t[p] : function() {}; }
+  }));
+}
+
+// XDispatchProviderInterceptor: intercepts .uno:Save and .uno:SaveAs dispatches.
+// queryDispatches(sequence<DispatchDescriptor>) is not called for menu dispatches —
+// only queryDispatch is called. We return empty array for queryDispatches as a safety net;
+// LO uses it only for toolbar state queries.
+function setupSaveInterceptor() {
+  let slaveProvider = null;
+  let masterProvider = null;
+  let saveDispatch = null;
+  let saveAsDispatch = null;
+
+  const interceptorObj = {
+    // XDispatchProvider
+    queryDispatch(url, targetFrameName, searchFlags) {
+      const cmd = url && (url.Complete || url.Main || '');
+      console.log('office_thread: queryDispatch:', cmd);
+      if (cmd === '.uno:Save' || cmd === 'slot:5000') {
+        if (!saveDispatch) saveDispatch = makeSaveDispatch(false);
+        return saveDispatch;
+      }
+      if (cmd === '.uno:SaveAs' || cmd === '.uno:SaveACopy' || cmd === 'slot:5002' || cmd === 'slot:5523') {
+        if (!saveAsDispatch) saveAsDispatch = makeSaveDispatch(true);
+        return saveAsDispatch;
+      }
+      if (slaveProvider) {
+        try { return slaveProvider.queryDispatch(url, targetFrameName, searchFlags); } catch(e) {}
+      }
+      return null;
+    },
+    queryDispatches(/*sequence<DispatchDescriptor>*/ requests) {
+      // Not called for menu dispatches; sequence type not registered so we cannot
+      // unmarshal the argument. Return empty array — toolbar state queries will degrade gracefully.
+      return [];
+    },
+    // XDispatchProviderInterceptor
+    getSlaveDispatchProvider() { return slaveProvider; },
+    setSlaveDispatchProvider(provider) { slaveProvider = provider; },
+    getMasterDispatchProvider() { return masterProvider; },
+    setMasterDispatchProvider(provider) { masterProvider = provider; },
+  };
+
+  const interceptorProxy = new Proxy(interceptorObj, {
+    get(t, p) { return p in t ? t[p] : function() {}; }
+  });
+
+  try {
+    saveInterceptor = zetajs.unoObject([
+      'com.sun.star.frame.XDispatchProviderInterceptor',
+      'com.sun.star.frame.XDispatchProvider',
+    ], interceptorProxy);
+    ctrl.getFrame().registerDispatchProviderInterceptor(saveInterceptor);
+    console.log('office_thread: save interceptor registered');
+  } catch(e) {
+    console.warn('office_thread: interceptor registration failed, hiding menu bar instead:', e);
+    hideMenuBar();
+  }
+}
+
+function setupSaveListener() {
+  const listenerObj = {
+    // The UNO IDL method name is "documentEventOccured" (one 'r') — a typo in LO's own API.
+    documentEventOccured(event) {
+      // Fallback: if a save happens outside our interceptor, upload the result.
+      const name = event && event.EventName;
+      if (!ownSaveInProgress && (name === 'OnSaveDone' || name === 'OnSaveAsDone')) {
+        zetajs.mainPort.postMessage({ cmd: 'saved', isAs: name === 'OnSaveAsDone' });
+      }
+    },
+    disposing(event) {}
+  };
+  const listenerProxy = new Proxy(listenerObj, {
+    get(target, prop) {
+      if (prop in target) return target[prop];
+      console.log('office_thread: unimplemented listener method called:', prop);
+      return function() {};
+    }
+  });
+  docEventListener = zetajs.unoObject(['com.sun.star.document.XDocumentEventListener'], listenerProxy);
+  xModel.addDocumentEventListener(docEventListener);
+}
+
+// Hide LO's menu bar as a fallback if the dispatch interceptor fails.
+function hideMenuBar() {
+  try {
+    const dispatcher = css.frame.DispatchHelper.create(context);
+    dispatcher.executeDispatch(ctrl.getFrame(), '.uno:Menubar', '', 0, []);
+    console.log('office_thread: menu bar hidden');
+  } catch(e) {
+    console.warn('office_thread: could not hide menu bar:', e);
+  }
+}
+
 function loadFile(filename) {
+  docFilename = filename;
   const in_path = 'file:///tmp/office/' + filename;
   xModel = desktop.loadComponentFromURL(in_path, '_default', 0, []);
   if (!xModel) {
@@ -150,6 +231,8 @@ function loadFile(filename) {
   }
   ctrl = xModel.getCurrentController();
   ctrl.getFrame().getContainerWindow().FullScreen = true;
+  setupSaveListener();
+  setupSaveInterceptor();
   zetajs.mainPort.postMessage({
     cmd: 'ui_ready'
   });

@@ -30,11 +30,6 @@
         100% { transform: rotate(360deg); }
       }
 
-      .controls {
-        display: flex;
-        gap: 16px;
-      }
-
       .canvas-wrapper {
         position: relative;
       }
@@ -50,29 +45,35 @@
         transform: translate(-50%, -50%);
       }
       
-      .saveIcon {
-      	width:40px;
+      #status {
+        position: fixed;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.7);
+        color: white;
+        padding: 6px 14px;
+        border-radius: 4px;
+        display: none;
+        z-index: 1000;
+        pointer-events: none;
+      }
+
+      #btnSaveAs {
+        position: fixed;
+        top: 6px;
+        right: 8px;
+        z-index: 1000;
+        display: none;
       }
     </style>
   </head>
   <body style="height:100%">
 
-    <div class="container-fluid" style="height:100%; display:flex; flex-direction:column; padding-right:0;">
-      <div class="row" style="width: 100%;">
-        <div class="col">
-          <div class="controls">
-            <button class="btn btn-light" id="btnSaveFile" onclick="btnSaveFileFunc()" disabled style="display: none; padding:0;">
-            	<svg role="img" class="saveIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" ><title>Save</title>
-            		<path id="icon" d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
-            	</svg>
-            </button>
-            <button class="btn btn-light" id="btnSaveAsFile" onclick="btnSaveAsFileFunc()" disabled style="display: none;">Save As</button>
-            <p id='status' style="margin-top: 15px;"></p>
-          </div>
-        </div>
-      </div>
-
-      <div class="row" style="width: 100%; flex-grow:1;">
+    <div id="status"></div>
+    <button class="btn btn-sm btn-light" id="btnSaveAs" onclick="btnSaveAsFunc()">Save As</button>
+    <div class="container-fluid" style="height:100%; padding-right:0;">
+      <div class="row" style="width: 100%; height: 100%;">
         <div class="col" style="padding-right:0;">
           <div class="canvas-wrapper" onselectstart="event.preventDefault()">
             <div id="loadingInfo" class="loading-overlay">
@@ -81,7 +82,7 @@
             <canvas
               id="qtcanvas" contenteditable="true" class="qt-canvas"
               oncontextmenu="event.preventDefault()" onkeydown="event.preventDefault()"
-              style="border: 0px none; padding: 0; outline: 1px solid #cccccc; width:100%; height:calc(100vh - 55px); visibility:hidden;">
+              style="border: 0px none; padding: 0; outline: 1px solid #cccccc; width:100%; height:100vh; visibility:hidden;">
               <!-- Qt requires the canvas to have the ID "qtcanvas". -->
               <!-- The canvas *must not* have any border or padding, or mouse coords will be wrong. -->
               <!-- An outline is fine though. -->
@@ -100,8 +101,7 @@
 
       	const canvas = document.getElementById('qtcanvas');
       	const loadingInfo = document.getElementById('loadingInfo');
-      	const btnSaveFile = document.getElementById('btnSaveFile');
-      	const btnSaveAsFile = document.getElementById('btnSaveAsFile');
+      	const btnSaveAs = document.getElementById('btnSaveAs');
 
 
       	var Module = {
@@ -125,12 +125,8 @@
 		let isPathWritable = url.searchParams.get("isPathWritable") == 'true';
 		
 		setStatus("Initialising Web Office...", false);
-		
-      	let pendingSaveAs = false;
 
       	async function loadFile() {
-      		btnSaveFile.style.display = '';
-      		btnSaveAsFile.style.display = '';
       		setStatus("Loading file: " + filename, false);
 			let response = await fetch(filePath, { method: 'GET' });
       		if (response.status === 200) {
@@ -149,25 +145,29 @@
       	function setStatus(msg, isTemporary) {
 			const output = document.getElementById('status');
         	output.innerText = msg;
+        	output.style.display = msg ? 'block' : 'none';
         	if (isTemporary) {
 				setTimeout(() => {
-    	    		output.innerText = '';
+    	    		output.style.display = 'none';
 				}, 3000);
 			}
       	}
 
-      	function btnSaveFileFunc() {
-			btnSaveFile.disabled = true;
-			btnSaveAsFile.disabled = true;
-        	thrPort.postMessage({ cmd: 'download' });
+      	function btnSaveAsFunc() {
+      		thrPort.postMessage({ cmd: 'triggerSaveAs' });
       	}
 
-      	function btnSaveAsFileFunc() {
-			btnSaveFile.disabled = true;
-			btnSaveAsFile.disabled = true;
-			pendingSaveAs = true;
-        	thrPort.postMessage({ cmd: 'download' });
-      	}
+      	// Intercept Ctrl+S / Cmd+S in window capture phase — fires before any Qt handler
+      	// regardless of which element has focus. Prevents LibreOffice from dispatching
+      	// .uno:Save which shows a file dialog that crashes in WASM.
+      	window.addEventListener('keydown', function(e) {
+      		if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      			e.stopImmediatePropagation();
+      			e.preventDefault();
+      			console.log('weboffice: Ctrl+S intercepted, shiftKey=' + e.shiftKey);
+      			if (thrPort) thrPort.postMessage({ cmd: e.shiftKey ? 'triggerSaveAs' : 'triggerSave' });
+      		}
+      	}, { capture: true });
 
       	function saveFile(bytes) {
       		setStatus("Saving file...", false);
@@ -178,8 +178,6 @@
 			    	console.log('error saving file:' + response.status);
 			    	setStatus("Unable to save file...", false);
 				}
-				btnSaveFile.disabled = isPathWritable ? false : true;
-				btnSaveAsFile.disabled = false;
     		});
       	}
 
@@ -192,8 +190,6 @@
 			    	console.log('error saving file as:' + response.status);
 			    	setStatus("Unable to save file...", false);
 				}
-				btnSaveFile.disabled = isPathWritable ? false : true;
-				btnSaveAsFile.disabled = false;
     		});
       	}
 
@@ -241,14 +237,13 @@
               setTimeout(function() {  // display Office UI properly
                 loadingInfo.style.display = 'none';
                 canvas.style.visibility = null;
-                btnSaveFile.disabled = isPathWritable ? false : true;
-                btnSaveAsFile.disabled = false;
+                setStatus('', false);
+                btnSaveAs.style.display = '';
               }, 1000);
               break;
-            case 'download':
+            case 'saved':
               const bytes = FS.readFile('/tmp/office/' + filename);
-              if (pendingSaveAs) {
-                pendingSaveAs = false;
+              if (e.data.isAs || !isPathWritable) {
                 saveFileAs(bytes);
               } else {
                 saveFile(bytes);
