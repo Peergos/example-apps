@@ -96,6 +96,9 @@ function demo() {
         ownSaveInProgress = false;
         zetajs.mainPort.postMessage({ cmd: 'saved', isAs: true, filename: docFilename });
         break;
+      case 'insertGraphic':
+        insertGraphic(e.data.tmpPath);
+        break;
       default:
         throw Error('Unknown message command: ' + e.data.cmd);
     }
@@ -116,6 +119,7 @@ let frameActionListener = null; // keep alive (XFrameActionListener for componen
 let newDocDispatch = null;      // shared XDispatch for all File>New commands
 let inNewDocDispatch = false;   // re-entry guard for makeNewDocDispatch
 let mainFrameName = '';         // name of the main WASM frame, captured at load time
+let insertGraphicDispatch = null; // keep alive
 
 // Return the filename for a new untitled document based on its UNO service type.
 function guessFilenameForModel(model) {
@@ -211,6 +215,60 @@ function makeNewDocDispatch() {
   return zetajs.unoObject(['com.sun.star.frame.XDispatch'], new Proxy(obj, {
     get(t, p) { return p in t ? t[p] : function() {}; }
   }));
+}
+
+// Intercept Insert > Image: ask the main thread to show the Peergos file picker,
+// then receive back the image path and insert it via UNO.
+function makeInsertGraphicDispatch() {
+  const obj = {
+    dispatch(url, args) {
+      console.log('office_thread: InsertGraphic intercepted, requesting file picker');
+      zetajs.mainPort.postMessage({ cmd: 'pickImage' });
+    },
+    addStatusListener(listener, url) {},
+    removeStatusListener(listener, url) {},
+  };
+  return zetajs.unoObject(['com.sun.star.frame.XDispatch'], new Proxy(obj, {
+    get(t, p) { return p in t ? t[p] : function() {}; }
+  }));
+}
+
+// Insert an image (already written to WASM FS at tmpPath) into the current document.
+function insertGraphic(tmpPath) {
+  const fileUrl = 'file://' + tmpPath;
+  console.log('office_thread: inserting graphic from', fileUrl);
+  try {
+    if (xModel.supportsService('com.sun.star.text.TextDocument')) {
+      // Writer: insert inline at the current view cursor position.
+      const shape = xModel.createInstance('com.sun.star.text.TextGraphicObject');
+      shape.setPropertyValue('AnchorType', css.text.TextContentAnchorType.AS_CHARACTER);
+      shape.setPropertyValue('GraphicURL', fileUrl);
+      shape.setPropertyValue('Size', new css.awt.Size({ Width: 5000, Height: 5000 }));
+      xModel.getText().insertTextContent(ctrl.getViewCursor(), shape, false);
+    } else if (xModel.supportsService('com.sun.star.presentation.PresentationDocument') ||
+               xModel.supportsService('com.sun.star.drawing.DrawingDocument')) {
+      // Impress / Draw: add a floating graphic shape to the current slide/page.
+      const page = ctrl.getCurrentPage();
+      const shape = xModel.createInstance('com.sun.star.drawing.GraphicObjectShape');
+      page.add(shape);
+      shape.setPropertyValue('GraphicURL', fileUrl);
+      shape.setSize(new css.awt.Size({ Width: 10000, Height: 10000 }));
+      shape.setPosition(new css.awt.Point({ X: 1000, Y: 1000 }));
+    } else if (xModel.supportsService('com.sun.star.sheet.SpreadsheetDocument')) {
+      // Calc: add a floating graphic shape to the active sheet's draw page.
+      const shapes = ctrl.getActiveSheet().getDrawPage();
+      const shape = xModel.createInstance('com.sun.star.drawing.GraphicObjectShape');
+      shapes.add(shape);
+      shape.setPropertyValue('GraphicURL', fileUrl);
+      shape.setSize(new css.awt.Size({ Width: 10000, Height: 10000 }));
+      shape.setPosition(new css.awt.Point({ X: 1000, Y: 1000 }));
+    }
+    zetajs.mainPort.postMessage({ cmd: 'imageInserted' });
+    console.log('office_thread: graphic inserted successfully');
+  } catch(e) {
+    console.warn('office_thread: insertGraphic failed:', e);
+    zetajs.mainPort.postMessage({ cmd: 'error', message: 'Failed to insert image: ' + e });
+  }
 }
 
 // Return the LO filter name for saving a document in its current format.
@@ -361,6 +419,10 @@ function createSaveInterceptor(registeredFrame) {
       if (cmd === '.uno:ExportToPDF' || cmd === '.uno:ExportDirectToPDF') {
         if (!pdfExportDispatch) pdfExportDispatch = makePdfExportDispatchInner();
         return pdfExportDispatch;
+      }
+      if (cmd === '.uno:InsertGraphic') {
+        if (!insertGraphicDispatch) insertGraphicDispatch = makeInsertGraphicDispatch();
+        return insertGraphicDispatch;
       }
       // Intercept File > New commands. Redirect to loadComponentFromURL so the new
       // document is properly wired into the XFrame dispatch chain (making Save As

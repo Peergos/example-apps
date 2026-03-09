@@ -194,6 +194,35 @@
       	}
 
       	// Save a new file (e.g. PDF export) directly alongside the source file in Peergos.
+      	async function pickImageFile() {
+      		setStatus('Opening file picker...', false);
+      		try {
+      			const ext = 'jpg,jpeg,png,gif,webp,svg,avif,bmp';
+      			const response = await fetch(
+      				'/peergos-api/v0/file-picker/?extension=' + ext,
+      				{ method: 'GET' }
+      			);
+      			if (response.status !== 200) { setStatus('', false); return; }
+      			const files = JSON.parse(await response.text());
+      			if (!files || !files.length || !files[0]) { setStatus('', false); return; }
+      			const selectedPath = files[0];
+      			const imgExt = (selectedPath.match(/\.([^.]+)$/) || ['', 'png'])[1].toLowerCase();
+      			setStatus('Loading image...', false);
+      			const imgResponse = await fetch(selectedPath, { method: 'GET' });
+      			if (imgResponse.status !== 200) {
+      				setStatus('Failed to load image', false); return;
+      			}
+      			const bytes = new Uint8Array(await imgResponse.arrayBuffer());
+      			const tmpPath = '/tmp/insert_image.' + imgExt;
+      			FS.writeFile(tmpPath, bytes);
+      			setStatus('Inserting image...', false);
+      			thrPort.postMessage({ cmd: 'insertGraphic', tmpPath });
+      		} catch(e) {
+      			console.error('pickImageFile failed:', e);
+      			setStatus('', false);
+      		}
+      	}
+
       	function saveNewFile(bytes, saveFilename) {
       		const dir = filePath.substring(0, filePath.lastIndexOf('/') + 1);
       		const targetPath = dir + saveFilename;
@@ -265,6 +294,12 @@
               } else {
                 saveFile(bytes);
               }
+              break;
+            case 'pickImage':
+              pickImageFile();
+              break;
+            case 'imageInserted':
+              setStatus('Image inserted', true);
               break;
             case 'error':
               loadingInfo.style.display = 'none';
