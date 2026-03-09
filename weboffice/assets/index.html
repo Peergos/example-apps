@@ -193,7 +193,83 @@
     		});
       	}
 
-      	// Save a new file (e.g. PDF export) directly alongside the source file in Peergos.
+      	// Core file-open logic: fetch from Peergos, write to WASM FS, return filename.
+      	// Used by both the UNO-dispatch path and the custom FilePicker path.
+      	const openExts = 'odt,ott,doc,docx,rtf,txt,html,htm,' +
+      	                 'ods,ots,xls,xlsx,csv,' +
+      	                 'odp,otp,ppt,pptx,' +
+      	                 'odg,otg,svg';
+
+      	async function fetchAndStageOpenFile() {
+      		setStatus('Opening file picker...', false);
+      		const response = await fetch(
+      			'/peergos-api/v0/file-picker/?extension=' + openExts,
+      			{ method: 'GET' }
+      		);
+      		if (response.status !== 200) { setStatus('', false); return null; }
+      		const files = JSON.parse(await response.text());
+      		if (!files || !files.length || !files[0]) { setStatus('', false); return null; }
+      		const selectedPath = files[0];
+      		const newFilename = selectedPath.substring(selectedPath.lastIndexOf('/') + 1);
+      		setStatus('Loading ' + newFilename + '...', false);
+      		const fileResponse = await fetch(selectedPath, { method: 'GET' });
+      		if (fileResponse.status !== 200) { setStatus('Failed to load file', false); return null; }
+      		const bytes = new Uint8Array(await fileResponse.arrayBuffer());
+      		try { FS.mkdir('/tmp/office/'); } catch {}
+      		FS.writeFile('/tmp/office/' + newFilename, bytes);
+      		filePath = selectedPath;
+      		filename = newFilename;
+      		isPathWritable = true;
+      		setStatus('', false);
+      		return newFilename;
+      	}
+
+      	// Called when the UNO XDispatch intercepts File > Open (toolbar / keyboard).
+      	async function pickOpenFile() {
+      		try {
+      			const newFilename = await fetchAndStageOpenFile();
+      			if (!newFilename) return;
+      			loadingInfo.style.display = '';
+      			canvas.style.visibility = 'hidden';
+      			btnSaveAs.style.display = 'none';
+      			thrPort.postMessage({ cmd: 'openFile', filename: newFilename });
+      		} catch(e) {
+      			console.error('pickOpenFile failed:', e);
+      			setStatus('', false);
+      		}
+      	}
+
+      	// Called by the custom FilePicker registered in the UNO service manager.
+      	// The worker is blocked on Atomics.wait(); we write the filename into the SAB
+      	// and signal it. The worker then opens the file itself via openFileInFrame().
+      	async function pickOpenFilePicker(sab) {
+      		const signal = new Int32Array(sab, 0, 1);
+      		const pathBuf = new Uint8Array(sab, 4);
+      		try {
+      			const newFilename = await fetchAndStageOpenFile();
+      			if (!newFilename) {
+      				Atomics.store(signal, 0, 2); // CANCEL
+      				Atomics.notify(signal, 0);
+      				return;
+      			}
+      			// Show loading UI — the worker will call openFileInFrame which posts ui_ready.
+      			loadingInfo.style.display = '';
+      			canvas.style.visibility = 'hidden';
+      			btnSaveAs.style.display = 'none';
+      			// Write the filename (not full URL) into the SAB; the worker prepends the path.
+      			const encoded = new TextEncoder().encode(newFilename);
+      			pathBuf.set(encoded.subarray(0, Math.min(encoded.length, 4095)));
+      			pathBuf[Math.min(encoded.length, 4095)] = 0;
+      			Atomics.store(signal, 0, 1); // OK
+      			Atomics.notify(signal, 0);
+      		} catch(e) {
+      			console.error('pickOpenFilePicker failed:', e);
+      			setStatus('', false);
+      			Atomics.store(signal, 0, 2); // CANCEL
+      			Atomics.notify(signal, 0);
+      		}
+      	}
+
       	async function pickImageFile() {
       		setStatus('Opening file picker...', false);
       		try {
@@ -295,6 +371,16 @@
                 saveFile(bytes);
               }
               break;
+            case 'pickOpenFile':
+              pickOpenFile();
+              break;
+            case 'pickOpenFilePicker':
+              pickOpenFilePicker(e.data.sab);
+              break;
+            case 'debug':
+              console.log('[main] debug from worker:', e.data.message);
+              setStatus('[debug] ' + e.data.message, true);
+              break;
             case 'pickImage':
               pickImageFile();
               break;
@@ -311,6 +397,28 @@
           };
         });
       };
+      // Intercept Qt WASM file dialogs. LO's File > Open bypasses the UNO dispatch chain
+      // and goes directly to Qt's QFileDialog, which in WASM creates an <input type="file">
+      // element and calls .click() on it. We override createElement to catch this and
+      // redirect to our Peergos file picker instead of the browser's native picker.
+      (function() {
+        const _origCreate = document.createElement.bind(document);
+        document.createElement = function(tag) {
+          const el = _origCreate.apply(document, arguments);
+          if (typeof tag === 'string' && tag.toLowerCase() === 'input') {
+            const _origClick = el.click.bind(el);
+            el.click = function() {
+              if (el.type === 'file' && thrPort) {
+                pickOpenFile();
+                return;
+              }
+              _origClick();
+            };
+          }
+          return el;
+        };
+      })();
+
       // Check if WebGL is available on OffscreenCanvas before loading the heavy WASM.
       // LibreOffice WASM renders via Qt into an OffscreenCanvas WebGL context in a Worker.
       // If WebGL is unavailable (no GPU, hardware acceleration disabled), it fails silently.

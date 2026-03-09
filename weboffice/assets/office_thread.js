@@ -99,6 +99,9 @@ function demo() {
       case 'insertGraphic':
         insertGraphic(e.data.tmpPath);
         break;
+      case 'openFile':
+        openFileInFrame(e.data.filename);
+        break;
       default:
         throw Error('Unknown message command: ' + e.data.cmd);
     }
@@ -120,6 +123,7 @@ let newDocDispatch = null;      // shared XDispatch for all File>New commands
 let inNewDocDispatch = false;   // re-entry guard for makeNewDocDispatch
 let mainFrameName = '';         // name of the main WASM frame, captured at load time
 let insertGraphicDispatch = null; // keep alive
+let openFileDispatch = null;      // keep alive
 
 // Return the filename for a new untitled document based on its UNO service type.
 function guessFilenameForModel(model) {
@@ -268,6 +272,215 @@ function insertGraphic(tmpPath) {
   } catch(e) {
     console.warn('office_thread: insertGraphic failed:', e);
     zetajs.mainPort.postMessage({ cmd: 'error', message: 'Failed to insert image: ' + e });
+  }
+}
+
+// Intercept File > Open: ask the main thread to show the Peergos file picker.
+// This XDispatch interception catches File > Open dispatched through the UNO chain
+// (e.g. toolbar, macro). The Qt menu path is caught by the custom FilePicker service.
+function makeOpenFileDispatch() {
+  const obj = {
+    dispatch(url, args) {
+      console.log('office_thread: Open intercepted via XDispatch, requesting file picker');
+      zetajs.mainPort.postMessage({ cmd: 'pickOpenFile' });
+    },
+    addStatusListener(listener, url) {},
+    removeStatusListener(listener, url) {},
+  };
+  return zetajs.unoObject(['com.sun.star.frame.XDispatch'], new Proxy(obj, {
+    get(t, p) { return p in t ? t[p] : function() {}; }
+  }));
+}
+
+// Create a custom UNO FilePicker that shows the Peergos file picker instead of
+// the Qt WASM file dialog (which is rendered in the WebGL canvas and cannot be
+// intercepted via DOM or UNO dispatch). Synchronisation between the LO WASM
+// pthread (worker) and the async main-thread picker is done via SharedArrayBuffer
+// + Atomics.wait / Atomics.notify.
+function makeCustomFilePicker() {
+  // SAB layout: [0..3] = Int32 signal (0=waiting, 1=ok, 2=cancel), [4..] = UTF-8 filename
+  const sab = new SharedArrayBuffer(4 + 4096);
+  const signal = new Int32Array(sab, 0, 1);
+  const pathBuf = new Uint8Array(sab, 4);
+  let pendingFilename = null;
+
+  const pickerObj = {
+    // XExecutableDialog
+    setTitle(title) {},
+    execute() {
+      console.log('office_thread: *** CUSTOM FILEPICKER EXECUTE CALLED ***');
+      zetajs.mainPort.postMessage({ cmd: 'debug', message: 'Custom FilePicker.execute() called' });
+      Atomics.store(signal, 0, 0);
+      zetajs.mainPort.postMessage({ cmd: 'pickOpenFilePicker', sab });
+      // Block the WASM pthread until the main thread signals (file picked or cancelled).
+      const waitResult = Atomics.wait(signal, 0, 0, 120000); // 2 min timeout
+      console.log('office_thread: Atomics.wait returned:', waitResult);
+      const result = Atomics.load(signal, 0);
+      if (result !== 1) {
+        console.log('office_thread: FilePicker cancelled or timed out, result=' + result);
+        return 0; // ExecutableDialogResults.CANCEL
+      }
+      // Decode the filename written by the main thread into the SAB.
+      let end = pathBuf.indexOf(0);
+      if (end < 0) end = pathBuf.length;
+      pendingFilename = new TextDecoder().decode(pathBuf.subarray(0, end));
+      console.log('office_thread: FilePicker selected filename:', pendingFilename);
+      // Open the file in the existing frame before returning CANCEL.
+      // We return CANCEL so LO doesn't try its own open path (_default → new Qt window).
+      // openFileInFrame() is deferred until after LO's OpenDoc_Impl unwinds.
+      const fn = pendingFilename;
+      pendingFilename = null;
+      Promise.resolve().then(() => {
+        console.log('office_thread: deferred openFileInFrame:', fn);
+        openFileInFrame(fn);
+      });
+      return 0; // CANCEL
+    },
+    // XFilePicker / XFilePicker2 / XFilePicker3
+    setMultiSelectionMode(bMode) {},
+    getDisplayDirectory() { return ''; },
+    setDisplayDirectory(dir) {},
+    getFileName() { return ''; },
+    setFileName(name) {},
+    getFiles() { return []; },
+    getSelectedFiles() { return []; },
+    // XFilterManager
+    appendFilter(title, filter) {},
+    removeAllFilters() {},
+    setCurrentFilter(title) {},
+    getCurrentFilter() { return ''; },
+    // XFilePickerControlAccess
+    setValue(id, ctrl, val) {},
+    getValue(id, ctrl) { return null; },
+    enableControl(id, bEnable) {},
+    setLabel(id, label) {},
+    getLabel(id) { return ''; },
+    // XFilePickerNotifier
+    addFilePickerListener(l) {},
+    removeFilePickerListener(l) {},
+    // XInitialization
+    initialize(args) {
+      console.log('office_thread: custom FilePicker.initialize() called');
+    },
+    // XServiceInfo
+    getImplementationName() { return 'peergos.CustomFilePicker'; },
+    supportsService(n) { return n === 'com.sun.star.ui.dialogs.FilePicker'; },
+    getSupportedServiceNames() { return ['com.sun.star.ui.dialogs.FilePicker']; },
+    // XComponent
+    dispose() {},
+    addEventListener(l) {},
+    removeEventListener(l) {},
+  };
+
+  return zetajs.unoObject([
+    'com.sun.star.ui.dialogs.XFilePicker3',
+    'com.sun.star.ui.dialogs.XFilePickerControlAccess',
+    'com.sun.star.ui.dialogs.XFilePickerNotifier',
+    'com.sun.star.ui.dialogs.XFilePicker2',
+    'com.sun.star.ui.dialogs.XFilePicker',
+    'com.sun.star.ui.dialogs.XExecutableDialog',
+    'com.sun.star.lang.XInitialization',
+    'com.sun.star.lang.XServiceInfo',
+    'com.sun.star.lang.XComponent',
+  ], new Proxy(pickerObj, { get(t, p) { return p in t ? t[p] : function() {}; } }));
+}
+
+// Create a factory that makes custom FilePicker instances, and register it in the
+// UNO service manager so LO's internal File > Open path uses our picker.
+function installCustomFilePicker() {
+  console.log('office_thread: installCustomFilePicker() starting');
+  try {
+    const ctx = zetajs.getUnoComponentContext();
+    console.log('office_thread: got context:', !!ctx);
+    const smgr = ctx.getServiceManager();
+    console.log('office_thread: got service manager:', !!smgr);
+    if (!smgr) { console.warn('office_thread: no service manager, aborting'); return; }
+
+    // Verify we can call a known method on smgr.
+    try {
+      const impl = smgr.getImplementationName ? smgr.getImplementationName() : '(no method)';
+      console.log('office_thread: smgr.getImplementationName():', impl);
+    } catch(e) {
+      console.log('office_thread: smgr.getImplementationName() threw:', e.message);
+    }
+
+    const factoryObj = {
+      // XSingleComponentFactory (used when context is available)
+      createInstanceWithContext(ctx) {
+        console.log('office_thread: *** FILEPICKER FACTORY createInstanceWithContext CALLED ***');
+        return makeCustomFilePicker();
+      },
+      createInstanceWithArgumentsAndContext(args, ctx) {
+        console.log('office_thread: *** FILEPICKER FACTORY createInstanceWithArgumentsAndContext CALLED ***');
+        return makeCustomFilePicker();
+      },
+      // XSingleServiceFactory (used when no context — fallback path)
+      createInstance() {
+        console.log('office_thread: *** FILEPICKER FACTORY createInstance CALLED ***');
+        return makeCustomFilePicker();
+      },
+      createInstanceWithArguments(args) {
+        console.log('office_thread: *** FILEPICKER FACTORY createInstanceWithArguments CALLED ***');
+        return makeCustomFilePicker();
+      },
+      getImplementationName() { return 'peergos.CustomFilePickerFactory'; },
+      supportsService(n) { return n === 'com.sun.star.ui.dialogs.FilePicker'; },
+      getSupportedServiceNames() { return ['com.sun.star.ui.dialogs.FilePicker']; },
+    };
+    const factory = zetajs.unoObject([
+      'com.sun.star.lang.XSingleComponentFactory',
+      'com.sun.star.lang.XSingleServiceFactory',
+      'com.sun.star.lang.XServiceInfo',
+    ], new Proxy(factoryObj, { get(t, p) { return p in t ? t[p] : function() {}; } }));
+
+    console.log('office_thread: calling smgr.insert(factory)...');
+    smgr.insert(factory);
+    console.log('office_thread: smgr.insert() succeeded — custom FilePicker registered');
+
+    // Verify: try to enumerate factories for this service to confirm registration.
+    try {
+      const en = smgr.createContentEnumeration
+        ? smgr.createContentEnumeration('com.sun.star.ui.dialogs.FilePicker')
+        : null;
+      if (en) {
+        let count = 0;
+        while (en.hasMoreElements && en.hasMoreElements()) { en.nextElement(); count++; }
+        console.log('office_thread: FilePicker factory count after insert:', count);
+      }
+    } catch(e) {
+      console.log('office_thread: createContentEnumeration check threw:', e.message);
+    }
+  } catch(e) {
+    console.warn('office_thread: custom FilePicker registration failed:', e.message || e);
+  }
+}
+
+// Load a file (already written to /tmp/office/<filename> in WASM FS) into the current frame.
+function openFileInFrame(filename) {
+  console.log('office_thread: opening file in frame:', filename);
+  const fileUrl = 'file:///tmp/office/' + filename;
+  try {
+    try { xModel.removeDocumentEventListener(docEventListener); } catch(e) {}
+    if (!mainFrameName) {
+      zetajs.mainPort.postMessage({ cmd: 'error', message: 'Cannot open file: frame name unavailable' });
+      return;
+    }
+    const newModel = desktop.loadComponentFromURL(fileUrl, mainFrameName, 0, []);
+    if (!newModel) {
+      zetajs.mainPort.postMessage({ cmd: 'error', message: 'Failed to open document' });
+      return;
+    }
+    xModel = newModel;
+    ctrl = newModel.getCurrentController();
+    docFilename = filename;
+    try { ctrl.getFrame().getContainerWindow().FullScreen = true; } catch(e) {}
+    setupSaveListener();
+    setupSaveInterceptor();
+    zetajs.mainPort.postMessage({ cmd: 'ui_ready' });
+    console.log('office_thread: file opened:', filename);
+  } catch(e) {
+    console.warn('office_thread: openFileInFrame failed:', e);
+    zetajs.mainPort.postMessage({ cmd: 'error', message: 'Failed to open file: ' + e });
   }
 }
 
@@ -424,6 +637,10 @@ function createSaveInterceptor(registeredFrame) {
         if (!insertGraphicDispatch) insertGraphicDispatch = makeInsertGraphicDispatch();
         return insertGraphicDispatch;
       }
+      if (cmd === '.uno:Open' || cmd === '.uno:OpenUrl' || cmd === '.uno:OpenFromWriter') {
+        if (!openFileDispatch) openFileDispatch = makeOpenFileDispatch();
+        return openFileDispatch;
+      }
       // Intercept File > New commands. Redirect to loadComponentFromURL so the new
       // document is properly wired into the XFrame dispatch chain (making Save As
       // interceptable). LO's internal File>New path bypasses XDispatchProviderInterceptor.
@@ -507,6 +724,18 @@ function setupSaveInterceptor() {
     } catch(e2) {
       console.warn('office_thread: top-frame fallback also failed:', e2);
     }
+  }
+
+  // Register on desktop itself. File > Open (and similar application-level commands)
+  // are dispatched through the Desktop dispatcher, not a child frame, so they bypass
+  // the frame-level interceptors above. Registering here catches them.
+  try {
+    const di = createSaveInterceptor(null);
+    desktop.registerDispatchProviderInterceptor(di);
+    frameInterceptors.push(di);
+    console.log('office_thread: save interceptor registered on desktop');
+  } catch(e) {
+    console.warn('office_thread: desktop interceptor failed (non-fatal):', e);
   }
 }
 
@@ -650,6 +879,7 @@ function loadFile(filename) {
   } catch(e) { mainFrameName = ''; }
   console.log('office_thread: main frame name:', mainFrameName);
   ctrl.getFrame().getContainerWindow().FullScreen = true;
+  installCustomFilePicker();
   setupSaveListener();
   setupSaveInterceptor();
   setupFrameListener();
