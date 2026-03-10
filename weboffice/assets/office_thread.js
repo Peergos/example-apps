@@ -102,6 +102,9 @@ function demo() {
       case 'openFile':
         openFileInFrame(e.data.filename);
         break;
+      case 'newDoc':
+        loadNewDoc(e.data.factoryUrl);
+        break;
       default:
         throw Error('Unknown message command: ' + e.data.cmd);
     }
@@ -857,6 +860,33 @@ function hideMenuBar(frame) {
   } catch(e) {
     console.warn('office_thread: could not hide menu bar:', e);
   }
+}
+
+function loadNewDoc(factoryUrl) {
+  factoryUrl = factoryUrl || 'private:factory/swriter';
+  try { FS.mkdir('/tmp/office/'); } catch {}
+  xModel = desktop.loadComponentFromURL(factoryUrl, '_default', 0, []);
+  if (!xModel) {
+    zetajs.mainPort.postMessage({ cmd: 'error', message: 'Failed to create document' });
+    return;
+  }
+  ctrl = xModel.getCurrentController();
+  docFilename = guessFilenameForModel(xModel);
+  try {
+    const f = ctrl.getFrame();
+    mainFrameName = f.getName();
+    if (!mainFrameName) {
+      mainFrameName = 'weboffice_main';
+      f.setName(mainFrameName);
+    }
+  } catch(e) { mainFrameName = ''; }
+  ctrl.getFrame().getContainerWindow().FullScreen = true;
+  installCustomFilePicker();
+  setupSaveListener();
+  setupSaveInterceptor();
+  setupFrameListener();
+  setupFrameActionListener();
+  zetajs.mainPort.postMessage({ cmd: 'ui_ready' });
 }
 
 function loadFile(filename) {

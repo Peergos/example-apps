@@ -121,7 +121,7 @@
 		let href = window.location.href
 		let url = new URL(href);
 		let filePath = url.searchParams.get("path");
-		let filename = filePath.substring(filePath.lastIndexOf('/') + 1);
+        let filename = filePath ? filePath.substring(filePath.lastIndexOf("/") + 1) : "";
 		let isPathWritable = url.searchParams.get("isPathWritable") == 'true';
 		
 		setStatus("Initialising Web Office...", false);
@@ -347,7 +347,12 @@
             switch (e.data.cmd) {
             case 'thr_running':
               loadingInfo.style.display = 'none';
-              setTimeout(() => loadFile(), 10);
+              if (filePath) {
+                setTimeout(() => loadFile(), 10);
+              } else {
+                try { FS.mkdir('/tmp/office/'); } catch {}
+                setTimeout(() => thrPort.postMessage({ cmd: 'newDoc' }), 10);
+              }
               break;
             case 'ui_ready':  // user uploaded a file
               // Trigger resize of the embedded window to match the canvas size.
@@ -361,16 +366,25 @@
                 btnSaveAs.style.display = '';
               }, 1000);
               break;
-            case 'saved':
+            case 'saved': {
               const saveFilename = e.data.filename || filename;
               const readPath = e.data.tmpFile ? '/tmp/' + e.data.tmpFile : '/tmp/office/' + saveFilename;
-              const bytes = FS.readFile(readPath);
+              let bytes;
+              try { bytes = FS.readFile(readPath); } catch(err) {
+                setStatus('Save failed: ' + err.message, false);
+                break;
+              }
+              if (!bytes || bytes.length === 0) {
+                setStatus('Save failed: document could not be written to disk', false);
+                break;
+              }
               if (e.data.isAs || !isPathWritable) {
                 saveFileAs(bytes, saveFilename);
               } else {
                 saveFile(bytes);
               }
               break;
+            }
             case 'pickOpenFile':
               pickOpenFile();
               break;
