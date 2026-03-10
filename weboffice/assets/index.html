@@ -11,6 +11,10 @@
       }
     </script>
     <title>Web Office</title>
+    <!-- Preload the large WASM and data files as early as possible so the browser
+         starts fetching them while the rest of the page is still being parsed. -->
+    <link rel="preload" href="soffice.wasm" as="fetch" crossorigin>
+    <link rel="preload" href="soffice.data" as="fetch" crossorigin>
     <script src="brotli.js"></script>
     <link href="assets/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
     <style>
@@ -443,6 +447,93 @@
           return !!(oc.getContext('webgl') || oc.getContext('webgl2'));
         } catch(e) { return false; }
       }
+
+      // Cache the compiled WebAssembly.Module in IndexedDB so subsequent loads skip
+      // the expensive JS brotli decompression (~5-15s) and WASM JIT compilation (~5-15s).
+      // The cached module is validated against the ETag/Last-Modified from the server.
+      (function() {
+        const IDB_NAME = 'weboffice-wasm-cache';
+        const IDB_VERSION = 1;
+        const IDB_STORE = 'modules';
+        const WASM_KEY = 'soffice.wasm';
+
+        function idbOpen() {
+          return new Promise(function(res, rej) {
+            var r = indexedDB.open(IDB_NAME, IDB_VERSION);
+            r.onupgradeneeded = function(e) { e.target.result.createObjectStore(IDB_STORE); };
+            r.onsuccess = function(e) { res(e.target.result); };
+            r.onerror = function(e) { rej(e.target.error); };
+          });
+        }
+        function idbGet(db, key) {
+          return new Promise(function(res, rej) {
+            var r = db.transaction(IDB_STORE, 'readonly').objectStore(IDB_STORE).get(key);
+            r.onsuccess = function(e) { res(e.target.result); };
+            r.onerror = function(e) { rej(e.target.error); };
+          });
+        }
+        function idbPut(db, key, val) {
+          return new Promise(function(res, rej) {
+            var r = db.transaction(IDB_STORE, 'readwrite').objectStore(IDB_STORE).put(val, key);
+            r.onsuccess = function() { res(); };
+            r.onerror = function(e) { rej(e.target.error); };
+          });
+        }
+
+        Module['instantiateWasm'] = function(imports, receiveInstance) {
+          var wasmUrl = soffice_base_url + 'soffice.wasm';
+          (async function() {
+            var db = null;
+            try { db = await idbOpen(); } catch(e) {
+              console.warn('weboffice: IDB unavailable, WASM module will not be cached:', e);
+            }
+
+            // Fetch soffice.wasm. The preload hint above means the browser likely already
+            // started this request; if HTTP cache has it, no network transfer occurs.
+            var response = await fetch(wasmUrl, { credentials: 'same-origin' });
+            var cacheKey = response.headers.get('ETag') ||
+                           response.headers.get('Last-Modified') || '';
+
+            // Try the IDB cache first.
+            var wasmModule = null;
+            if (db) {
+              try {
+                var cached = await idbGet(db, WASM_KEY);
+                // Accept the cached module if cacheKey matches, or if we have no key to validate with.
+                if (cached && cached.module && (!cacheKey || cached.key === cacheKey)) {
+                  wasmModule = cached.module;
+                  console.log('weboffice: Loaded compiled WASM module from IndexedDB');
+                  setStatus('Loading Office engine from cache...', false);
+                }
+              } catch(e) {
+                console.warn('weboffice: Failed to read WASM module from IDB:', e);
+              }
+            }
+
+            if (!wasmModule) {
+              setStatus('Compiling Office engine (first load, will be faster next time)...', false);
+              var compressed = new Uint8Array(await response.arrayBuffer());
+              console.log('weboffice: Decompressing WASM...');
+              var decompressed = dw(compressed);
+              console.log('weboffice: Compiling WASM...');
+              wasmModule = await WebAssembly.compile(decompressed);
+
+              // Store compiled module in IDB in the background — don't block startup.
+              if (db) {
+                idbPut(db, WASM_KEY, { key: cacheKey, module: wasmModule })
+                  .then(function() { console.log('weboffice: Cached compiled WASM module in IndexedDB'); })
+                  .catch(function(e) { console.warn('weboffice: Failed to cache WASM module:', e); });
+              }
+            }
+
+            var instance = await WebAssembly.instantiate(wasmModule, imports);
+            receiveInstance(instance, wasmModule);
+          })().catch(function(e) {
+            console.error('weboffice: instantiateWasm failed:', e);
+          });
+          return {}; // Non-empty return signals to Emscripten that we're handling WASM loading.
+        };
+      })();
 
       if (!checkOffscreenWebGL()) {
         loadingInfo.style.display = 'none';
