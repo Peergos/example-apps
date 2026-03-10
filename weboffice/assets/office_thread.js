@@ -623,7 +623,7 @@ function createSaveInterceptor(registeredFrame) {
   const interceptorObj = {
     queryDispatch(url, targetFrameName, searchFlags) {
       const cmd = url && (url.Complete || url.Main || '');
-      console.log('office_thread: queryDispatch:', cmd);
+      //console.log('office_thread: queryDispatch:', cmd);
       if (cmd === '.uno:Save' || cmd === 'slot:5000') {
         if (!saveDispatch) saveDispatch = makeSaveDispatchInner(false);
         return saveDispatch;
