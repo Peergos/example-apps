@@ -553,6 +553,7 @@ function createSaveInterceptor(registeredFrame) {
   let masterProvider = null;
   let saveDispatch = null;
   let saveAsDispatch = null;
+  let saveAsTemplateDispatch = null;
   let pdfExportDispatch = null;
   // Cache for slaveProvider.queryDispatch() results, keyed by command string.
   // LO calls queryDispatch ~1000 times per cell commit (one per UNO command in the
@@ -607,6 +608,42 @@ function createSaveInterceptor(registeredFrame) {
     }));
   }
 
+  // Inner XDispatch for Save As Template.
+  function makeSaveAsTemplateDispatchInner() {
+    const obj = {
+      dispatch(url, args) {
+        const { model, filename } = getModelAndFilename();
+        let ext, filter;
+        try {
+          if (model.supportsService('com.sun.star.sheet.SpreadsheetDocument')) {
+            ext = 'ots'; filter = 'calc8_template';
+          } else if (model.supportsService('com.sun.star.presentation.PresentationDocument')) {
+            ext = 'otp'; filter = 'impress8_template';
+          } else if (model.supportsService('com.sun.star.drawing.DrawingDocument')) {
+            ext = 'otg'; filter = 'draw8_template';
+          } else {
+            ext = 'ott'; filter = 'writer8_template';
+          }
+        } catch(e) { ext = 'ott'; filter = 'writer8_template'; }
+        const templateFilename = filename.replace(/\.[^.]+$/, '') + '.' + ext;
+        console.log('office_thread: save as template, filter=' + filter + ' file=' + templateFilename);
+        ownSaveInProgress = true;
+        try {
+          const beanFilter    = new css.beans.PropertyValue({ Name: 'FilterName', Value: filter });
+          const beanOverwrite = new css.beans.PropertyValue({ Name: 'Overwrite',  Value: true });
+          model.storeToURL('file:///tmp/office/' + templateFilename, [beanFilter, beanOverwrite]);
+        } catch(e) { console.warn('office_thread: save as template storeToURL failed:', e); }
+        ownSaveInProgress = false;
+        zetajs.mainPort.postMessage({ cmd: 'saved', isAs: true, filename: templateFilename });
+      },
+      addStatusListener(listener, url) {},
+      removeStatusListener(listener, url) {},
+    };
+    return zetajs.unoObject(['com.sun.star.frame.XDispatch'], new Proxy(obj, {
+      get(t, p) { return p in t ? t[p] : function() {}; }
+    }));
+  }
+
   // Inner XDispatch for PDF export.
   function makePdfExportDispatchInner() {
     const obj = {
@@ -645,6 +682,10 @@ function createSaveInterceptor(registeredFrame) {
       if (cmd === '.uno:SaveAs' || cmd === '.uno:SaveACopy' || cmd === 'slot:5002' || cmd === 'slot:5523') {
         if (!saveAsDispatch) saveAsDispatch = makeSaveDispatchInner(true);
         return saveAsDispatch;
+      }
+      if (cmd === '.uno:SaveAsTemplate' || cmd === '.uno:AddToTemplates') {
+        if (!saveAsTemplateDispatch) saveAsTemplateDispatch = makeSaveAsTemplateDispatchInner();
+        return saveAsTemplateDispatch;
       }
       if (cmd === '.uno:ExportToPDF' || cmd === '.uno:ExportDirectToPDF') {
         if (!pdfExportDispatch) pdfExportDispatch = makePdfExportDispatchInner();

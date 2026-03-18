@@ -511,7 +511,7 @@
             }
 
             if (!wasmModule) {
-              setStatus('Compiling Office engine (first load, will be faster next time)...', false);
+              setStatus('Loading Office...', false);
               var compressed = new Uint8Array(await response.arrayBuffer());
               console.log('weboffice: Decompressing WASM...');
               var decompressed = dw(compressed);
