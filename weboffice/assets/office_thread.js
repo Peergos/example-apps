@@ -654,7 +654,9 @@ function createSaveInterceptor(registeredFrame) {
         if (!insertGraphicDispatch) insertGraphicDispatch = makeInsertGraphicDispatch();
         return insertGraphicDispatch;
       }
-      if (cmd === '.uno:Open' || cmd === '.uno:OpenUrl' || cmd === '.uno:OpenFromWriter') {
+      if (cmd === '.uno:Open' || cmd.startsWith('.uno:OpenFrom') ||
+          cmd === '.uno:OpenUrl' || cmd === '.uno:OpenTemplate' ||
+          cmd === '.uno:NewFromTemplate') {
         if (!openFileDispatch) openFileDispatch = makeOpenFileDispatch();
         return openFileDispatch;
       }
