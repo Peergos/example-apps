@@ -554,6 +554,13 @@ function createSaveInterceptor(registeredFrame) {
   let saveDispatch = null;
   let saveAsDispatch = null;
   let pdfExportDispatch = null;
+  // Cache for slaveProvider.queryDispatch() results, keyed by command string.
+  // LO calls queryDispatch ~1000 times per cell commit (one per UNO command in the
+  // status-update sweep). Each call wraps a C++ XDispatch pointer into a new JS object
+  // via Emscripten's RegisteredPointer_fromWireType + makeClassHandle — ~6 ms each.
+  // Caching the result after the first call drops subsequent commits to near-zero cost.
+  // Cleared in setSlaveDispatchProvider so chain changes (new document load) repopulate.
+  const slaveDispatchCache = new Map();
 
   // Get the model that is currently active in our frame, and derive its filename.
   // Falls back to the global xModel/docFilename if the frame can't be queried.
@@ -670,7 +677,13 @@ function createSaveInterceptor(registeredFrame) {
         return newDocDispatch;
       }
       if (slaveProvider) {
-        try { return slaveProvider.queryDispatch(url, targetFrameName, searchFlags); } catch(e) {}
+        if (slaveDispatchCache.has(cmd)) {
+          return slaveDispatchCache.get(cmd);
+        }
+        let result = null;
+        try { result = slaveProvider.queryDispatch(url, targetFrameName, searchFlags); } catch(e) {}
+        slaveDispatchCache.set(cmd, result);
+        return result;
       }
       return null;
     },
@@ -678,7 +691,10 @@ function createSaveInterceptor(registeredFrame) {
     // slave dispatchers for batch-queried commands, bypassing our interceptor on click.
     // With queryDispatches absent, LO falls back to individual queryDispatch calls.
     getSlaveDispatchProvider() { return slaveProvider; },
-    setSlaveDispatchProvider(provider) { slaveProvider = provider; },
+    setSlaveDispatchProvider(provider) {
+      slaveProvider = provider;
+      slaveDispatchCache.clear(); // repopulate when chain changes (new document load)
+    },
     getMasterDispatchProvider() { return masterProvider; },
     setMasterDispatchProvider(provider) { masterProvider = provider; },
   };
