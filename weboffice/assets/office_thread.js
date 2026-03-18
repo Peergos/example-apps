@@ -128,6 +128,13 @@ let mainFrameName = '';         // name of the main WASM frame, captured at load
 let insertGraphicDispatch = null; // keep alive
 let openFileDispatch = null;      // keep alive
 
+// Tracks frame names (and '__desktop__') that already have a save interceptor.
+// Each JS interceptor in the LO dispatch chain adds one Emscripten FinalizationRegistry
+// entry per queryDispatch call. LO makes O(commands) queryDispatch calls on every cell
+// commit, so duplicate interceptors on the same frame produce O(N²) attachFinalizer
+// work and cause multi-second hangs. Guard all registration sites with this set.
+const interceptedFrameNames = new Set();
+
 // Return the filename for a new untitled document based on its UNO service type.
 function guessFilenameForModel(model) {
   try {
@@ -682,14 +689,32 @@ function createSaveInterceptor(registeredFrame) {
   ], new Proxy(interceptorObj, { get(t, p) { return p in t ? t[p] : function() {}; } }));
 }
 
+function registerInterceptorOnFrame(frame, label) {
+  let fname = '';
+  try { fname = frame.getName(); } catch(e) {}
+  if (interceptedFrameNames.has(fname)) {
+    console.log('office_thread: interceptor already registered on frame, skipping:', label, fname);
+    return null;
+  }
+  const fi = createSaveInterceptor(frame);
+  frame.registerDispatchProviderInterceptor(fi);
+  interceptedFrameNames.add(fname);
+  console.log('office_thread: save interceptor registered on', label, fname);
+  return fi;
+}
+
 function setupSaveInterceptor() {
   const docFrame = ctrl.getFrame();
 
   // Register on the document frame (handles Writer, Calc).
   try {
-    saveInterceptor = createSaveInterceptor(docFrame);
-    docFrame.registerDispatchProviderInterceptor(saveInterceptor);
-    console.log('office_thread: save interceptor registered on doc frame');
+    const fi = registerInterceptorOnFrame(docFrame, 'doc frame');
+    if (fi) {
+      saveInterceptor = fi;
+    } else if (!saveInterceptor) {
+      // Frame already intercepted but saveInterceptor not set (shouldn't happen).
+      console.warn('office_thread: doc frame already intercepted, saveInterceptor not updated');
+    }
   } catch(e) {
     console.warn('office_thread: interceptor failed on doc frame:', e);
     hideMenuBar();
@@ -699,17 +724,17 @@ function setupSaveInterceptor() {
   // Register on ALL frames known to the desktop.
   // Impress dispatches Save/SaveAs via a different frame than ctrl.getFrame(),
   // so we cover every frame to ensure the interceptor is in the dispatch chain.
+  // Frames already in interceptedFrameNames (e.g. docFrame) are skipped — this
+  // was the main source of duplicate registrations causing the typing hang.
   try {
     const frames = desktop.getFrames();
     const count = frames.getCount();
-    console.log('office_thread: registering interceptor on', count, 'desktop frames');
+    console.log('office_thread: checking', count, 'desktop frames for interceptor registration');
     for (let i = 0; i < count; i++) {
       try {
         const f = frames.getByIndex(i);
-        const fi = createSaveInterceptor(f);
-        f.registerDispatchProviderInterceptor(fi);
-        frameInterceptors.push(fi);
-        console.log('office_thread: save interceptor registered on desktop frame', i);
+        const fi = registerInterceptorOnFrame(f, 'desktop frame ' + i);
+        if (fi) frameInterceptors.push(fi);
       } catch(e) {
         console.warn('office_thread: desktop frame', i, 'interceptor failed (non-fatal):', e);
       }
@@ -720,9 +745,8 @@ function setupSaveInterceptor() {
     try {
       const topFrame = docFrame.findFrame('_top', 1 + 8); // SELF=1, PARENT=8
       if (topFrame) {
-        saveInterceptorTop = createSaveInterceptor(topFrame);
-        topFrame.registerDispatchProviderInterceptor(saveInterceptorTop);
-        console.log('office_thread: save interceptor registered on top frame (fallback)');
+        const fi = registerInterceptorOnFrame(topFrame, 'top frame (fallback)');
+        if (fi) saveInterceptorTop = fi;
       }
     } catch(e2) {
       console.warn('office_thread: top-frame fallback also failed:', e2);
@@ -732,13 +756,16 @@ function setupSaveInterceptor() {
   // Register on desktop itself. File > Open (and similar application-level commands)
   // are dispatched through the Desktop dispatcher, not a child frame, so they bypass
   // the frame-level interceptors above. Registering here catches them.
-  try {
-    const di = createSaveInterceptor(null);
-    desktop.registerDispatchProviderInterceptor(di);
-    frameInterceptors.push(di);
-    console.log('office_thread: save interceptor registered on desktop');
-  } catch(e) {
-    console.warn('office_thread: desktop interceptor failed (non-fatal):', e);
+  if (!interceptedFrameNames.has('__desktop__')) {
+    try {
+      const di = createSaveInterceptor(null);
+      desktop.registerDispatchProviderInterceptor(di);
+      frameInterceptors.push(di);
+      interceptedFrameNames.add('__desktop__');
+      console.log('office_thread: save interceptor registered on desktop');
+    } catch(e) {
+      console.warn('office_thread: desktop interceptor failed (non-fatal):', e);
+    }
   }
 }
 
@@ -752,10 +779,8 @@ function setupFrameListener() {
           // event.Element is the new XFrame — register our interceptor on it.
           const f = event && event.Element;
           if (!f) return;
-          const fi = createSaveInterceptor(f);
-          f.registerDispatchProviderInterceptor(fi);
-          frameInterceptors.push(fi);
-          console.log('office_thread: save interceptor registered on new frame (File>New)');
+          const fi = registerInterceptorOnFrame(f, 'new frame (File>New)');
+          if (fi) frameInterceptors.push(fi);
         } catch(e) {
           console.warn('office_thread: new frame interceptor failed:', e);
         }
@@ -827,12 +852,10 @@ function setupFrameActionListener() {
           } catch(e) {
             console.warn('office_thread: could not update model refs:', e);
           }
-          // Re-register interceptor for the new document.
+          // Re-register interceptor for the new document if not already present.
           try {
-            const fi = createSaveInterceptor(docFrame);
-            docFrame.registerDispatchProviderInterceptor(fi);
-            frameInterceptors.push(fi);
-            console.log('office_thread: interceptor re-registered after component change');
+            const fi = registerInterceptorOnFrame(docFrame, 'doc frame (component change)');
+            if (fi) frameInterceptors.push(fi);
           } catch(e) {
             console.warn('office_thread: re-register after component change failed:', e);
           }
