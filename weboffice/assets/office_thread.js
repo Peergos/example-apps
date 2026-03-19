@@ -555,6 +555,7 @@ function createSaveInterceptor(registeredFrame) {
   let saveAsDispatch = null;
   let saveAsTemplateDispatch = null;
   let pdfExportDispatch = null;
+  let presentationDispatch = null;
   // Cache for slaveProvider.queryDispatch() results, keyed by command string.
   // LO calls queryDispatch ~1000 times per cell commit (one per UNO command in the
   // status-update sweep). Each call wraps a C++ XDispatch pointer into a new JS object
@@ -673,7 +674,11 @@ function createSaveInterceptor(registeredFrame) {
 
   const interceptorObj = {
     queryDispatch(url, targetFrameName, searchFlags) {
-      const cmd = url && (url.Complete || url.Main || '');
+      // LO occasionally calls queryDispatch with a null C++ URL struct. Accessing
+      // url.Complete on a null zetajs proxy throws "invalid nullptr parameter" through
+      // Emscripten's embind — guard against it here.
+      let cmd = '';
+      try { cmd = url && (url.Complete || url.Main || ''); } catch(e) { return null; }
       //console.log('office_thread: queryDispatch:', cmd);
       if (cmd === '.uno:Save' || cmd === 'slot:5000') {
         if (!saveDispatch) saveDispatch = makeSaveDispatchInner(false);
@@ -701,12 +706,51 @@ function createSaveInterceptor(registeredFrame) {
         if (!openFileDispatch) openFileDispatch = makeOpenFileDispatch();
         return openFileDispatch;
       }
+      // Disable Tools > Options — it tries to create a new Qt window which fails in WASM
+      // (QObject::connect nullptr error). Return a dispatch that reports IsEnabled=false
+      // so the item is grayed out. The module config registry is stripped in this WASM
+      // build so the item cannot be fully removed via the UNO config API.
+      if (cmd === '.uno:OptionsTreeDialog') {
+        const obj = {
+          dispatch(url, args) {},
+          addStatusListener(listener, url) {
+            try {
+              listener.statusChanged(new css.frame.FeatureStateEvent({
+                FeatureURL: url, IsEnabled: false, Requery: false,
+              }));
+            } catch(e) {}
+          },
+          removeStatusListener(listener, url) {},
+        };
+        return zetajs.unoObject(['com.sun.star.frame.XDispatch'],
+          new Proxy(obj, { get(t, p) { return p in t ? t[p] : function() {}; } }));
+      }
+      // Disable slideshow commands — they require a new Qt window which is always
+      // nullptr in WASM, causing a crash. Gray them out via IsEnabled=false.
+      if (cmd === '.uno:Presentation' || cmd === '.uno:PresentationCurrentSlide') {
+        if (!presentationDispatch) {
+          const obj = {
+            dispatch(url, args) {},
+            addStatusListener(listener, url) {
+              try {
+                listener.statusChanged(new css.frame.FeatureStateEvent({
+                  FeatureURL: url, IsEnabled: false, Requery: false,
+                }));
+              } catch(e) {}
+            },
+            removeStatusListener(listener, url) {},
+          };
+          presentationDispatch = zetajs.unoObject(['com.sun.star.frame.XDispatch'],
+            new Proxy(obj, { get(t, p) { return p in t ? t[p] : function() {}; } }));
+        }
+        return presentationDispatch;
+      }
       // Intercept File > New commands. Redirect to loadComponentFromURL so the new
       // document is properly wired into the XFrame dispatch chain (making Save As
       // interceptable). LO's internal File>New path bypasses XDispatchProviderInterceptor.
       // NOTE: LO's File>New submenu dispatches the raw factory URL (e.g.
       // "private:factory/simpress?slot=6686"), not a .uno: command. We catch both forms.
-      if (cmd === '.uno:NewDoc' || cmd === '.uno:Presentation' ||
+      if (cmd === '.uno:NewDoc' ||
           cmd === '.uno:NewPresentation' || cmd === '.uno:Text' ||
           cmd === '.uno:Spreadsheet' || cmd === '.uno:DrawImpressLayout' ||
           (cmd.startsWith('.uno:New') && !cmd.startsWith('.uno:NewFile')) ||
@@ -933,6 +977,7 @@ function setupFrameActionListener() {
   }
 }
 
+
 // Hide LO's menu bar. Pass an explicit frame, or omit to use the current doc frame.
 function hideMenuBar(frame) {
   try {
@@ -968,6 +1013,7 @@ function loadNewDoc(factoryUrl) {
   setupSaveInterceptor();
   setupFrameListener();
   setupFrameActionListener();
+
   zetajs.mainPort.postMessage({ cmd: 'ui_ready' });
 }
 
@@ -996,6 +1042,7 @@ function loadFile(filename) {
   setupSaveInterceptor();
   setupFrameListener();
   setupFrameActionListener();
+
   zetajs.mainPort.postMessage({
     cmd: 'ui_ready'
   });

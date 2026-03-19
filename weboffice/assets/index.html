@@ -70,12 +70,14 @@
         z-index: 1000;
         display: none;
       }
+
     </style>
   </head>
   <body style="height:100%">
 
     <div id="status"></div>
     <button class="btn btn-sm btn-light" id="btnSaveAs" onclick="btnSaveAsFunc()">Save As</button>
+
     <div class="container-fluid" style="height:100%; padding-right:0;">
       <div class="row" style="width: 100%; height: 100%;">
         <div class="col" style="padding-right:0;">
@@ -172,6 +174,7 @@
       			if (thrPort) thrPort.postMessage({ cmd: e.shiftKey ? 'triggerSaveAs' : 'triggerSave' });
       		}
       	}, { capture: true });
+
 
       	function saveFile(bytes) {
       		setStatus("Saving file...", false);
@@ -405,6 +408,7 @@
             case 'imageInserted':
               setStatus('Image inserted', true);
               break;
+
             case 'error':
               loadingInfo.style.display = 'none';
               setStatus('Error: ' + e.data.message, false);
