@@ -210,13 +210,14 @@
       	async function fetchAndStageOpenFile() {
       		setStatus('Opening file picker...', false);
       		const response = await fetch(
-      			'/peergos-api/v0/file-picker/?extension=' + openExts,
+      			'/peergos-api/v0/file-picker/?extension=' + openExts + '&writable=true',
       			{ method: 'GET' }
       		);
       		if (response.status !== 200) { setStatus('', false); return null; }
       		const files = JSON.parse(await response.text());
       		if (!files || !files.length || !files[0]) { setStatus('', false); return null; }
       		const selectedPath = files[0];
+      		const selectedIsWritable = files[1] === true;
       		const newFilename = selectedPath.substring(selectedPath.lastIndexOf('/') + 1);
       		setStatus('Loading ' + newFilename + '...', false);
       		const fileResponse = await fetch(selectedPath, { method: 'GET' });
@@ -226,7 +227,7 @@
       		FS.writeFile('/tmp/office/' + newFilename, bytes);
       		filePath = selectedPath;
       		filename = newFilename;
-      		isPathWritable = true;
+      		isPathWritable = selectedIsWritable;
       		setStatus('', false);
       		return newFilename;
       	}
