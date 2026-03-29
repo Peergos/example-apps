@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1",
-  "displayName": "Peer-Go",
-  "name": "peergo",
+  "displayName": "Go",
+  "name": "go",
   "version": "0.0.1",
   "author": "ianopolous",
   "appIcon": "icon.png",
