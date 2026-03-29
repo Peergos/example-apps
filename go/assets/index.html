@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Peer-Go</title>
+    <script src="jquery-1.6.1.min.js"></script>
+    <script src="ish.go.js"></script>
+    <script src="ish.go.logic.js"></script>
+    <script src="ish.go.view.h5.js"></script>
+    <link rel="stylesheet" href="style-h5.css" />
+</head>
+<body>
+
+    <!-- Setup / lobby (shown until both players are ready) -->
+    <div id="mpSetup">
+        <h2>Peer-Go</h2>
+        <p>Start a new game and share the invite link with your opponent.<br>
+           You will play as <strong>Black</strong> (moves first).</p>
+        <button id="mpNewGameBtn" onclick="MultiplayerGame.createGame()">New Game</button>
+        <div id="mpInviteRow" style="display:none; margin-top:12px;">
+            <p>Ask your friend to check their newsfeed to join the game.</p>
+        </div>
+    </div>
+
+    <!-- Game board (hidden until game starts) -->
+    <div id="gameSection" style="display:none;">
+
+        <div id="mpStatus"></div>
+
+        <div id="board"></div>
+
+        <div id="info">
+            <div id="turn"></div>
+            <br>
+            <div id="score"></div>
+            <br>
+            <div id="coords"></div>
+            <br>
+            <div id="point"></div>
+        </div>
+
+        <div class="clear"></div>
+
+        <div id="mpActions" style="display:none; margin-top:8px;">
+            <button onclick="MultiplayerGame.pass()">Pass</button>
+            <button onclick="MultiplayerGame.resign()">Resign</button>
+        </div>
+
+        <div id="mpResult" style="display:none; margin-top:8px; font-weight:bold;"></div>
+
+    </div>
+
+    <div id="devSection">
+        <div>
+            <span id="toggleLink" class="link" onclick="$('#devTools').slideToggle()">[Toggle Developer Tools]</span>
+        </div>
+        <div id="devTools" style="display:none;">
+            <ul id="devActions">
+                <li class="link" onclick="$('#score').toggle()">Toggle Scores</li>
+                <li class="link" onclick="Ish.Go.View.toggleMarkedBoard()">Toggle Territories</li>
+                <li class="link" onclick="Ish.Go.View.printGameState()">Print Game State</li>
+            </ul>
+            <div id="gameState"></div>
+        </div>
+    </div>
+
+    <script src="multiplayer.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1",
+  "displayName": "Mind Maps",
+  "name": "MindMaps",
+  "version": "0.0.1",
+  "author": "ianopolous",
+  "appIcon": "icon.png",
+  "folderAction": false,
+  "description": "",
+  "launchable": true,
+  "fileExtensions": ["json"],
+  "permissions": ["CSP_UNSAFE_EVAL", "EDIT_CHOSEN_FILE"]
+}
