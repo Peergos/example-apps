@@ -113,3 +113,57 @@ html {
 	border: 1px solid #ccc;
 	border-radius: 4px;
 }
+#mpNav {
+	padding: 6px 0 4px;
+}
+#mpMoveNav {
+	margin-top: 8px;
+}
+#mpMoveNav button {
+	padding: 2px 10px;
+	cursor: pointer;
+}
+#moveCount {
+	display: inline-block;
+	min-width: 60px;
+	text-align: center;
+	font-size: 13px;
+	color: #555;
+}
+/* ── game list ── */
+.game-entry {
+	padding: 8px 10px;
+	margin: 4px 0;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	cursor: pointer;
+	background: #fafafa;
+}
+.game-entry:hover {
+	background: #eef;
+}
+.game-color {
+	font-weight: bold;
+}
+.game-opponent {
+	color: #444;
+}
+.game-status {
+	float: right;
+	font-size: 12px;
+	padding: 2px 6px;
+	border-radius: 3px;
+}
+.status-your-turn { background: #cfc; color: #262; }
+.status-waiting   { background: #ffc; color: #660; }
+.status-opponent  { background: #eee; color: #666; }
+.status-done      { background: #ddd; color: #888; }
+.game-delete {
+	float: right;
+	margin-left: 6px;
+	color: #aaa;
+	font-size: 16px;
+	line-height: 1;
+	cursor: pointer;
+}
+.game-delete:hover { color: #c00; }

@@ -55,19 +55,25 @@ Ish.Go.View = new function() {
 	/**
 	 * Initializes a canvas and context for use in the View, but only if necessary
 	 */
+	// Pre-loaded piece images so drawPiece can draw synchronously
+	var imgBlack = new Image();
+	var imgWhite = new Image();
+	imgBlack.src = ViewConstants.imgPieceBlack;
+	imgWhite.src = ViewConstants.imgPieceWhite;
+
 	var initCanvas = function() {
 		if ($("#go-canvas").length == 0 || !canvas || !context) {
 			canvas = document.createElement("canvas");
 			canvas.id = "go-canvas";
 			$("#board").append(canvas);
-		
+
 			canvas.width = ViewConstants.pixelWidth;
 			canvas.height = ViewConstants.pixelHeight;
 			canvas.style.background = "transparent url(board.png) no-repeat 0 0";
-			
+
 			canvas.addEventListener("click", clickListener, false);
 			canvas.addEventListener("mousemove", mouseMoveListener);
-			
+
 			context = canvas.getContext("2d");
 		}
 	};
@@ -148,20 +154,10 @@ Ish.Go.View = new function() {
 	/**
 	 * Draws piece on canvas
 	 */
-	this.drawPiece = function(point, color) {	
+	this.drawPiece = function(point, color) {
 		var coords = this.getCoordsFromPoint(point);
-		
-		var piece = new Image();
-		
-		if (color == Constants.Color.BLACK) {
-			piece.src = ViewConstants.imgPieceBlack;
-		} else {
-			piece.src = ViewConstants.imgPieceWhite;
-		}
-		
-		piece.onload = function() {
-			context.drawImage(piece, coords.x, coords.y);
-		};
+		var img = (color == Constants.Color.BLACK) ? imgBlack : imgWhite;
+		context.drawImage(img, coords.x, coords.y);
 	};
 	
 	/**
