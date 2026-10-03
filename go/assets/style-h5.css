@@ -102,6 +102,10 @@ html {
 .mp-waiting {
 	color: #888;
 }
+.mp-hint {
+	color: #888;
+	margin-top: 14px;
+}
 #mpActions button {
 	margin-right: 8px;
 	padding: 4px 12px;

@@ -17,6 +17,7 @@ var App = (function () {
        CHAT API HELPERS
     ══════════════════════════════════════════════════════════════════ */
 
+    // callback(chatId), or callback(null) if no friend was invited or creation failed
     function createChat(callback) {
         var data = new FormData();
         data.append('title', 'go-game');
@@ -24,9 +25,9 @@ var App = (function () {
         fetch('/peergos-api/v0/chat/', { method: 'POST', body: data })
             .then(function (r) {
                 if (r.status === 201) callback(r.headers.get('location'));
-                else console.warn('Go: createChat failed', r.status);
+                else { console.warn('Go: createChat failed', r.status); callback(null); }
             })
-            .catch(function (e) { console.error('Go: createChat error', e); });
+            .catch(function (e) { console.error('Go: createChat error', e); callback(null); });
     }
 
     function listChats(callback) {
@@ -43,6 +44,18 @@ var App = (function () {
             .then(function (r) { return r.json(); })
             .then(function (body) { callback(body.messages || [], body.count || 0); })
             .catch(function () { callback([], 0); });
+    }
+
+    // Fetch every message from index 0, a page at a time; a full game is longer than one page.
+    function fetchAllMessages(chatId, callback) {
+        var all = [];
+        (function next() {
+            fetchMessages(chatId, all.length, all.length + 100, function (msgs, count) {
+                if (count === 0) { callback(all, all.length); return; }
+                all = all.concat(msgs);
+                next();
+            });
+        })();
     }
 
     function sendRaw(chatId, payload, onSuccess) {
@@ -110,6 +123,10 @@ var App = (function () {
        GAME LIST VIEW
     ══════════════════════════════════════════════════════════════════ */
 
+    // Invitations only become games here once accepted, which Peergos does from the newsfeed.
+    var JOIN_HINT = '<p class="mp-hint">Invited to a game by a friend? Press Join on the invite in your ' +
+        'Peergos newsfeed and it will open here.</p>';
+
     function showList() {
         resetGameState();
         $('#gameSection').hide();
@@ -119,7 +136,7 @@ var App = (function () {
 
         listChats(function (chatIds) {
             if (!chatIds || !chatIds.length) {
-                $('#gameListItems').html('<p>No games yet.</p>');
+                $('#gameListItems').html('<p>No games yet.</p>' + JOIN_HINT);
                 return;
             }
 
@@ -127,7 +144,7 @@ var App = (function () {
             var remaining = chatIds.length;
 
             chatIds.forEach(function (id) {
-                fetchMessages(id, 0, 200, function (msgs) {
+                fetchAllMessages(id, function (msgs) {
                     results.push(analyseGame(id, parseAppMessages(msgs)));
                     if (--remaining === 0) renderList(results);
                 });
@@ -168,7 +185,7 @@ var App = (function () {
         });
 
         if (!html) html = '<p>No games yet.</p>';
-        $('#gameListItems').html(html);
+        $('#gameListItems').html(html + JOIN_HINT);
         $('.game-entry').click(function () { openGame($(this).attr('data-chatid')); });
         $('.game-delete').click(function (e) {
             e.stopPropagation();
@@ -218,7 +235,7 @@ var App = (function () {
         $('#mpResult').hide();
         $('#mpActions').hide();
 
-        fetchMessages(chatId, 0, 200, function (msgs, count) {
+        fetchAllMessages(chatId, function (msgs, count) {
             messagesRead = count;
             parseAppMessages(msgs).forEach(function (msg) {
                 seen[msg.uuid] = true;
@@ -409,6 +426,12 @@ var App = (function () {
         newGame: function () {
             $('#mpNewGameBtn').prop('disabled', true).text('Creating…');
             createChat(function (id) {
+                if (!id) {
+                    $('#mpNewGameBtn').prop('disabled', false).text('New Game');
+                    $('#gameListItems .mp-notice').remove();
+                    $('#gameListItems').prepend('<p class="mp-hint mp-notice">No game created: invite a friend to play.</p>');
+                    return;
+                }
                 chatId = id;
                 blackAddr = myAddr;
                 sendRaw(chatId, { type: 'init', blackAddr: myAddr }, function (msg) {
