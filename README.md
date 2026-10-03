@@ -238,6 +238,8 @@ Decode and export HEIC image files to JPG using libheif compiled to webassembly
 
 Office suite based on ZetaJS / LibreOffice
 
+The UI follows the Peergos language (`lang` param, else `navigator.language`). LibreOffice translations are loaded on demand from `assets/lang/<lang>.data`, built from the official LibreOffice langpacks by `weboffice/tools/make-langpack.py` (`pip install brotli fonttools`, then `python3 make-langpack.py de el es fr it ko nl pl zh-CN`). The zh-CN and ko packs include a subset Noto Sans CJK font. The wrapper's own strings are in `assets/i18n.js`.
+
 ## File2PDF
 #### https://github.com/allotropia/zetajs/tree/main/examples/convertpdf
 

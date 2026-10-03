@@ -9,13 +9,78 @@
       if (!location.pathname.endsWith('/') && !location.pathname.endsWith('.html')) {
         location.replace(location.pathname + '/' + location.search + location.hash);
       }
+
+      // LibreOffice language tags with a pack in lang/<tag>.data (built by tools/make-langpack.py).
+      const LANG_PACKS = ['de', 'el', 'es', 'fr', 'it', 'ko', 'nl', 'pl', 'zh-CN'];
+      function resolveUiLang(requested) {
+        const want = (requested || '').toLowerCase();
+        const aliases = { 'zh': 'zh-cn', 'zh-hans': 'zh-cn', 'zh-sg': 'zh-cn' };
+        const candidates = [aliases[want] || want, want.split('-')[0]];
+        for (const c of candidates) {
+          const hit = LANG_PACKS.find(l => l.toLowerCase() === c);
+          if (hit) return hit;
+        }
+        return null;
+      }
+      const uiLang = resolveUiLang(new URL(location.href).searchParams.get('lang') || navigator.language);
+      // Start fetching before soffice.js so it overlaps the WASM download; unpacked in Module.preRun.
+      const langPackPromise = uiLang
+        ? fetch('lang/' + uiLang + '.data').then(r => r.ok ? r.arrayBuffer() : Promise.reject('HTTP ' + r.status))
+        : null;
     </script>
+    <script src="i18n.js"></script>
     <title>Web Office</title>
-    <!-- Preload the large WASM and data files as early as possible so the browser
-         starts fetching them while the rest of the page is still being parsed. -->
-    <link rel="preload" href="soffice.wasm" as="fetch" crossorigin>
-    <link rel="preload" href="soffice.data" as="fetch" crossorigin>
     <script src="brotli.js"></script>
+    <script type="text/javascript">
+      // soffice.wasm and soffice.data are brotli-compressed, and fetching them goes through Peergos.
+      // Cache the decompressed files in Cache Storage, keyed by the server's ETag (from a HEAD), so
+      // repeat launches skip both the download and the JS decompression. Browsers can't store a
+      // compiled WebAssembly.Module in IndexedDB, but Chrome code-caches compileStreaming() of a
+      // cached Response. Started here so it overlaps parsing the rest of the page.
+      const ENGINE_CACHE = 'weboffice-engine';
+
+      async function lookupEngineFile(name) {
+        let version = '';
+        let cache = null;
+        try {
+          const head = await fetch(name, { method: 'HEAD' });
+          version = head.headers.get('ETag') || head.headers.get('Last-Modified') || '';
+          if (version) cache = await caches.open(ENGINE_CACHE);
+        } catch (e) {
+          console.warn('weboffice: engine cache unavailable for ' + name + ':', e);
+        }
+        const key = new URL(name + '?v=' + encodeURIComponent(version), location.href).href;
+        let hit;
+        try { hit = cache ? await cache.match(key) : undefined; } catch (e) {}
+        return { name, cache, key, hit };
+      }
+
+      async function loadEngineFile(entry, type) {
+        if (entry.hit) return entry.hit;
+        const compressed = new Uint8Array(await (await fetch(entry.name)).arrayBuffer());
+        const response = new Response(dw(compressed), { headers: { 'Content-Type': type } });
+        if (entry.cache) {
+          const path = new URL(entry.key).pathname;
+          entry.cache.put(entry.key, response.clone())
+            .then(() => entry.cache.keys())
+            .then(keys => Promise.all(keys
+              .filter(r => r.url !== entry.key && new URL(r.url).pathname === path)
+              .map(r => entry.cache.delete(r))))
+            .catch(e => console.warn('weboffice: failed to cache ' + entry.name + ':', e));
+        }
+        return response;
+      }
+
+      const wasmEntry = lookupEngineFile('soffice.wasm');
+      const dataEntry = lookupEngineFile('soffice.data');
+      const wasmModulePromise = wasmEntry
+        .then(e => loadEngineFile(e, 'application/wasm'))
+        .then(r => WebAssembly.compileStreaming(r));
+      const dataPromise = dataEntry
+        .then(e => loadEngineFile(e, 'application/octet-stream'))
+        .then(r => r.arrayBuffer())
+        .then(b => new Uint8Array(b));
+    </script>
     <link href="assets/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
     <style>
       .spinner {
@@ -114,7 +179,68 @@
         	canvas,
         	uno_scripts: ['./assets/vendor/zetajs/zeta.js', './office_thread.js'],
         	locateFile: function(path, prefix) { return (prefix || soffice_base_url) + path; },
+        	preRun: [installLangPack],
       	};
+
+      	function installLangPack() {
+      		if (!langPackPromise) return;
+      		Module.addRunDependency('langpack');
+      		langPackPromise.then(function(buf) {
+      			const raw = dw(new Uint8Array(buf));
+      			const headerLen = new DataView(raw.buffer, raw.byteOffset).getUint32(0, true);
+      			const entries = JSON.parse(new TextDecoder().decode(raw.subarray(4, 4 + headerLen)));
+      			const base = 4 + headerLen;
+      			for (const e of entries) {
+      				const bytes = raw.subarray(base + e.start, base + e.end);
+      				if (e.path === '/qt/menu-font.otf') {
+      					replaceQtMenuFont(bytes);
+      					continue;
+      				}
+      				FS.mkdirTree(e.path.substring(0, e.path.lastIndexOf('/')));
+      				FS.writeFile(e.path, bytes);
+      			}
+      			// UserInstallation=$SYSUSERCONFIG/zetaoffice/4 in bootstraprc. Only the UI locale is
+      			// set; the document locale keeps following LANG (the browser locale).
+      			const profile = '/home/web_user/.config/zetaoffice/4/user';
+      			FS.mkdirTree(profile);
+      			FS.writeFile(profile + '/registrymodifications.xcu',
+      				'<?xml version="1.0" encoding="UTF-8"?>\n' +
+      				'<oor:items xmlns:oor="http://openoffice.org/2001/registry" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n' +
+      				'<item oor:path="/org.openoffice.Office.Linguistic/General"><prop oor:name="UILocale" oor:op="fuse"><value>' + uiLang + '</value></prop></item>\n' +
+      				'<item oor:path="/org.openoffice.Setup/L10N"><prop oor:name="ooLocale" oor:op="fuse"><value>' + uiLang + '</value></prop></item>\n' +
+      				'</oor:items>\n');
+      			console.log('weboffice: installed language pack ' + uiLang + ' (' + entries.length + ' files)');
+      		}).catch(function(e) {
+      			console.warn('weboffice: language pack ' + uiLang + ' unavailable, using en-US:', e);
+      		}).finally(function() {
+      			Module.removeRunDependency('langpack');
+      		});
+      	}
+
+      	// Qt's WASM font database only loads the fonts compiled into soffice.wasm as uncompressed
+      	// Qt resources (DejaVu Sans, DejaVu Sans Mono, Bitstream Vera), so native menus can't show
+      	// CJK. preRun runs after instantiation and before Qt reads them, so overwrite the DejaVu Sans
+      	// resource in memory with a CJK font covering the UI strings; Qt falls back to Vera for ASCII.
+      	function replaceQtMenuFont(font) {
+      		// 4-byte BE resource length (757076) followed by the start of DejaVuSans.ttf's table directory
+      		const sig = [0x00, 0x0b, 0x8d, 0x54, 0x00, 0x01, 0x00, 0x00, 0x00, 0x14, 0x01, 0x00, 0x00, 0x04, 0x00, 0x40, 0x46, 0x46, 0x54, 0x4d];
+      		const capacity = 0x000b8d54;
+      		if (font.length > capacity) {
+      			console.warn('weboffice: menu font too large for Qt resource slot');
+      			return;
+      		}
+      		const heap = HEAPU8;
+      		for (let i = heap.indexOf(sig[2], 2); i !== -1; i = heap.indexOf(sig[2], i + 1)) {
+      			const start = i - 2;
+      			if (sig.every((b, k) => heap[start + k] === b)) {
+      				new DataView(heap.buffer).setUint32(start, font.length, false);
+      				heap.set(font, start + 4);
+      				return;
+      			}
+      		}
+      		console.warn('weboffice: Qt font resource not found, menus may not render ' + uiLang);
+      	}
+
       	if (soffice_base_url !== '') {
         	// Must not be set when soffice.js is in the same directory.
         	Module.mainScriptUrlOrBlob = new Blob(
@@ -130,20 +256,21 @@
         let filename = filePath ? filePath.substring(filePath.lastIndexOf("/") + 1) : "";
 		let isPathWritable = url.searchParams.get("isPathWritable") == 'true';
 		
-		setStatus("Initialising Web Office...", false);
+		setStatus(t('initialising'), false);
+		btnSaveAs.textContent = t('saveAs');
 
       	async function loadFile() {
-      		setStatus("Loading file: " + filename, false);
+      		setStatus(t('loadingFile', filename), false);
 			let response = await fetch(filePath, { method: 'GET' });
       		if (response.status === 200) {
 				let arrayBuffer = await response.arrayBuffer();
 				try { FS.mkdir('/tmp/office/'); } catch {}
             	await FS.writeFile('/tmp/office/' + filename, new Uint8Array(arrayBuffer));
            		await thrPort.postMessage({ cmd: 'upload', filename });
-	      		setStatus("File loaded", true);
+	      		setStatus(t('fileLoaded'), true);
       		} else {
       			console.log('error loading file:' + response.status);
-      			setStatus("Unable to load file", false);
+      			setStatus(t('loadFileFailed'), false);
       		} 
         	loadingInfo.style.display = null;
       	}
@@ -177,25 +304,25 @@
 
 
       	function saveFile(bytes) {
-      		setStatus("Saving file...", false);
+      		setStatus(t('savingFile'), false);
         	fetch(filePath, { method: 'PUT', headers: {}, body: bytes }).then(function(response) {
     			if (response.status === 200) {
-                	setStatus("File saved", true);
+                	setStatus(t('fileSaved'), true);
 				} else {
 			    	console.log('error saving file:' + response.status);
-			    	setStatus("Unable to save file...", false);
+			    	setStatus(t('saveFileFailed'), false);
 				}
     		});
       	}
 
       	function saveFileAs(bytes, saveFilename) {
-      		setStatus("Saving file...", false);
+      		setStatus(t('savingFile'), false);
         	fetch('/peergos-api/v0/save/' + (saveFilename || filename), { method: 'PUT', body: bytes }).then(function(response) {
     			if (response.status === 200 || response.status === 201) {
-                	setStatus("File saved", true);
+                	setStatus(t('fileSaved'), true);
 				} else {
 			    	console.log('error saving file as:' + response.status);
-			    	setStatus("Unable to save file...", false);
+			    	setStatus(t('saveFileFailed'), false);
 				}
     		});
       	}
@@ -208,7 +335,7 @@
       	                 'odg,otg,svg';
 
       	async function fetchAndStageOpenFile() {
-      		setStatus('Opening file picker...', false);
+      		setStatus(t('openingPicker'), false);
       		const response = await fetch(
       			'/peergos-api/v0/file-picker/?extension=' + openExts + '&writable=true',
       			{ method: 'GET' }
@@ -219,9 +346,9 @@
       		const selectedPath = files[0];
       		const selectedIsWritable = files[1] === true;
       		const newFilename = selectedPath.substring(selectedPath.lastIndexOf('/') + 1);
-      		setStatus('Loading ' + newFilename + '...', false);
+      		setStatus(t('loadingNamed', newFilename), false);
       		const fileResponse = await fetch(selectedPath, { method: 'GET' });
-      		if (fileResponse.status !== 200) { setStatus('Failed to load file', false); return null; }
+      		if (fileResponse.status !== 200) { setStatus(t('loadFailed'), false); return null; }
       		const bytes = new Uint8Array(await fileResponse.arrayBuffer());
       		try { FS.mkdir('/tmp/office/'); } catch {}
       		FS.writeFile('/tmp/office/' + newFilename, bytes);
@@ -279,7 +406,7 @@
       	}
 
       	async function pickImageFile() {
-      		setStatus('Opening file picker...', false);
+      		setStatus(t('openingPicker'), false);
       		try {
       			const ext = 'jpg,jpeg,png,gif,webp,svg,avif,bmp';
       			const response = await fetch(
@@ -291,15 +418,15 @@
       			if (!files || !files.length || !files[0]) { setStatus('', false); return; }
       			const selectedPath = files[0];
       			const imgExt = (selectedPath.match(/\.([^.]+)$/) || ['', 'png'])[1].toLowerCase();
-      			setStatus('Loading image...', false);
+      			setStatus(t('loadingImage'), false);
       			const imgResponse = await fetch(selectedPath, { method: 'GET' });
       			if (imgResponse.status !== 200) {
-      				setStatus('Failed to load image', false); return;
+      				setStatus(t('loadImageFailed'), false); return;
       			}
       			const bytes = new Uint8Array(await imgResponse.arrayBuffer());
       			const tmpPath = '/tmp/insert_image.' + imgExt;
       			FS.writeFile(tmpPath, bytes);
-      			setStatus('Inserting image...', false);
+      			setStatus(t('insertingImage'), false);
       			thrPort.postMessage({ cmd: 'insertGraphic', tmpPath });
       		} catch(e) {
       			console.error('pickImageFile failed:', e);
@@ -310,13 +437,13 @@
       	function saveNewFile(bytes, saveFilename) {
       		const dir = filePath.substring(0, filePath.lastIndexOf('/') + 1);
       		const targetPath = dir + saveFilename;
-      		setStatus("Saving " + saveFilename + "...", false);
+      		setStatus(t('savingNamed', saveFilename), false);
         	fetch(targetPath, { method: 'PUT', body: bytes }).then(function(response) {
     			if (response.status === 200 || response.status === 201) {
-                	setStatus(saveFilename + " saved", true);
+                	setStatus(t('savedNamed', saveFilename), true);
 				} else {
 			    	console.log('error saving new file:' + response.status);
-			    	setStatus("Unable to save " + saveFilename, false);
+			    	setStatus(t('saveNamedFailed', saveFilename), false);
 				}
     		});
       	}
@@ -379,11 +506,11 @@
               const readPath = e.data.tmpFile ? '/tmp/' + e.data.tmpFile : '/tmp/office/' + saveFilename;
               let bytes;
               try { bytes = FS.readFile(readPath); } catch(err) {
-                setStatus('Save failed: ' + err.message, false);
+                setStatus(t('saveFailed', err.message), false);
                 break;
               }
               if (!bytes || bytes.length === 0) {
-                setStatus('Save failed: document could not be written to disk', false);
+                setStatus(t('saveFailedEmpty'), false);
                 break;
               }
               if (e.data.isAs || !isPathWritable) {
@@ -407,12 +534,12 @@
               pickImageFile();
               break;
             case 'imageInserted':
-              setStatus('Image inserted', true);
+              setStatus(t('imageInserted'), true);
               break;
 
             case 'error':
               loadingInfo.style.display = 'none';
-              setStatus('Error: ' + e.data.message, false);
+              setStatus(t('error', t(e.data.key, e.data.detail)), false);
               break;
             default:
               throw Error('Unknown message command: ' + e.data.cmd);
@@ -453,101 +580,41 @@
         } catch(e) { return false; }
       }
 
-      // Cache the compiled WebAssembly.Module in IndexedDB so subsequent loads skip
-      // the expensive JS brotli decompression (~5-15s) and WASM JIT compilation (~5-15s).
-      // The cached module is validated against the ETag/Last-Modified from the server.
-      (function() {
-        const IDB_NAME = 'weboffice-wasm-cache';
-        const IDB_VERSION = 1;
-        const IDB_STORE = 'modules';
-        const WASM_KEY = 'soffice.wasm';
-
-        function idbOpen() {
-          return new Promise(function(res, rej) {
-            var r = indexedDB.open(IDB_NAME, IDB_VERSION);
-            r.onupgradeneeded = function(e) { e.target.result.createObjectStore(IDB_STORE); };
-            r.onsuccess = function(e) { res(e.target.result); };
-            r.onerror = function(e) { rej(e.target.error); };
-          });
-        }
-        function idbGet(db, key) {
-          return new Promise(function(res, rej) {
-            var r = db.transaction(IDB_STORE, 'readonly').objectStore(IDB_STORE).get(key);
-            r.onsuccess = function(e) { res(e.target.result); };
-            r.onerror = function(e) { rej(e.target.error); };
-          });
-        }
-        function idbPut(db, key, val) {
-          return new Promise(function(res, rej) {
-            var r = db.transaction(IDB_STORE, 'readwrite').objectStore(IDB_STORE).put(val, key);
-            r.onsuccess = function() { res(); };
-            r.onerror = function(e) { rej(e.target.error); };
-          });
-        }
-
-        Module['instantiateWasm'] = function(imports, receiveInstance) {
-          var wasmUrl = soffice_base_url + 'soffice.wasm';
-          (async function() {
-            var db = null;
-            try { db = await idbOpen(); } catch(e) {
-              console.warn('weboffice: IDB unavailable, WASM module will not be cached:', e);
-            }
-
-            // Fetch soffice.wasm. The preload hint above means the browser likely already
-            // started this request; if HTTP cache has it, no network transfer occurs.
-            var response = await fetch(wasmUrl, { credentials: 'same-origin' });
-            var cacheKey = response.headers.get('ETag') ||
-                           response.headers.get('Last-Modified') || '';
-
-            // Try the IDB cache first.
-            var wasmModule = null;
-            if (db) {
-              try {
-                var cached = await idbGet(db, WASM_KEY);
-                // Accept the cached module if cacheKey matches, or if we have no key to validate with.
-                if (cached && cached.module && (!cacheKey || cached.key === cacheKey)) {
-                  wasmModule = cached.module;
-                  console.log('weboffice: Loaded compiled WASM module from IndexedDB');
-                  setStatus('Loading Office engine from cache...', false);
-                }
-              } catch(e) {
-                console.warn('weboffice: Failed to read WASM module from IDB:', e);
-              }
-            }
-
-            if (!wasmModule) {
-              setStatus('Loading Office...', false);
-              var compressed = new Uint8Array(await response.arrayBuffer());
-              console.log('weboffice: Decompressing WASM...');
-              var decompressed = dw(compressed);
-              console.log('weboffice: Compiling WASM...');
-              wasmModule = await WebAssembly.compile(decompressed);
-
-              // Store compiled module in IDB in the background — don't block startup.
-              if (db) {
-                idbPut(db, WASM_KEY, { key: cacheKey, module: wasmModule })
-                  .then(function() { console.log('weboffice: Cached compiled WASM module in IndexedDB'); })
-                  .catch(function(e) { console.warn('weboffice: Failed to cache WASM module:', e); });
-              }
-            }
-
-            var instance = await WebAssembly.instantiate(wasmModule, imports);
-            receiveInstance(instance, wasmModule);
-          })().catch(function(e) {
+      Module['instantiateWasm'] = function(imports, receiveInstance) {
+        wasmModulePromise
+          .then(module => WebAssembly.instantiate(module, imports).then(instance => receiveInstance(instance, module)))
+          .catch(e => {
             console.error('weboffice: instantiateWasm failed:', e);
+            setStatus(t('error', String(e)), false);
           });
-          return {}; // Non-empty return signals to Emscripten that we're handling WASM loading.
-        };
-      })();
+        return {}; // Non-empty return signals to Emscripten that we're handling WASM loading.
+      };
+
+      // The file packager in soffice.js asks for soffice.data synchronously via this hook, and only
+      // fetches and decompresses it itself when it returns null, so soffice.js is loaded after
+      // dataPromise resolves.
+      let engineData = null;
+      Module['getPreloadedPackage'] = function() {
+        const data = engineData;
+        engineData = null;
+        return data;
+      };
 
       if (!checkOffscreenWebGL()) {
         loadingInfo.style.display = 'none';
-        setStatus('WebGL is not available. Web Office requires hardware-accelerated WebGL. ' +
-          'Please enable hardware acceleration in your browser settings.', false);
+        setStatus(t('noWebGL'), false);
       } else {
-        console.log('Loading WASM binaries for ZetaJS from: ' + soffice_base_url);
-        // Hint: The global objects "canvas" and "Module" must exist before the next line.
-        document.body.appendChild(soffice_js);
+        Promise.all([wasmEntry, dataEntry]).then(([w, d]) =>
+          setStatus(t(w.hit && d.hit ? 'loadingCached' : 'loadingOffice'), false));
+        dataPromise.then(data => {
+          engineData = data;
+          console.log('Loading WASM binaries for ZetaJS from: ' + soffice_base_url);
+          // Hint: The global objects "canvas" and "Module" must exist before the next line.
+          document.body.appendChild(soffice_js);
+        }).catch(e => {
+          console.error('weboffice: failed to load soffice.data:', e);
+          setStatus(t('error', String(e)), false);
+        });
       }
     </script>
   </body>

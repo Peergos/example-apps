@@ -136,14 +136,21 @@ let openFileDispatch = null;      // keep alive
 const interceptedFrameNames = new Set();
 
 // Return the filename for a new untitled document based on its UNO service type.
+// The base name is LO's own title (e.g. "Untitled 1", "Unbenannt 1"), so it is in the UI
+// language and matches the title bar.
 function guessFilenameForModel(model) {
+  let base = 'Untitled';
   try {
-    if (model.supportsService('com.sun.star.presentation.PresentationDocument')) return 'Untitled.pptx';
-    if (model.supportsService('com.sun.star.sheet.SpreadsheetDocument'))        return 'Untitled.xlsx';
-    if (model.supportsService('com.sun.star.drawing.DrawingDocument'))          return 'Untitled.odg';
-    if (model.supportsService('com.sun.star.text.TextDocument'))                return 'Untitled.docx';
+    const title = model.getTitle();
+    if (title && !/[\/\\]/.test(title)) base = title;
   } catch(e) {}
-  return 'Untitled.docx';
+  try {
+    if (model.supportsService('com.sun.star.presentation.PresentationDocument')) return base + '.pptx';
+    if (model.supportsService('com.sun.star.sheet.SpreadsheetDocument'))        return base + '.xlsx';
+    if (model.supportsService('com.sun.star.drawing.DrawingDocument'))          return base + '.odg';
+    if (model.supportsService('com.sun.star.text.TextDocument'))                return base + '.docx';
+  } catch(e) {}
+  return base + '.docx';
 }
 
 // Handle File > New by creating the new document through desktop.loadComponentFromURL
@@ -198,7 +205,7 @@ function makeNewDocDispatch() {
         console.log('office_thread: loading new doc into frame:', mainFrameName, 'factory:', factoryUrl);
         if (!mainFrameName) {
           console.warn('office_thread: no frame name available, cannot create new document');
-          zetajs.mainPort.postMessage({ cmd: 'error', message: 'File > New is not supported: frame name unavailable' });
+          zetajs.mainPort.postMessage({ cmd: 'error', key: 'newDocUnsupported' });
           return;
         }
         const newModel = desktop.loadComponentFromURL(factoryUrl, mainFrameName, 0, []);
@@ -281,7 +288,7 @@ function insertGraphic(tmpPath) {
     console.log('office_thread: graphic inserted successfully');
   } catch(e) {
     console.warn('office_thread: insertGraphic failed:', e);
-    zetajs.mainPort.postMessage({ cmd: 'error', message: 'Failed to insert image: ' + e });
+    zetajs.mainPort.postMessage({ cmd: 'error', key: 'insertImageFailed', detail: String(e) });
   }
 }
 
@@ -472,12 +479,12 @@ function openFileInFrame(filename) {
   try {
     try { xModel.removeDocumentEventListener(docEventListener); } catch(e) {}
     if (!mainFrameName) {
-      zetajs.mainPort.postMessage({ cmd: 'error', message: 'Cannot open file: frame name unavailable' });
+      zetajs.mainPort.postMessage({ cmd: 'error', key: 'openNoFrame' });
       return;
     }
     const newModel = desktop.loadComponentFromURL(fileUrl, mainFrameName, 0, []);
     if (!newModel) {
-      zetajs.mainPort.postMessage({ cmd: 'error', message: 'Failed to open document' });
+      zetajs.mainPort.postMessage({ cmd: 'error', key: 'openDocFailed' });
       return;
     }
     xModel = newModel;
@@ -490,7 +497,7 @@ function openFileInFrame(filename) {
     console.log('office_thread: file opened:', filename);
   } catch(e) {
     console.warn('office_thread: openFileInFrame failed:', e);
-    zetajs.mainPort.postMessage({ cmd: 'error', message: 'Failed to open file: ' + e });
+    zetajs.mainPort.postMessage({ cmd: 'error', key: 'openFileFailed', detail: String(e) });
   }
 }
 
@@ -661,7 +668,7 @@ function createSaveInterceptor(registeredFrame) {
           zetajs.mainPort.postMessage({ cmd: 'saved', isAs: true, filename: pdfFilename, tmpFile: 'export.pdf' });
         } catch(e) {
           console.warn('office_thread: PDF export failed:', e);
-          zetajs.mainPort.postMessage({ cmd: 'error', message: 'PDF export failed: ' + e });
+          zetajs.mainPort.postMessage({ cmd: 'error', key: 'pdfExportFailed', detail: String(e) });
         }
       },
       addStatusListener(listener, url) {},
@@ -994,7 +1001,7 @@ function loadNewDoc(factoryUrl) {
   try { FS.mkdir('/tmp/office/'); } catch {}
   xModel = desktop.loadComponentFromURL(factoryUrl, '_default', 0, []);
   if (!xModel) {
-    zetajs.mainPort.postMessage({ cmd: 'error', message: 'Failed to create document' });
+    zetajs.mainPort.postMessage({ cmd: 'error', key: 'createDocFailed' });
     return;
   }
   ctrl = xModel.getCurrentController();
@@ -1022,7 +1029,7 @@ function loadFile(filename) {
   const in_path = 'file:///tmp/office/' + filename;
   xModel = desktop.loadComponentFromURL(in_path, '_default', 0, []);
   if (!xModel) {
-    zetajs.mainPort.postMessage({ cmd: 'error', message: 'Failed to load document' });
+    zetajs.mainPort.postMessage({ cmd: 'error', key: 'loadDocFailed' });
     return;
   }
   ctrl = xModel.getCurrentController();

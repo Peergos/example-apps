@@ -7,3 +7,5 @@ gwt-vue-min/gwt-unitCache/**
 .DS_Store
 [._]*.s[a-w][a-z]
 [._]s[a-w][a-z]
+weboffice/tools/.langpack-cache/
+weboffice/tools/.venv/
