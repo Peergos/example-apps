@@ -93,14 +93,14 @@ var App = (function () {
 
     /* ── derive high-level game state from ordered payloads ─────────── */
     function analyseGame(chatId, appMessages) {
-        var black = null, white = null, moves = 0;
+        var black = null, white = null, moves = 0, started = null;
         var consecutivePasses = 0, lastWasPass = false, gameOver = false;
 
         appMessages.forEach(function (msg) {
             var p = msg.payload;
             if (!p) return;
             switch (p.type) {
-                case 'init':   black = p.blackAddr; break;
+                case 'init':   black = p.blackAddr; started = msg.timestamp; break;
                 case 'join':   white = p.whiteAddr; break;
                 case 'move':   moves++; consecutivePasses = 0; lastWasPass = false; break;
                 case 'pass':
@@ -121,6 +121,7 @@ var App = (function () {
             chatId:   chatId,
             black:    black,
             white:    white,
+            started:  started,
             moves:    moves,
             gameOver: gameOver,
             waiting:  black !== null && white === null,
@@ -161,6 +162,14 @@ var App = (function () {
         });
     }
 
+    // Peergos timestamps are local time as "YYYY-M-D HH:MM:SS"
+    function formatDate(timestamp) {
+        var m = /^(\d+)-(\d+)-(\d+)/.exec(timestamp || '');
+        if (!m) return '';
+        return new Date(+m[1], m[2] - 1, +m[3])
+            .toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
     function renderList(states) {
         function priority(s) {
             if (!s.black)   return 99;
@@ -188,6 +197,7 @@ var App = (function () {
             html += '<div class="game-entry" data-chatid="' + s.chatId + '">' +
                 '<span class="game-color">' + myColor + '</span>' +
                 ' vs <span class="game-opponent">' + oppLabel + '</span>' +
+                (s.started ? ' <span class="game-date">' + formatDate(s.started) + '</span>' : '') +
                 '&nbsp;<span class="game-status ' + statusCls + '">' + statusText + '</span>' +
                 '<span class="game-delete" data-chatid="' + s.chatId + '">&times;</span>' +
                 '</div>';
