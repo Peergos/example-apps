@@ -50,6 +50,14 @@
 
         <div id="mpResult" style="display:none; margin-top:8px; font-weight:bold;"></div>
 
+        <div id="mpChat">
+            <div id="chatMessages"></div>
+            <form id="chatForm" onsubmit="App.sendChat(); return false;">
+                <input id="chatInput" type="text" maxlength="500" placeholder="Message your opponent" autocomplete="off">
+                <button type="submit">Send</button>
+            </form>
+        </div>
+
     </div>
 
     <script src="multiplayer.js"></script>

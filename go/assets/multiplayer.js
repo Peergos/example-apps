@@ -7,6 +7,7 @@
  *   {type:'move',   row:int, col:int}   – stone placement
  *   {type:'pass'}                       – player passes
  *   {type:'resign'}                     – player resigns
+ *   {type:'chat',   text:str}           – in-game chat line
  */
 var App = (function () {
 
@@ -73,11 +74,17 @@ var App = (function () {
         });
     }
 
+    // author and timestamp come from Peergos, so a chat line can't claim another sender
     function parseAppMessages(rawMessages) {
         var out = [];
         rawMessages.forEach(function (m) {
             if (m.type !== 'Application') return;
-            try { out.push(JSON.parse(atob(m.text))); } catch (e) { /* skip */ }
+            try {
+                var msg = JSON.parse(atob(m.text));
+                msg.author = m.author;
+                msg.timestamp = m.timestamp;
+                out.push(msg);
+            } catch (e) { /* skip */ }
         });
         return out;
     }
@@ -224,6 +231,8 @@ var App = (function () {
         consecutivePasses = messagesRead = viewIndex = 0;
         history = [];
         seen = {};
+        $('#chatMessages').empty();
+        $('#chatInput').val('');
     }
 
     function openGame(id) {
@@ -239,7 +248,7 @@ var App = (function () {
             messagesRead = count;
             parseAppMessages(msgs).forEach(function (msg) {
                 seen[msg.uuid] = true;
-                handlePayload(msg.payload);
+                handlePayload(msg.payload, msg.author, msg.timestamp);
             });
             if (!blackAddr) $('#mpStatus').text('No game found in this chat.');
             startPolling();
@@ -320,7 +329,6 @@ var App = (function () {
 
     function showResult(text) {
         gameStarted = false;
-        clearTimeout(pollTimer); pollTimer = null;
         $('#mpResult').text(text).show();
         $('#mpActions').hide();
         refreshStatus();
@@ -352,7 +360,29 @@ var App = (function () {
 
     function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
-    function handlePayload(payload) {
+    var CHAT_MAX_LENGTH = 500;
+
+    function appendChat(author, text, timestamp) {
+        if (typeof text !== 'string' || !text) return;
+        var list = $('#chatMessages')[0];
+        var atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 20;
+        var mine = author === myAddr;
+        var time = /(\d\d:\d\d):\d\d$/.exec(timestamp || '');
+        var line = $('<div class="chat-line"></div>').addClass(mine ? 'chat-mine' : 'chat-theirs');
+        line.append($('<span class="chat-author"></span>').text(mine ? 'You' : (author || '?')));
+        if (time) line.append($('<span class="chat-time"></span>').text(time[1]));
+        line.append($('<span class="chat-text"></span>').text(text.substring(0, CHAT_MAX_LENGTH)));
+        $(list).append(line);
+        if (atBottom || mine) list.scrollTop = list.scrollHeight;
+    }
+
+    function localTimestamp() {
+        var d = new Date();
+        function pad(n) { return (n < 10 ? '0' : '') + n; }
+        return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+    }
+
+    function handlePayload(payload, author, timestamp) {
         if (!payload) return;
         switch (payload.type) {
             case 'init':
@@ -372,21 +402,24 @@ var App = (function () {
             case 'move':   if (gameStarted) applyMove(payload.row, payload.col); break;
             case 'pass':   if (gameStarted) applyPass(); break;
             case 'resign': if (gameStarted) applyResign(payload.addr); break;
+            case 'chat':   appendChat(author, payload.text, timestamp); break;
         }
     }
 
     function sendMessage(payload) {
         sendRaw(chatId, payload, function (msg) {
             seen[msg.uuid] = true;
-            handlePayload(payload);
+            handlePayload(payload, myAddr, localTimestamp());
         });
     }
 
     function poll() {
-        fetchMessages(chatId, messagesRead, messagesRead + 20, function (msgs, count) {
+        var id = chatId;
+        fetchMessages(id, messagesRead, messagesRead + 20, function (msgs, count) {
+            if (id !== chatId) return;
             messagesRead += count;
             parseAppMessages(msgs).forEach(function (msg) {
-                if (!seen[msg.uuid]) { seen[msg.uuid] = true; handlePayload(msg.payload); }
+                if (!seen[msg.uuid]) { seen[msg.uuid] = true; handlePayload(msg.payload, msg.author, msg.timestamp); }
             });
         });
         pollTimer = setTimeout(poll, 5000);
@@ -466,6 +499,15 @@ var App = (function () {
         resign: function () {
             if (!gameStarted) return;
             if (confirm('Resign?')) sendMessage({ type: 'resign', addr: myAddr });
+        },
+
+        sendChat: function () {
+            if (!chatId) return;
+            var input = $('#chatInput');
+            var text = $.trim(input.val()).substring(0, CHAT_MAX_LENGTH);
+            if (!text) return;
+            input.val('');
+            sendMessage({ type: 'chat', text: text });
         }
     };
 
