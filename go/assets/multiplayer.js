@@ -48,12 +48,14 @@ var App = (function () {
     }
 
     // Fetch every message from index 0, a page at a time; a full game is longer than one page.
+    // count is the number of chat entries in the range, which includes types the API leaves out of messages.
     function fetchAllMessages(chatId, callback) {
-        var all = [];
+        var all = [], read = 0;
         (function next() {
-            fetchMessages(chatId, all.length, all.length + 100, function (msgs, count) {
-                if (count === 0) { callback(all, all.length); return; }
+            fetchMessages(chatId, read, read + 100, function (msgs, count) {
+                if (count === 0) { callback(all, read); return; }
                 all = all.concat(msgs);
+                read += count;
                 next();
             });
         })();
