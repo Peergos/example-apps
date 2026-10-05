@@ -32,6 +32,37 @@
       margin: 1rem 1rem 1rem 0;
     }
   </style>
+  <button id="choose-folder" onclick="saveTarget(true)" style="position:fixed;bottom:8px;right:8px;z-index:1000">Folder</button>
+    <script>
+	// saves go to a folder the user chose, remembered between runs, or the app's own data folder if they decline
+	let saveFolder = null;
+	function saveTarget(chooseAgain) {
+		if (saveFolder == null || chooseAgain) {
+			let grants = chooseAgain ? Promise.resolve([]) :
+				fetch('/peergos-api/v0/grants/').then(r => r.status === 200 ? r.json() : null).catch(e => null);
+			saveFolder = grants.then(existing => {
+				if (existing == null)
+					return '/peergos-api/v0/data/';
+				let usable = existing.filter(g => g.write && ! g.stale);
+				let chosen = usable.length > 0 ? Promise.resolve(usable) :
+					fetch('/peergos-api/v0/folders/?write=true&persist=true&multiple=false').then(r => r.status === 200 ? r.json() : []);
+				return chosen.then(list => {
+					let writable = list.filter(g => g.write);
+					return writable.length > 0 ? '/peergos-api/v0/folder/' + writable[0].grantId + '/' : '/peergos-api/v0/data/';
+				});
+			});
+		}
+		return saveFolder;
+	}
+	function saveFile(name, contents) {
+		return saveTarget(false).then(prefix => fetch(prefix + name, { method: 'PUT', body: contents }).then(response => {
+			if (response.ok || prefix == '/peergos-api/v0/data/')
+				return response;
+			saveFolder = null;
+			return fetch('/peergos-api/v0/data/' + name, { method: 'PUT', body: contents });
+		}));
+	}
+    </script>
     <script type="module">
         
 import WaveSurfer from './wavesurfer.esm.js'
@@ -105,11 +136,9 @@ const createWaveSurfer = () => {
 	    label.style="inline"
     	console.log("saving recording")
     	blob.arrayBuffer().then(buffer => {
-	    	let headers = {};
 	    	let contents = new Uint8Array(buffer);
 	    	let timestamp = new Date().toISOString().replace(/:/g, ".");
-			let filePath = '/peergos-api/v0/data/' + "recording-" + timestamp + ".webm";
-  			fetch(filePath, { method: 'PUT', headers: headers, body: contents })
+  			saveFile("recording-" + timestamp + ".webm", contents)
     			.then(function(response) {
       				console.log('save response status:' + response.status);
       				if(response.status == 201 || response.status == 200) {
