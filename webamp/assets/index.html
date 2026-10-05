@@ -8,11 +8,9 @@
     <div id="app" style="height: 100vh">
         <!-- Webamp will attempt to center itself within this div -->
     </div>
+    <button id="choose-folders" onclick="chooseFolders()" style="display:none;position:fixed;bottom:8px;right:8px;z-index:1000">Folders</button>
 	<script src="webamp.bundle.min.js"></script>
     <script>
-    	let href = window.frames.frameElement.contentWindow.location.href
-		let url = new URL(href);
-		let folderPath = url.searchParams.get("path");
         const Webamp = window.Webamp;
         	const webamp = new Webamp({
             	initialTracks: [],
@@ -39,36 +37,60 @@
         	// Returns a promise indicating when it's done loading.
 	        webamp.renderWhenReady(document.getElementById('app'));
 
-		loadFolder(folderPath, webamp);
-        
-    function loadFolder(folderPath, webamp) {
-    	let that = this;
+		libraryFolders().then(folders => listFolders(folders, 0, [], (tracks) => {
+			if (tracks.length == 0) {
+				webamp.appendTracks([{url: 'llama-2.91.mp3'}]);	
+				webamp.nextTrack();
+			} else {
+				recursiveLoad(tracks, () => {
+				    webamp.nextTrack();
+					addMediaHandlers(webamp);
+				}, 0);
+			}
+		}));
+
+    function listFolders(folders, index, tracks, callback) {
+    	if (index == folders.length)
+    		return callback(tracks);
+    	let folderPath = folders[index];
+    	let next = (more) => listFolders(folders, index + 1, tracks.concat(more), callback);
 		fetch(folderPath, { method: 'GET' }).then(function(response) {				
       		if (response.status === 200) {
-				response.arrayBuffer().then(function(buffer) {
-					let text = new TextDecoder().decode(buffer);
-					let json = JSON.parse(text);
-        			let files = [];
-					if (json.files.length == 0) {
-						webamp.appendTracks([{url: 'llama-2.91.mp3'}]);	
-						webamp.nextTrack();
-					} else {
-						recursiveLoad(folderPath, json.files, () => {
-						    webamp.nextTrack();
-    						that.addMediaHandlers(webamp);
-						}, 0);
-					}
-    			});
+				response.json().then(json => next(json.files.map(f => folderPath + '/' + f)));
       		} else {
       			console.log('error reading folder:' + folderPath);
+      			next([]);
       		}
       	}).catch(err => {
       		console.log('error reading folder:' + folderPath + " error:" + err);
+      		next([]);
 		});	
 	}	
-	function recursiveLoad(folderPath, files, intialLoadCallback, index) {
+	// launched on a folder from the drive, play that; otherwise the folders the user chose, asking only the first time
+	function libraryFolders() {
+		let url = new URL(window.location.href);
+		let launchedOn = url.searchParams.get("path");
+		if (launchedOn != null)
+			return Promise.resolve([launchedOn]);
+		document.getElementById("choose-folders").style.display = "";
+		let chooseAgain = url.searchParams.get("choose") == "true";
+		let grants = chooseAgain ? Promise.resolve([]) :
+			fetch('/peergos-api/v0/grants/').then(r => r.status === 200 ? r.json() : null).catch(e => null);
+		return grants.then(function(existing) {
+			if (existing == null)
+				return fetch('/peergos-api/v0/folders/').then(r => r.status === 200 ? r.json() : []);
+			let usable = existing.filter(g => ! g.stale);
+			let chosen = usable.length > 0 ? Promise.resolve(usable) :
+				fetch('/peergos-api/v0/folders/?persist=true').then(r => r.status === 200 ? r.json() : []);
+			return chosen.then(list => list.map(g => '/peergos-api/v0/folder/' + g.grantId));
+		});
+	}
+	function chooseFolders() {
+		window.location.href = window.location.pathname + '?choose=true';
+	}
+	function recursiveLoad(files, intialLoadCallback, index) {
 		if (index < files.length) {
-			let audioFilename = folderPath + '/' + files[index];
+			let audioFilename = files[index];
 			fetch(audioFilename, { method: 'GET' }).then(function(audioFileResponse) {				
       			if (audioFileResponse.status === 200) {
 					audioFileResponse.blob().then(function(blob) {
@@ -77,11 +99,11 @@
     					if (index == 0) {
     						intialLoadCallback();
     					}
-    					recursiveLoad(folderPath, files, webamp, index+1);
+    					recursiveLoad(files, intialLoadCallback, index+1);
       				});
       			} else {
       				console.log('error reading file:' + audioFilename);
-      				recursiveLoad(folderPath, files, webamp, index+1);
+      				recursiveLoad(files, intialLoadCallback, index+1);
       			}
 			});
 		}

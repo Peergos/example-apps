@@ -23,16 +23,36 @@
 	</head>
 	<body>
 		<div id="gallery-component"></div>
+		<button id="choose-folders" onclick="chooseFolders()" style="display:none;position:fixed;bottom:8px;right:8px;z-index:1000">Folders</button>
 	<script>
 	function load() {
 		let container = document.getElementById("gallery-component");
 		const gallery = new LunaGallery(container);
 
-		let href = window.location.href;
-		let url = new URL(href);
-		let folderPath = url.searchParams.get("path");
-		loadFolder(folderPath, gallery) 
-
+		libraryFolders().then(folders => folders.forEach(folderPath => loadFolder(folderPath, gallery)));
+	}
+	let shown = false;
+	// launched on a folder from the drive, play that; otherwise the folders the user chose, asking only the first time
+	function libraryFolders() {
+		let url = new URL(window.location.href);
+		let launchedOn = url.searchParams.get("path");
+		if (launchedOn != null)
+			return Promise.resolve([launchedOn]);
+		document.getElementById("choose-folders").style.display = "";
+		let chooseAgain = url.searchParams.get("choose") == "true";
+		let grants = chooseAgain ? Promise.resolve([]) :
+			fetch('/peergos-api/v0/grants/').then(r => r.status === 200 ? r.json() : null).catch(e => null);
+		return grants.then(function(existing) {
+			if (existing == null)
+				return fetch('/peergos-api/v0/folders/').then(r => r.status === 200 ? r.json() : []);
+			let usable = existing.filter(g => ! g.stale);
+			let chosen = usable.length > 0 ? Promise.resolve(usable) :
+				fetch('/peergos-api/v0/folders/?persist=true').then(r => r.status === 200 ? r.json() : []);
+			return chosen.then(list => list.map(g => '/peergos-api/v0/folder/' + g.grantId));
+		});
+	}
+	function chooseFolders() {
+		window.location.href = window.location.pathname + '?choose=true';
 	}
 	function displayInitialTitle() {
 		try {
@@ -70,7 +90,8 @@
 					//sort??
 					json.files.forEach((filename, idx) => {
 						gallery.append(folderPath + '/' + filename, filename);
-						if (idx ==0) {
+						if (! shown) {
+							shown = true;
 							gallery.show();
 							displayInitialTitle();
 						}

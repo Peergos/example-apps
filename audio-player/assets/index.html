@@ -13,18 +13,44 @@
 	</head>
 	<body>
 		<div id="audio-component"></div>
+		<button id="choose-folders" onclick="chooseFolders()" style="display:none;position:fixed;bottom:8px;right:8px;z-index:1000">Folders</button>
 	<script>
 	function load() {
-		let href = window.location.href;
-		let url = new URL(href);
-		let folderPath = url.searchParams.get("path");
-		let files = [];
-		loadFolder(folderPath, files, (allFiles) => {
+		libraryFolders().then(folders => loadFolders(folders, 0, [], (allFiles) => {
+			if (allFiles.length == 0)
+				return;
 			const container = document.getElementById('audio-component')
 			let obj = { audio: allFiles };
 			const musicPlayer = new LunaMusicPlayer(container, obj);
 			musicPlayer.play();
-		}); 
+		}));
+	}
+	function loadFolders(folders, index, allFiles, callback) {
+		if (index == folders.length)
+			return callback(allFiles);
+		loadFolder(folders[index], [], (files) => loadFolders(folders, index + 1, allFiles.concat(files), callback));
+	}
+	// launched on a folder from the drive, play that; otherwise the folders the user chose, asking only the first time
+	function libraryFolders() {
+		let url = new URL(window.location.href);
+		let launchedOn = url.searchParams.get("path");
+		if (launchedOn != null)
+			return Promise.resolve([launchedOn]);
+		document.getElementById("choose-folders").style.display = "";
+		let chooseAgain = url.searchParams.get("choose") == "true";
+		let grants = chooseAgain ? Promise.resolve([]) :
+			fetch('/peergos-api/v0/grants/').then(r => r.status === 200 ? r.json() : null).catch(e => null);
+		return grants.then(function(existing) {
+			if (existing == null)
+				return fetch('/peergos-api/v0/folders/').then(r => r.status === 200 ? r.json() : []);
+			let usable = existing.filter(g => ! g.stale);
+			let chosen = usable.length > 0 ? Promise.resolve(usable) :
+				fetch('/peergos-api/v0/folders/?persist=true').then(r => r.status === 200 ? r.json() : []);
+			return chosen.then(list => list.map(g => '/peergos-api/v0/folder/' + g.grantId));
+		});
+	}
+	function chooseFolders() {
+		window.location.href = window.location.pathname + '?choose=true';
 	}
 	function loadFolder(folderPath, files, callback) {
 		fetch(folderPath, { method: 'GET' }).then(function(response) {				
@@ -102,9 +128,11 @@
     			});
       		} else {
       			console.log('error reading folder:' + folderPath);
+      			callback(files);
       		}
       	}).catch(err => {
       		console.log('error reading folder:' + folderPath + " error:" + err);
+      		callback(files);
 		});	
 	}	
 	window.onload = function() {
