@@ -1,7 +1,7 @@
 {
     	"displayName": "Album",
     	"description": "Share memories captured by photos - github.com/Peergos/example-apps/#Album",
-    	"version": "1.0.0",
+    	"version": "1.1.0",
     	"author": "peergos",
     	"launchable": true,
     	"folderAction": false,    	

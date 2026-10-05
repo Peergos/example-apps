@@ -64,6 +64,7 @@
 						</div>
 						<div id="auth_user">
 							<div class="username"><a id="upload-link" class="persona_link" style="color: #777; cursor: pointer;" onclick="upload();">Import</a></div>
+							<div class="username"><a id="folders-link" class="persona_link" style="color: #777; cursor: pointer;" onclick="upload(true);">Folders</a></div>
 						</div>												
 				</div>
 			</div>
@@ -593,30 +594,40 @@
             let formatted = date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate();
             return formatted;
         }
-	function upload() {
+	function upload(chooseAgain) {
 		let isAdmin = ChatMetadata.admins.findIndex(v => v === Username) > -1;
 		if (!isAdmin) {
 			return;
 		}
 		let link = document.getElementById("upload-link");
 		link.disabled = true;  
-		fetch('/peergos-api/v0/folders/', { method: 'GET' }).then(function(response) {
-      		if (response.status === 200) {
-				response.arrayBuffer().then(function(buffer) {
-					showSpinner();
-					let text = new TextDecoder().decode(buffer);
-					let folders = JSON.parse(text);
-					retrieveFolders(folders, 0, (newCount) => {
-						displayPhotos();
-						hideSpinner();
-						console.log('new files loaded:' + newCount);	
-						link.disabled = false;  	
-					}, 0);
-    			});
-      		} else {
-		        console.log('Unable to upload file.  Error:' + response.status);
-      		}
-		});			
+		photoFolders(chooseAgain === true).then(function(folders) {
+			if (folders.length == 0) {
+				link.disabled = false;
+				return;
+			}
+			showSpinner();
+			retrieveFolders(folders, 0, (newCount) => {
+				displayPhotos();
+				hideSpinner();
+				console.log('new files loaded:' + newCount);	
+				link.disabled = false;  	
+			}, 0);
+		});
+	}
+	// remembered folders need no dialog; a server without folder grants gets the plain picker
+	function photoFolders(chooseAgain) {
+		let grants = chooseAgain ? Promise.resolve([]) :
+			fetch('/peergos-api/v0/grants/').then(r => r.status === 200 ? r.json() : null).catch(e => null);
+		return grants.then(function(existing) {
+			if (existing == null) {
+				return fetch('/peergos-api/v0/folders/').then(r => r.status === 200 ? r.json() : []);
+			}
+			let usable = existing.filter(g => ! g.stale);
+			let chosen = usable.length > 0 ? Promise.resolve(usable) :
+				fetch('/peergos-api/v0/folders/?persist=true').then(r => r.status === 200 ? r.json() : []);
+			return chosen.then(list => list.map(g => '/peergos-api/v0/folder/' + g.grantId));
+		});
 	}
 	function loadFile(folderPath, filename, callback) {
 		let existingTopic = Topics.filter(t => t.contents === filename);

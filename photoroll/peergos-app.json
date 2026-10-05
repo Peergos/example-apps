@@ -1,7 +1,7 @@
 {
     	"displayName": "Photo Roll",
     	"description": "Share photos - github.com/Peergos/example-apps/#photo-roll",
-    	"version": "1.0.0",
+    	"version": "1.1.0",
     	"author": "peergos",
     	"launchable": true,
     	"folderAction": false,    	
