@@ -112,6 +112,10 @@ WYSIWYG Markdown Editor
 ## Todo
 #### https://github.com/DumbWareio/DumbKan
 
+## Address Book
+
+Manage contacts in multiple address books. Uses the MANAGE_CONTACTS permission, so it reads and writes the same contacts that Peergos serves over CardDAV to phones and desktop clients. Contacts can be imported from .vcf files.
+
 ## Tasks
 
 ## TodoMVC

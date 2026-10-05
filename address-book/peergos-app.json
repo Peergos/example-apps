@@ -1,0 +1,10 @@
+{
+    "displayName": "Address Book",
+    "description": "Manage your contacts and address books, synced with CardDAV",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": true,
+    "folderAction": false,
+    "appIcon": "icon.png",
+    "permissions": ["MANAGE_CONTACTS"]
+}
