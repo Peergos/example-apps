@@ -1,0 +1,10 @@
+{
+    "displayName": "Plain Notes",
+    "description": "Plain text notes, kept as .txt files in a folder of your Drive",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": true,
+    "folderAction": false,
+    "appIcon": "icon.png",
+    "permissions": []
+}

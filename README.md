@@ -88,6 +88,10 @@ Based on release 21.2.7 - May 3 2023, licensed under Apache v2
 
 Block-style editor. Edit .note files
 
+## Plain Notes
+
+Plain text notes, each a .txt file in a folder of your Drive that you choose once in Peergos' folder picker - so the notes can be shared, synced to your devices and opened in other apps. A note's title is its file name. Needs no manifest permission: the picker is the consent. Rename and move keep a note's sharing on a Peergos with the folder API's rename and move; on an older one a rename is a copy and a delete. Its text follows the Peergos language (`lang` param, else `navigator.language`); the strings are in `assets/i18n.js`.
+
 ## Mini-photo-editor
 #### https://github.com/xdadda/mini-photo-editor
 

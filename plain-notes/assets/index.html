@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plain Notes</title>
+<link rel="stylesheet" href="notes.css">
+</head>
+<body>
+<div id="app" class="show-list">
+	<section id="setup" class="setup" hidden>
+		<div class="empty-box">
+			<span class="empty-mark" aria-hidden="true">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+			</span>
+			<h1 id="setupTitle">Choose a folder for your notes</h1>
+			<p id="setupText">Each note is saved as a plain .txt file in a folder of your Drive, so you can share it, sync it to your devices and open it in other apps.</p>
+			<div class="row-buttons">
+				<button type="button" id="setupCancel" data-i18n="cancel" hidden>Cancel</button>
+				<button type="button" id="setupRetry" data-i18n="tryAgain" hidden>Try again</button>
+				<button type="button" class="primary" id="setupChoose" data-i18n="chooseFolder">Choose folder</button>
+			</div>
+			<p class="small" data-i18n="setupNote">Peergos asks you to confirm the folder. You can pick any folder there, or make a new one.</p>
+		</div>
+	</section>
+
+	<div id="panes" class="panes" hidden>
+		<section id="list" class="pane list" aria-label="Notes" data-i18n-aria="notes">
+			<div class="pane-head">
+				<h2 data-i18n="notes">Notes</h2>
+				<button type="button" class="primary icon" id="newButton" aria-label="New note" title="New note" data-i18n-label="newNote">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+				</button>
+			</div>
+			<div class="search"><input id="search" type="search" placeholder="Search" aria-label="Search notes" data-i18n-placeholder="search" data-i18n-aria="searchNotes"></div>
+			<p id="readOnly" class="read-only" data-i18n="readOnly" hidden>Read only: Peergos let this app read the folder but not change it.</p>
+			<ul id="notes" class="notes"></ul>
+			<div class="folder">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+				<button type="button" id="folderPath" class="folder-path" aria-expanded="false"></button>
+				<button type="button" class="quiet icon" id="changeFolder" aria-label="Change folder" title="Change folder" data-i18n-label="changeFolder">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M8.5 11h7M13.5 9l2 2-2 2M15.5 15h-7M10.5 13l-2 2 2 2"/></svg>
+				</button>
+			</div>
+		</section>
+
+		<main id="detail" class="pane detail">
+			<div id="editor" hidden>
+				<div class="detail-head">
+					<button type="button" class="quiet icon back" id="backButton" aria-label="Back to notes" title="Back to notes" data-i18n-label="backToNotes">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+					</button>
+					<span id="status" class="status" role="status"></span>
+					<button type="button" class="danger icon" id="deleteButton" aria-label="Delete note" title="Delete note" data-i18n-label="deleteNote">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 12.5h9L17.5 7M10 11v5M14 11v5"/></svg>
+					</button>
+					<button type="button" class="primary icon" id="saveButton" aria-label="Save" title="Save (Ctrl+S)" data-i18n-aria="save" data-i18n-title="saveShortcut">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h10l3 3v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg>
+					</button>
+				</div>
+				<div class="content">
+					<div>
+						<label class="label" for="title" data-i18n="title">Title</label>
+						<input id="title" class="title" type="text" placeholder="Name this note" data-i18n-placeholder="titlePlaceholder" aria-describedby="titleHint" autocomplete="off" spellcheck="true">
+						<p id="titleHint" class="hint"></p>
+					</div>
+					<div>
+						<div class="label-row">
+							<label class="label" for="body" data-i18n="note">Note</label>
+							<button type="button" class="quiet icon toggle" id="wrapButton" aria-label="Wrap lines" title="Wrap lines" data-i18n-label="wrapLines" aria-pressed="true">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h13a3 3 0 0 1 0 6h-4"/><path d="M15 16l-2 2 2 2"/><path d="M4 18h5"/></svg>
+							</button>
+						</div>
+						<textarea id="body" class="body" placeholder="Write your note…" data-i18n-placeholder="bodyPlaceholder" spellcheck="true"></textarea>
+					</div>
+				</div>
+			</div>
+			<div id="noNote" class="empty-box" hidden>
+				<p id="noNoteText">This folder has no notes yet.</p>
+				<button type="button" class="primary" id="emptyNewButton" data-i18n="newNote">New note</button>
+			</div>
+		</main>
+	</div>
+
+	<div id="toast" class="toast" role="status" hidden></div>
+
+	<div id="dialog" class="scrim" hidden>
+		<section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+			<h2 id="dialogTitle"></h2>
+			<div id="dialogBody" class="dialog-body"></div>
+			<div id="dialogActions" class="actions"></div>
+		</section>
+	</div>
+</div>
+<script src="i18n.js"></script>
+<script src="notes.js"></script>
+</body>
+</html>
