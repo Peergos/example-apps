@@ -129,7 +129,7 @@
                                                     <span v-if="message.sendTime.length == 0" class="chat-message-info">
                                                         <i @click="reply(message)" style="cursor: pointer">
                                                             <svg class="inline-svg" viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path d="M1792 1120q0 166-127 451-3 7-10.5 24t-13.5 30-13 22q-12 17-28 17-15 0-23.5-10t-8.5-25q0-9 2.5-26.5t2.5-23.5q5-68 5-123 0-101-17.5-181t-48.5-138.5-80-101-105.5-69.5-133-42.5-154-21.5-175.5-6h-224v256q0 26-19 45t-45 19-45-19l-512-512q-19-19-19-45t19-45l512-512q19-19 45-19t45 19 19 45v256h224q713 0 875 403 53 134 53 333z"/></svg>
-                                                        </i> | {{message.sender}} |
+                                                        </i> | {{message.sender}} <a v-if="introducerOf(message.sender) != null" class="chat-introduce" @click="askViaIntroduction(message.sender)">ask to be friends, via {{introducerOf(message.sender)}}</a> |
                                                         <i>
                                                             <svg class="inline-svg imageRotate" viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path d="M526 1394q0 53-37.5 90.5t-90.5 37.5q-52 0-90-38t-38-90q0-53 37.5-90.5t90.5-37.5 90.5 37.5 37.5 90.5zm498 206q0 53-37.5 90.5t-90.5 37.5-90.5-37.5-37.5-90.5 37.5-90.5 90.5-37.5 90.5 37.5 37.5 90.5zm-704-704q0 53-37.5 90.5t-90.5 37.5-90.5-37.5-37.5-90.5 37.5-90.5 90.5-37.5 90.5 37.5 37.5 90.5zm1202 498q0 52-38 90t-90 38q-53 0-90.5-37.5t-37.5-90.5 37.5-90.5 90.5-37.5 90.5 37.5 37.5 90.5zm-964-996q0 66-47 113t-113 47-113-47-47-113 47-113 113-47 113 47 47 113zm1170 498q0 53-37.5 90.5t-90.5 37.5-90.5-37.5-37.5-90.5 37.5-90.5 90.5-37.5 90.5 37.5 37.5 90.5zm-640-704q0 80-56 136t-136 56-136-56-56-136 56-136 136-56 136 56 56 136zm530 206q0 93-66 158.5t-158 65.5q-93 0-158.5-65.5t-65.5-158.5q0-92 65.5-158t158.5-66q92 0 158 66t66 158z"/></svg>
                                                         </i> <i v-if="message.edited && !message.deleted">&nbsp; [edited]</i>
@@ -137,7 +137,7 @@
                                                     <span v-if="message.sendTime.length > 0" class="chat-message-info">
                                                         <i @click="reply(message)" style="cursor: pointer">
                                                             <svg class="inline-svg" viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path d="M1792 1120q0 166-127 451-3 7-10.5 24t-13.5 30-13 22q-12 17-28 17-15 0-23.5-10t-8.5-25q0-9 2.5-26.5t2.5-23.5q5-68 5-123 0-101-17.5-181t-48.5-138.5-80-101-105.5-69.5-133-42.5-154-21.5-175.5-6h-224v256q0 26-19 45t-45 19-45-19l-512-512q-19-19-19-45t19-45l512-512q19-19 45-19t45 19 19 45v256h224q713 0 875 403 53 134 53 333z"/></svg>
-                                                        </i> | {{message.sender}} | {{message.sendTime}} <i v-if="message.edited && !message.deleted">&nbsp; [edited]</i>
+                                                        </i> | {{message.sender}} <a v-if="introducerOf(message.sender) != null" class="chat-introduce" @click="askViaIntroduction(message.sender)">ask to be friends, via {{introducerOf(message.sender)}}</a> | {{message.sendTime}} <i v-if="message.edited && !message.deleted">&nbsp; [edited]</i>
                                                     </span>
                                                 </div>
                                             </div>
@@ -209,7 +209,7 @@
                                                             <span v-if="message.sendTime.length == 0" class="chat-message-info">
                                                                 <i @click="reply(message)" style="cursor: pointer">
                                                                     <svg class="inline-svg" viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path d="M1792 1120q0 166-127 451-3 7-10.5 24t-13.5 30-13 22q-12 17-28 17-15 0-23.5-10t-8.5-25q0-9 2.5-26.5t2.5-23.5q5-68 5-123 0-101-17.5-181t-48.5-138.5-80-101-105.5-69.5-133-42.5-154-21.5-175.5-6h-224v256q0 26-19 45t-45 19-45-19l-512-512q-19-19-19-45t19-45l512-512q19-19 45-19t45 19 19 45v256h224q713 0 875 403 53 134 53 333z"/></svg>
-                                                                </i> | {{message.sender}} |
+                                                                </i> | {{message.sender}} <a v-if="introducerOf(message.sender) != null" class="chat-introduce" @click="askViaIntroduction(message.sender)">ask to be friends, via {{introducerOf(message.sender)}}</a> |
                                                                 <i>
                                                                     <svg class="inline-svg imageRotate" viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path d="M526 1394q0 53-37.5 90.5t-90.5 37.5q-52 0-90-38t-38-90q0-53 37.5-90.5t90.5-37.5 90.5 37.5 37.5 90.5zm498 206q0 53-37.5 90.5t-90.5 37.5-90.5-37.5-37.5-90.5 37.5-90.5 90.5-37.5 90.5 37.5 37.5 90.5zm-704-704q0 53-37.5 90.5t-90.5 37.5-90.5-37.5-37.5-90.5 37.5-90.5 90.5-37.5 90.5 37.5 37.5 90.5zm1202 498q0 52-38 90t-90 38q-53 0-90.5-37.5t-37.5-90.5 37.5-90.5 90.5-37.5 90.5 37.5 37.5 90.5zm-964-996q0 66-47 113t-113 47-113-47-47-113 47-113 113-47 113 47 47 113zm1170 498q0 53-37.5 90.5t-90.5 37.5-90.5-37.5-37.5-90.5 37.5-90.5 90.5-37.5 90.5 37.5 37.5 90.5zm-640-704q0 80-56 136t-136 56-136-56-56-136 56-136 136-56 136 56 56 136zm530 206q0 93-66 158.5t-158 65.5q-93 0-158.5-65.5t-65.5-158.5q0-92 65.5-158t158.5-66q92 0 158 66t66 158z"/></svg>
                                                                 </i> <i v-if="message.edited && !message.deleted">&nbsp; [edited]</i>
@@ -217,7 +217,7 @@
                                                             <span v-if="message.sendTime.length > 0" class="chat-message-info">
                                                                 <i @click="reply(message)" style="cursor: pointer">
                                                                     <svg class="inline-svg" viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path d="M1792 1120q0 166-127 451-3 7-10.5 24t-13.5 30-13 22q-12 17-28 17-15 0-23.5-10t-8.5-25q0-9 2.5-26.5t2.5-23.5q5-68 5-123 0-101-17.5-181t-48.5-138.5-80-101-105.5-69.5-133-42.5-154-21.5-175.5-6h-224v256q0 26-19 45t-45 19-45-19l-512-512q-19-19-19-45t19-45l512-512q19-19 45-19t45 19 19 45v256h224q713 0 875 403 53 134 53 333z"/></svg>
-                                                                </i> | {{message.sender}} | {{message.sendTime}} <i v-if="message.edited && !message.deleted">&nbsp; [edited]</i></span>
+                                                                </i> | {{message.sender}} <a v-if="introducerOf(message.sender) != null" class="chat-introduce" @click="askViaIntroduction(message.sender)">ask to be friends, via {{introducerOf(message.sender)}}</a> | {{message.sendTime}} <i v-if="message.edited && !message.deleted">&nbsp; [edited]</i></span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -378,6 +378,8 @@ module.exports = {
             newMessageText: "",
             newMessageMaxLength: 2000,
             allChats: new Map(),
+            // by chat, who could introduce us to each member we don't follow
+            introductions: {},
             allMessageThreads: new Map(),
             allThreadsHashToIndex: new Map(),
             chatTitle: "",
@@ -586,6 +588,21 @@ module.exports = {
                     that.drainCommandQueue(null);
                 });
             }
+        },
+        introducerOf: function(member) {
+            let intros = this.introductions[this.selectedChatId];
+            return intros == null ? null : intros[member];
+        },
+        // Peergos finds the introduction and asks the user before sending anything
+        askViaIntroduction: function(member) {
+            let that = this;
+            fetch('/peergos-api/v1/chat/' + this.selectedChatId + '/introduce?member=' + encodeURIComponent(member), { method: 'POST' }).then(function(response) {
+                if (response.status === 201) {
+                    let intros = Object.assign({}, that.introductions[that.selectedChatId]);
+                    delete intros[member];
+                    that.introductions = Object.assign({}, that.introductions, {[that.selectedChatId]: intros});
+                }
+            });
         },
         showToastError: function(msg) {
             this.$toast.error(msg, {timeout:false});
@@ -1156,6 +1173,7 @@ module.exports = {
                 return;
             }
             chat.hasFriendsInChat = response.hasFriendsInChat;
+            this.introductions = Object.assign({}, this.introductions, {[response.chatId]: response.introductions || {}});
             this.updateMessageThread(response.chatId, response.messages);
             if (response.chatId == this.selectedChatId) {
                 this.buildMessageThread(response.chatId);
@@ -1520,6 +1538,10 @@ module.exports = {
 }
 </script>
 <style>
+.chat-introduce {
+    cursor: pointer;
+    text-decoration: underline;
+}
 .modal-mask {
   position: fixed;
   z-index: 2500;
