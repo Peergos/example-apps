@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Passwords</title>
+<link rel="stylesheet" href="passwords.css">
+</head>
+<body>
+<div id="app" class="show-list">
+	<header class="bar">
+		<!-- Peergos' window already shows the app's name, so here it is for screen readers only -->
+		<h1 class="sr" data-i18n="appName">Passwords</h1>
+		<div class="search">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.2-4.2"/></svg>
+			<input id="search" type="search" placeholder="Search" aria-label="Search" data-i18n-placeholder="search" data-i18n-aria="searchItems" autocomplete="off">
+		</div>
+		<span class="spacer"></span>
+		<button type="button" class="wide-only" id="importButton">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg><span data-i18n="import">Import</span>
+		</button>
+		<button type="button" class="wide-only" id="exportButton">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12M7 11l5 5 5-5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg><span data-i18n="export">Export</span>
+		</button>
+		<button type="button" class="primary wide-only" id="newButton">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span data-i18n="newItem">New item</span>
+		</button>
+		<div class="menu-wrap">
+			<button type="button" class="quiet icon phone-only" id="moreButton" aria-expanded="false" aria-label="More" title="More" data-i18n-label="more">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h.01M12 12h.01M19 12h.01"/></svg>
+			</button>
+			<div id="moreMenu" class="menu" hidden>
+				<button type="button" id="menuImport" data-i18n="import">Import</button>
+				<button type="button" id="menuExport" data-i18n="export">Export</button>
+			</div>
+		</div>
+	</header>
+
+	<div id="loading" class="loading" data-i18n="loading">Loading…</div>
+	<div id="loadError" class="empty-box" hidden>
+		<span class="empty-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 2.8 19.5h18.4z"/><path d="M12 10v4M12 17v.5"/></svg></span>
+		<h2 data-i18n="loadErrorTitle">Your passwords couldn’t be read</h2>
+		<p id="loadErrorText"></p>
+		<div class="row-buttons"><button type="button" class="primary" id="retryButton" data-i18n="tryAgain">Try again</button></div>
+	</div>
+	<section id="firstRun" class="empty-box" hidden>
+		<span class="empty-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M16 7l3 3M14 9l2 2"/></svg></span>
+		<h2 data-i18n="firstTitle">No passwords yet</h2>
+		<p data-i18n="firstText">Bring them over from Bitwarden or KeePassXC, or add your first one. They are kept in your Peergos storage.</p>
+		<div class="row-buttons">
+			<button type="button" class="primary" id="firstImport" data-i18n="import">Import</button>
+			<button type="button" id="firstNew" data-i18n="newItem">New item</button>
+		</div>
+	</section>
+
+	<div id="panes" class="panes" hidden>
+		<section id="list" class="pane list" aria-label="Items" data-i18n-aria="items">
+			<div class="filters">
+				<select id="typeFilter" aria-label="Type" data-i18n-aria="type"></select>
+				<select id="folderFilter" aria-label="Folder" data-i18n-aria="folder"></select>
+				<button type="button" class="quiet icon" id="foldersButton" aria-label="Folders" title="Folders" data-i18n-label="folders">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></svg>
+				</button>
+			</div>
+			<ul id="items" class="items"></ul>
+		</section>
+		<main id="detail" class="pane detail"></main>
+	</div>
+
+	<button type="button" class="primary icon fab" id="fabNew" aria-label="New item" title="New item" data-i18n-label="newItem">
+		<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+	</button>
+
+	<div id="toast" class="toast" role="status" hidden></div>
+
+	<div id="dialog" class="scrim" hidden>
+		<section class="dialog" id="dialogBox" role="dialog" aria-modal="true" aria-labelledby="dialogTitle" aria-describedby="dialogBody" tabindex="-1">
+			<h2 id="dialogTitle"></h2>
+			<div id="dialogBody" class="dialog-body"></div>
+			<div id="dialogActions" class="actions"></div>
+		</section>
+	</div>
+	<input type="file" id="fileInput" hidden>
+</div>
+<script src="i18n.js"></script>
+<script src="ui.js"></script>
+<script src="totp.js"></script>
+<script src="lib/jsqr/dist/jsQR.js"></script>
+<script src="qr.js"></script>
+<script src="types.js"></script>
+<script src="lib/hash-wasm/dist/argon2.umd.min.js"></script>
+<script src="protected.js"></script>
+<script src="formats.js"></script>
+<script src="vault.js"></script>
+<script src="editor.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
