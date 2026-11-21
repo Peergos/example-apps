@@ -72,6 +72,7 @@ const Vault = (() => {
 		if (r.status == 404 && ! seenItems && ! await listed())
 			return empty();
 		await expect(r, 200);
+		let tag = r.headers.get('ETag');
 		let text = new TextDecoder().decode(await r.arrayBuffer());
 		let d;
 		try {
@@ -92,8 +93,14 @@ const Vault = (() => {
 			d.folders = [];
 		if (d.items.length > 0)
 			seenItems = true;
+		if (tag)
+			tags.set(d, tag);
 		return d;
 	}
+
+	// the ETag each vault read came with: the version a write made from it may replace
+	const tags = new WeakMap();
+	class Changed extends Error {}
 
 	// whether the data folder's listing has the vault in it; a folder that isn't there yet has nothing in it
 	async function listed() {
@@ -105,8 +112,15 @@ const Vault = (() => {
 		return (list.files || []).some(f => (typeof f == 'string' ? f : f.name) == FILE);
 	}
 
+	// Written only over the version it was read from (If-Match): 412 when another device saved since. A Peergos that
+	// doesn't know If-Match writes it as before.
 	async function write(d) {
-		await expect(await within(signal => fetch(DATA + FILE, {method: 'PUT', body: new TextEncoder().encode(JSON.stringify(d)), signal})), 200, 201);
+		let tag = tags.get(d);
+		let r = await within(signal => fetch(DATA + FILE, {method: 'PUT', body: new TextEncoder().encode(JSON.stringify(d)),
+			headers: tag ? {'If-Match': tag} : {}, signal}));
+		if (r.status == 412)
+			throw new Changed();
+		await expect(r, 200, 201);
 	}
 
 	// a load waits for any change under way, so it never shows the vault from before that change. One asked for only
@@ -126,13 +140,14 @@ const Vault = (() => {
 	}
 
 	// A change is a function applied to a fresh copy of the vault: before each save the file is read again and only
-	// this change goes onto it, so what another device saved meanwhile is kept. Changes run one at a time. The data
-	// API has no conditional write, so a save on another device in the moment between this read and write is lost.
-	// Peergos refuses a write made from a state another device has since moved on from, and its client sees that
-	// other save only some seconds later, so a refused write is tried once more, after that, from what is read then.
+	// this change goes onto it, so what another device saved meanwhile is kept. Changes run one at a time. The save
+	// is written only over the version read (If-Match), so one another device makes in the moment between this read
+	// and write isn't lost: the change is made again on what is read then. Peergos' client sees another device's save
+	// only some seconds later, so the reads after a refusal wait a little longer each time. (On a Peergos without
+	// If-Match a save in that moment is lost.) A write Peergos refuses outright is tried once more, the same way.
 	function change(apply) {
 		let result = queue.then(async () => {
-			for (let attempt = 1; ; attempt++) {
+			for (let attempt = 1, changed = 0; ; attempt++) {
 				// the retry too: the network may have gone while it waited
 				if (offline())
 					throw new NoAnswer(t('offline'));
@@ -141,6 +156,14 @@ const Vault = (() => {
 				try {
 					await write(fresh);
 				} catch (e) {
+					if (e instanceof Changed) {
+						// 1, 2, 4, 8, 8 s: some 23 s, enough for the client to see the other save
+						if (++changed > 5)
+							throw new Error(t('serverAnswered', 412));
+						await new Promise(resolve => setTimeout(resolve, Math.min(1000 * 2 ** (changed - 1), 8000)));
+						attempt--;
+						continue;
+					}
 					// a write Peergos refused is tried again, however long the refusal took: on a slow uplink one
 					// refused for a save from another device comes only after the upload; one it never answered isn't
 					// waited for twice
