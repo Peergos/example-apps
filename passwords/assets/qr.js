@@ -22,7 +22,7 @@ const Qr = (() => {
 
 	// jsQR takes seconds over a large photo, tens of seconds on a slow phone, and nothing on the page answers while it
 	// runs: it runs in a worker. Where one can't be started, or isn't ready within 3 s, it runs here. A worker is ready
-	// in a fraction of a second, or never: in Firefox, Peergos doesn't answer the worker's own request for jsQR.
+	// in a fraction of a second, or never: in Firefox, an older Peergos doesn't answer the worker's own request for jsQR.
 	let noWorker = false;
 	function startWorker() {
 		return new Promise(resolve => {

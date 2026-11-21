@@ -1077,10 +1077,10 @@ async function changeFolders(change) {
 	render();
 }
 
-// Peergos asks the user to confirm the name, and saves into the user's home folder: apps can't download. It writes
-// over a file of the same name there without asking, so every name proposed carries the time, to the second, as
-// Bitwarden names its exports. Its service worker reads the name with decodeURI, which leaves # & ? and the like
-// encoded, so those are proposed as _. Gives the name proposed, which is the one told; a save the user cancels, or
+// Peergos asks the user to confirm the name, and saves into the user's home folder: apps can't download. An older
+// Peergos writes over a file of the same name there without asking, so every name proposed carries the time, to the
+// second, as Bitwarden names its exports. Its service worker reads the name with decodeURI, which leaves # & ? and the
+// like encoded, so those are proposed as _. Gives the name proposed, which is the one told; a save the user cancels, or
 // Peergos refuses, is told as not saved and gives null.
 async function saveToPeergos(name, bytes) {
 	let proposed = name.replace(/[#$&+,/:;=?@\\]/g, '_');
