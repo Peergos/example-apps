@@ -1,0 +1,10 @@
+{
+    "displayName": "Passwords",
+    "description": "Passwords, one-time codes, cards and notes in your Peergos storage; imports and exports Bitwarden",
+    "version": "1.0.0",
+    "author": "peergos",
+    "launchable": true,
+    "folderAction": false,
+    "appIcon": "icon.png",
+    "permissions": ["STORE_APP_DATA"]
+}
